@@ -1,5 +1,13 @@
 # Chapter & Verse — Version history
 
+## v1.2.3 — 22 October 2026
+**Fixes the long pauses between passages in the book reader.** There were three causes:
+- **No lookahead.** Each passage was only generated after the previous one finished playing, so every boundary was a full generation wait. Now the next three passages generate in the background while the current one plays (one at a time, in order, off the main thread). Passages already generated, for example after seeking back, are reused from the cache.
+- **Mid-sentence cuts.** Text was cut every 190 characters on word boundaries. Passages now end at sentence ends (up to 230 characters; abbreviations such as "Mr." are respected), and only very long sentences are split, at commas first. The first passage of a session is shorter (up to 140 characters) so reading starts sooner.
+- **Silent padding.** Kokoro adds silence to the start and end of every clip. It is now trimmed, leaving about 20 ms at the start and 40 ms at the end.
+- If George generates more slowly than the audio plays, the status line says "George is catching up…" and reports this device's speed (for example "0.6× real time"). Lookahead cannot hide pauses when generation is slower than speech, so the message suggests lowering the Speed slider.
+- Reading position and bookmarks now move to the passage being read; resuming starts at the saved paragraph.
+
 ## v1.2.2 — 22 October 2026
 **Root cause of the freezing and slow Test a Voice:** Kokoro's phonemiser and ONNX inference were running on the page's own thread. The model runs single-threaded WebAssembly (GitHub Pages cannot send the headers needed for multi-threading), so every generation froze the whole page, including the Stop button and status text.
 

@@ -1,4 +1,4 @@
-/* Chapter & Verse v1.2.2 — Kokoro inference worker.
+/* Chapter & Verse v1.2.3 — Kokoro inference worker.
    Model download, phonemising and ONNX inference all run here, off the page's main thread,
    so the interface stays responsive while George is generating speech.
    Protocol (main -> worker): {type:'init',voice} · {type:'generate',id,text,voice}

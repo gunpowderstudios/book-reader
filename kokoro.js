@@ -1,8 +1,8 @@
-/* Chapter & Verse v1.2.2 — Kokoro narration controller (main thread).
+/* Chapter & Verse v1.2.3 — Kokoro narration controller (main thread).
    Speech is generated inside kokoro-worker.js, a Web Worker, so this page never runs the model itself.
    One generation at a time; stale requests are dropped; every finished clip is cached. */
 (()=>{'use strict';
-const VERSION='1.2.2';
+const VERSION='1.2.3';
 const VOICES={bm_george:'George — British male'}; /* add more Kokoro voice ids here later; the Test tab picks them up */
 const DEFAULT_VOICE='bm_george';
 const MAX_TEST_CHARS=300;            /* keeps a sample well inside Kokoro's ~510-token limit */
@@ -81,6 +81,14 @@ function toWav(f32,hz){ /* 16-bit mono PCM: half the size of the library's float
  for(let i=0;i<n;i++){const s=Math.max(-1,Math.min(1,f32[i]));v.setInt16(44+i*2,s<0?s*32768:s*32767,true)}
  return new Blob([v.buffer],{type:'audio/wav'});
 }
+function trimSilence(f){ /* Kokoro pads each clip with silence; trimming it shortens the gap between passages */
+ const T=0.004,pad=480;let a=0,b=f.length;
+ while(a<b&&Math.abs(f[a])<T)a++;
+ while(b>a&&Math.abs(f[b-1])<T)b--;
+ a=Math.max(0,a-pad);b=Math.min(f.length,b+pad*2);
+ return b-a<2400?f:f.subarray(a,b);
+}
+let lastSpeed=0; /* seconds of speech produced per second of generating (>1 = faster than real time) */
 const cache=new Map();let cacheBytes=0;
 function cacheGet(k){const v=cache.get(k);if(v){cache.delete(k);cache.set(k,v)}return v}
 function cachePut(k,v){
@@ -109,7 +117,8 @@ async function pump(){
     if(job.stale()){job.reject(CANCELLED);continue}
     if(job.onGenerate)job.onGenerate();
     const r=await call({type:'generate',text:job.text,voice:job.voice});
-    const blob=toWav(r.samples,r.rate),audioSec=r.samples.length/r.rate;
+    const pcm=trimSilence(r.samples),blob=toWav(pcm,r.rate),audioSec=pcm.length/r.rate;
+    if(r.ms>0)lastSpeed=audioSec/(r.ms/1000);
     cachePut(job.key,{blob,audioSec}); /* cached even if the user pressed Stop meanwhile */
     job.resolve({blob,audioSec,genSec:r.ms/1000,cached:false});
    }catch(e){job.reject(e)}
@@ -196,11 +205,48 @@ async function testVoice(raw){
 }
 function stopTest(){stop();if(testState==='error')setTest('idle','Ready.')}
 
-/* ───────── Book narration (unchanged behaviour; speech now comes from the worker) ───────── */
-function chunks(str){
- const words=str.match(/\S+\s*/g)||[],out=[];let text='';
- for(let w of words){if(text.length+w.length>190&&text){out.push(text.trim());text=''}while(w.length>190){out.push(w.slice(0,190));w=w.slice(190)}text+=w}
- if(text.trim())out.push(text.trim());return out;
+/* ───────── Book narration ───────── */
+const LOOKAHEAD=3;                  /* passages generated ahead of the one being played */
+const CHUNK_MAX=230,FIRST_CHUNK_MAX=140; /* short first passage = faster start */
+const ABBR=/\b(?:Mr|Mrs|Ms|Dr|St|Prof|Sr|Jr|vs|etc|No|Mt|Capt|Col|Gen|Lt|Sgt)\.$/;
+function sentences(str){
+ const raw=str.match(/[^.!?…]+(?:[.!?…]+["'”’)\]]*|$)\s*/g)||[str],out=[];
+ for(const x of raw){if(out.length&&ABBR.test(out[out.length-1].trim()))out[out.length-1]+=x;else out.push(x)}
+ return out;
+}
+function splitLong(s,max){ /* only for sentences longer than max: split at commas etc., then at spaces */
+ if(s.length<=max)return [s];
+ const out=[];let buf='';
+ for(let p of s.match(/[^,;:—–]+[,;:—–]*\s*/g)||[s]){
+  while(p.length>max){
+   const cut=p.lastIndexOf(' ',max),k=cut>max*0.5?cut:max;
+   if(buf){out.push(buf.trim());buf=''}
+   out.push(p.slice(0,k).trim());p=p.slice(k);
+  }
+  if(buf&&buf.length+p.length>max){out.push(buf.trim());buf=''}
+  buf+=p;
+ }
+ if(buf.trim())out.push(buf.trim());
+ return out;
+}
+function chunks(str,max=CHUNK_MAX){ /* sentence-aware: passages end where a sentence ends whenever possible */
+ const out=[];let buf='';
+ for(const sent of sentences(norm(str)))for(const piece of splitLong(sent,max)){
+  if(buf&&buf.length+piece.length+1>max){out.push(buf.trim());buf=''}
+  buf+=(buf?' ':'')+piece.trim();
+ }
+ if(buf.trim())out.push(buf.trim());
+ return out;
+}
+function* segments(S){ /* lazily walks the book from the current position */
+ let ci=S.index,p=S.p,first=true;
+ while(ci<S.chapters.length){
+  const ch=S.chapters[ci];
+  if(!ch||p>=ch.paragraphs.length){ci++;p=0;continue}
+  const parts=chunks(ch.paragraphs[p],first?FIRST_CHUNK_MAX:CHUNK_MAX);first=false;
+  for(let k=0;k<parts.length;k++)yield{ci,p,last:k===parts.length-1,text:parts[k]};
+  p++;
+ }
 }
 async function unpause(s){
  while(s.paused&&!s.cancelled)await new Promise(resolve=>{s.wake=resolve});
@@ -225,24 +271,34 @@ function toggle({S,update,render}){
  (async()=>{
   try{
    if(!engineReady){status('Loading George… (first visit downloads the voice model once)');sink=t=>{if(!stale())status(t)}}
-   while(!stale()&&S.index<S.chapters.length){
+   const it=segments(S),ahead=[];
+   /* Keep the next few passages generating while the current one plays. The queue is serial, so this never runs two at once. */
+   const fill=()=>{
+    while(ahead.length<LOOKAHEAD){
+     const n=it.next();if(n.done)break;
+     const item={seg:n.value,done:false};
+     item.job=synth(n.value.text,DEFAULT_VOICE,{stale,onGenerate:()=>{if(!stale()){sink=null}}});
+     item.job.then(()=>{item.done=true},()=>{item.done=true});
+     ahead.push(item);
+    }
+   };
+   fill();
+   while(!stale()){
+    const item=ahead.shift();
+    if(!item){status('Finished book');break}
+    fill();
     await unpause(s);if(stale())return;
-    const chapter=S.chapters[S.index];if(!chapter)break;
-    if(S.p>=chapter.paragraphs.length){
-     if(S.index===S.chapters.length-1){status('Finished book');break}
-     S.index++;S.p=0;render();continue;
+    if(!item.done&&engineReady){
+     const spd=lastSpeed&&lastSpeed<rate()*1.05?' This device makes speech at '+lastSpeed.toFixed(1)+'× real time, so lower the Speed slider to reduce pauses.':'';
+     status('George is catching up…'+spd);
     }
-    const paragraph=S.p,parts=chunks(chapter.paragraphs[paragraph]);
-    for(const part of parts){
-     await unpause(s);if(stale())return;
-     if(engineReady)status('George is preparing audio…'); /* otherwise keep the model-loading message until generation starts */
-     const res=await synth(part,DEFAULT_VOICE,{stale,onGenerate:()=>{if(!stale()){sink=null;status('George is preparing audio…')}}});
-     if(stale())return;
-     status('George is reading…');
-     await playback(res.blob,s);
-     if(stale())return;
-    }
-    S.p=paragraph+1;update();
+    const res=await item.job;if(stale())return;
+    const g=item.seg;
+    if(g.ci!==S.index){S.index=g.ci;S.p=g.p;render()}else if(S.p!==g.p){S.p=g.p;update()}
+    status('George is reading…');
+    await playback(res.blob,s);
+    if(stale())return;
+    if(g.last){S.p=g.p+1;update()}
    }
   }catch(e){if(!stale()&&e!==CANCELLED)status('George encountered an error: '+e.message)}
   finally{if(!s.cancelled&&token===serial){stop();S.playing=false;S.paused=false;$('play').textContent='▶ Play'}}
