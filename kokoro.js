@@ -1,102 +1,79 @@
-/* Chapter & Verse — Kokoro George. Browser-only TTS, with buffered playback. */
+/* Chapter & Verse v1.1.3 — stability-first Kokoro narration.
+   Only one generation at a time, no background synthesis or unbounded queues. */
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
-let engine=null, loading=null, player=null, objectURL=null, generation=0, active=null;
+let engine=null,loading=null,session=null,audio=null,audioURL=null,serial=0;
 function status(s){$('status').textContent=s}
-function cleanupAudio(){
- if(player){player.pause();player.onended=null;player.onerror=null;player.removeAttribute('src');player.load();player=null}
- if(objectURL){URL.revokeObjectURL(objectURL);objectURL=null}
-}
+function cleanAudio(){if(audio){audio.pause();audio.onended=null;audio.onerror=null;audio.removeAttribute('src');audio=null}if(audioURL){URL.revokeObjectURL(audioURL);audioURL=null}}
 function stop(){
- generation++;
- if(active){active.cancelled=true;active.wake?.();active.resolvePlayback?.();active=null}
- cleanupAudio();
+ serial++;if(session){session.cancelled=true;session.wake?.();session.done?.();session=null}
+ cleanAudio();
 }
-async function model(){
+async function getEngine(){
  if(engine)return engine;
  if(!loading)loading=(async()=>{
-  status('Loading George’s AI voice (first use downloads the model)…');
+  status('Loading George (first-time model download may take a while)…');
   const {KokoroTTS}=await import('https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js');
-  engine=await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX',{
-   dtype:'q8',device:'wasm',progress_callback:p=>{
-    if(p.status==='progress'&&p.progress!=null)status('Loading George: '+Math.round(p.progress)+'%');
-   }
-  });
-  return engine;
+  const t=await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX',{dtype:'q8',device:'wasm',progress_callback:p=>{
+   if(p.status==='progress'&&p.progress!=null)status('Loading George: '+Math.round(p.progress)+'%');
+  }});
+  engine=t;return t;
  })().catch(e=>{loading=null;throw e});
  return loading;
 }
-function splitParagraph(value){
- const words=value.match(/\S+\s*/g)||[],parts=[];let s='';
- for(const word of words){if(s.length+word.length>380&&s){parts.push(s.trim());s=''}s+=word}
- if(s.trim())parts.push(s.trim());return parts;
+function chunks(str){
+ const words=str.match(/\S+\s*/g)||[],out=[];let text='';
+ for(let w of words){if(text.length+w.length>190&&text){out.push(text.trim());text=''}while(w.length>190){out.push(w.slice(0,190));w=w.slice(190)}text+=w}
+ if(text.trim())out.push(text.trim());return out;
 }
-async function waitForResume(a){
- while(!a.cancelled&&a.paused){
-  status('Paused');await new Promise(resolve=>a.wake=resolve);a.wake=null;
- }
+async function unpause(s){
+ while(s.paused&&!s.cancelled)await new Promise(resolve=>{s.wake=resolve});
+ s.wake=null;
+}
+async function playback(blob,s){
+ cleanAudio();audioURL=URL.createObjectURL(blob);audio=new Audio(audioURL);
+ audio.playbackRate=Number($('rate').value)||1;
+ await unpause(s);if(s.cancelled)return;
+ await new Promise((resolve,reject)=>{
+  s.done=resolve;audio.onended=resolve;audio.onerror=()=>reject(new Error('Audio playback failed'));
+  audio.play().catch(reject);
+ });
+ s.done=null;cleanAudio();
 }
 function toggle({S,update,render}){
- if(active&&!active.cancelled){
-  active.paused=!active.paused;S.playing=!active.paused;
-  if(active.paused){player?.pause();$('play').textContent='▶ Resume';status('Paused')}
-  else{active.wake?.();if(player?.paused)player.play().catch(e=>status('Playback error: '+e.message));$('play').textContent='Ⅱ Pause';status('Reading with George')}
+ if(session&&!session.cancelled){
+  session.paused=!session.paused;S.playing=!session.paused;
+  $('play').textContent=session.paused?'▶ Resume':'Ⅱ Pause';
+  if(session.paused){audio?.pause();status('Paused')}
+  else {session.wake?.();if(audio?.paused)audio.play().catch(e=>status('Playback error: '+e.message));status('Reading with George')}
   return;
  }
- stop();
- const token=generation,a={cancelled:false,paused:false,wake:null,resolvePlayback:null};active=a;
+ stop();const token=serial,s={cancelled:false,paused:false,wake:null,done:null};session=s;
  S.playing=true;S.paused=false;$('play').textContent='Ⅱ Pause';
  (async()=>{
   try{
-   const tts=await model();if(a.cancelled||token!==generation)return;
-   let queue=[],finished=false,producerError=null;
-   const wake=()=>{a.queueWake?.();a.queueWake=null};
-   const produce=async()=>{
-    try{
-     let idx=S.index,paragraph=S.p;
-     while(!a.cancelled&&token===generation&&idx<S.chapters.length){
-      let chapter=S.chapters[idx];
-      if(paragraph>=chapter.paragraphs.length){idx++;paragraph=0;continue}
-      for(const piece of splitParagraph(chapter.paragraphs[paragraph])){
-       if(a.cancelled)return;
-       while(queue.length>=3&&!a.cancelled)await new Promise(resolve=>a.producerWake=resolve);
-       if(a.cancelled)return;
-       status(queue.length?'George is preparing the next passage…':'George is preparing audio…');
-       const result=await tts.generate(piece,{voice:'bm_george'});
-       if(a.cancelled)return;
-       queue.push({blob:result.toBlob(),chapter:idx,paragraph});wake();
-      }
-      paragraph++;
-     }
-    }catch(e){producerError=e}
-    finally{finished=true;wake()}
-   };
-   const task=produce();
-   while(!a.cancelled&&token===generation){
-    await waitForResume(a);if(a.cancelled)return;
-    if(!queue.length){
-     if(finished)break;
-     status('George is preparing the next passage…');
-     await new Promise(resolve=>a.queueWake=resolve);a.queueWake=null;continue;
+   const tts=await getEngine();if(s.cancelled||token!==serial)return;
+   while(!s.cancelled&&token===serial&&S.index<S.chapters.length){
+    await unpause(s);if(s.cancelled)return;
+    const chapter=S.chapters[S.index];if(!chapter)break;
+    if(S.p>=chapter.paragraphs.length){
+     if(S.index===S.chapters.length-1){status('Finished book');break}
+     S.index++;S.p=0;render();continue;
     }
-    const next=queue.shift();a.producerWake?.();a.producerWake=null;
-    if(S.index!==next.chapter){S.index=next.chapter;S.p=next.paragraph;render()}
-    else if(S.p!==next.paragraph){S.p=next.paragraph;update()}
-    cleanupAudio();objectURL=URL.createObjectURL(next.blob);player=new Audio(objectURL);
-    player.playbackRate=Number($('rate').value)||1;
-    await waitForResume(a);if(a.cancelled)return;
-    status(queue.length?'George is reading…':'George is reading (buffering the next passage)…');
-    await new Promise((resolve,reject)=>{
-     a.resolvePlayback=resolve;
-     player.onended=resolve;player.onerror=()=>reject(new Error('Audio playback failed'));
-     player.play().catch(reject);
-    });a.resolvePlayback=null;
+    const paragraph=S.p,parts=chunks(chapter.paragraphs[paragraph]);
+    for(const part of parts){
+     await unpause(s);if(s.cancelled)return;
+     status('George is preparing audio…');
+     const generated=await tts.generate(part,{voice:'bm_george'});
+     if(s.cancelled)return;
+     status('George is reading…');
+     await playback(generated.toBlob(),s);
+     if(s.cancelled)return;
+    }
+    S.p=paragraph+1;update();
    }
-   await task;
-   if(producerError)throw producerError;
-   if(!a.cancelled&&token===generation){status('Finished book');S.p=S.chapters.at(-1).paragraphs.length-1;update()}
-  }catch(e){if(!a.cancelled&&token===generation)status('George encountered an error: '+e.message)}
-  finally{if(!a.cancelled&&token===generation){stop();S.playing=false;S.paused=false;$('play').textContent='▶ Play'}}
+  }catch(e){if(!s.cancelled)status('George encountered an error: '+e.message)}
+  finally{if(!s.cancelled&&token===serial){stop();S.playing=false;S.paused=false;$('play').textContent='▶ Play'}}
  })();
 }
 window.chapterKokoro={toggle,stop};
