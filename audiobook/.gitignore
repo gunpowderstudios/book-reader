@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.m4b
+*.mp3
+*.part
+.*-parts/

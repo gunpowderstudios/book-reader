@@ -1,5 +1,14 @@
 # Chapter & Verse — Version history
 
+## v1.3.0 — 22 October 2026
+**New: make a finished audiobook with George (`audiobook/make_audiobook.py`).** Measurement showed why the in-browser reader still pauses: George generated at about 0.94× real time on one native thread (1.6× on two), and the browser is limited to a single thread of slower WebAssembly, so generation cannot keep up with speech and lookahead cannot hide that. Older phones and tablets are slower still, and a locked screen interrupts chunked browser audio.
+- The new command-line tool runs the real Kokoro model on your own computer (all cores, native speed) and produces one `.m4b` audiobook with chapters, cover art and tags (best for Apple Books on iPhone, iPad and Mac), or per-chapter MP3s. Once made, it plays anywhere, offline, with no pauses and with lock-screen controls.
+- Free and local: no accounts, API keys or uploads. Downloads the model once from the kokoro-onnx GitHub release.
+- Reads EPUB chapters in order; skips navigation, side notes and images; removes footnote markers; reads headings as chapter titles; longer pauses between paragraphs and at scene breaks; keeps "Mr." and "Dr." intact; splits single-file books at their headings; refuses DRM-protected EPUBs clearly.
+- Resumable (Ctrl-C or sleep, then run again), parallel across workers, with `--list`, `--chapters`, `--benchmark`, `--format mp3`, `--voice`, `--speed`.
+- Tested end to end with the real model: chapters, cover art, tags and duration verified in the output; MP3 mode; Ctrl-C and resume; clean model download; error messages. Found and fixed two bugs on the way (ffmpeg hanging because forked workers inherited its input pipe, and relative output paths).
+- The web app is unchanged apart from a pointer to the tool on the Test a Voice tab.
+
 ## v1.2.3 — 22 October 2026
 **Fixes the long pauses between passages in the book reader.** There were three causes:
 - **No lookahead.** Each passage was only generated after the previous one finished playing, so every boundary was a full generation wait. Now the next three passages generate in the background while the current one plays (one at a time, in order, off the main thread). Passages already generated, for example after seeking back, are reused from the cache.

@@ -1,8 +1,8 @@
-/* Chapter & Verse v1.2.3 — Kokoro narration controller (main thread).
+/* Chapter & Verse v1.3.0 — Kokoro narration controller (main thread).
    Speech is generated inside kokoro-worker.js, a Web Worker, so this page never runs the model itself.
    One generation at a time; stale requests are dropped; every finished clip is cached. */
 (()=>{'use strict';
-const VERSION='1.2.3';
+const VERSION='1.3.0';
 const VOICES={bm_george:'George — British male'}; /* add more Kokoro voice ids here later; the Test tab picks them up */
 const DEFAULT_VOICE='bm_george';
 const MAX_TEST_CHARS=300;            /* keeps a sample well inside Kokoro's ~510-token limit */

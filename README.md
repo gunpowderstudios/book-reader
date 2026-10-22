@@ -30,3 +30,7 @@ Open the **Test a Voice** tab to check George without an EPUB: edit the sample t
 George uses the `bm_george` British voice of Kokoro 82M via `kokoro-js`. All speech generation runs in a Web Worker (`kokoro-worker.js`) on your own device, so the page stays responsive; nothing is sent to a paid speech API. Generation speed depends on your computer. The first visit after upgrading may need a hard refresh.
 
 Files: `index.html` (reader and interface), `kokoro.js` (playback, queue and cache), `kokoro-worker.js` (model and inference).
+
+## Audiobook maker (no pauses, plays anywhere)
+
+The browser reader generates speech while you listen, which needs a fast computer. For phones, tablets and long books, use the tool in [`audiobook/`](audiobook/): it turns an EPUB into a finished `.m4b` audiobook read by George, once, on your own computer. See [audiobook/README.md](audiobook/README.md).
