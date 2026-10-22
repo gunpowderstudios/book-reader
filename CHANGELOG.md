@@ -1,5 +1,9 @@
 # Chapter & Verse — Version history
 
+## v1.1.1 — 22 October 2026
+- Fixed the Kokoro import to use its browser-specific bundle instead of a Node-compatible CDN build, addressing the unsupported `fs.readFile` error.
+- Added a cache-busting version to the Kokoro script.
+
 ## v1.1.0 — 22 October 2026
 - Added Kokoro AI narration using the British male voice George (`bm_george`).
 - Kept browser voices as an alternative.
