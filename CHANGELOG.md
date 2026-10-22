@@ -1,5 +1,10 @@
 # Chapter & Verse — Version history
 
+## v1.2.0 — 22 October 2026
+- Added a dedicated **Test a Voice** tab with editable sample text and its own Play/Stop button.
+- Voice tests work without an EPUB, separating narration/model issues from book-file issues.
+- Supports George and browser voices from the existing voice menu, ready for more voices later.
+
 ## v1.1.3 — 22 October 2026
 - Removed background AI speech generation and three-part buffering to reduce browser CPU and memory pressure.
 - Generate one short passage at a time, with explicit cancellation and audio cleanup.
