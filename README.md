@@ -23,6 +23,10 @@ DRM-protected EPUBs aren't supported, and available voices differ by browser and
 
 ## Kokoro AI narration (George)
 
-Choose **★ George — Kokoro AI (British male)** in the Voice menu and press Play. The first time, your browser downloads the free Kokoro model (roughly 80–300 MB depending on device/model format), then generates speech locally. This may take a while, especially on older devices. An internet connection is needed initially for the model and JS library. Subsequent visits may reuse cached weights. The original system speech voices remain available as a faster fallback.
+Press Play to be read to by **George** (Kokoro AI, British male). The first time, your browser downloads the free quantized Kokoro model (roughly 90 MB), then generates speech locally. This may take a while, especially on older devices. An internet connection is needed initially for the model and JS library. Subsequent visits reuse the cached weights.
 
-George uses the `bm_george` British voice of Kokoro 82M via `kokoro-js`. Generation is processed in short passages on your own device, not sent to a paid speech API. Model performance and background audio depend on the browser and computer. The first visit after upgrading may need a hard refresh to show the new voice.
+Open the **Test a Voice** tab to check George without an EPUB: edit the sample text, press Play, and watch the loading, generating and playing states. Repeating the same text plays instantly from memory.
+
+George uses the `bm_george` British voice of Kokoro 82M via `kokoro-js`. All speech generation runs in a Web Worker (`kokoro-worker.js`) on your own device, so the page stays responsive; nothing is sent to a paid speech API. Generation speed depends on your computer. The first visit after upgrading may need a hard refresh.
+
+Files: `index.html` (reader and interface), `kokoro.js` (playback, queue and cache), `kokoro-worker.js` (model and inference).
