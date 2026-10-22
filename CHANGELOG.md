@@ -1,5 +1,10 @@
 # Chapter & Verse — Version history
 
+## v1.1.3 — 22 October 2026
+- Removed background AI speech generation and three-part buffering to reduce browser CPU and memory pressure.
+- Generate one short passage at a time, with explicit cancellation and audio cleanup.
+- Preserve pause/resume controls and model reuse. Longer gaps between passages are possible on slower computers.
+
 ## v1.1.2 — 22 October 2026
 - Prepare audio ahead of playback with a three-segment buffer to reduce gaps between passages.
 - Increase narration segments to approximately 380 characters for fewer interruptions.
