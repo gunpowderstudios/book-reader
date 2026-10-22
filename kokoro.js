@@ -1,8 +1,9 @@
-/* Chapter & Verse v1.1.3 — stability-first Kokoro narration.
+/* Chapter & Verse v1.2.1 — stability-first Kokoro narration.
    Only one generation at a time, no background synthesis or unbounded queues. */
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 let engine=null,loading=null,session=null,audio=null,audioURL=null,serial=0;
+const sampleCache=new Map();
 function status(s){$('status').textContent=s}
 function cleanAudio(){if(audio){audio.pause();audio.onended=null;audio.onerror=null;audio.removeAttribute('src');audio=null}if(audioURL){URL.revokeObjectURL(audioURL);audioURL=null}}
 function stop(){
@@ -79,11 +80,20 @@ function toggle({S,update,render}){
 async function testVoice(text){
  stop();const token=serial;status('Voice test: preparing George…');
  try{
-  const tts=await getEngine();if(token!==serial)return;
-  status('Voice test: generating sample…');
-  const result=await tts.generate(text.slice(0,220),{voice:'bm_george'});
+  const sample=text.slice(0,220);
+  let blob=sampleCache.get(sample);
+  if(blob){status('Voice test: playing cached sample…')}
+  else {
+   const tts=await getEngine();if(token!==serial)return;
+   status('Voice test: generating sample…');
+   const result=await tts.generate(sample,{voice:'bm_george'});
+   if(token!==serial)return;
+   blob=result.toBlob();
+   if(sampleCache.size>=6)sampleCache.delete(sampleCache.keys().next().value);
+   sampleCache.set(sample,blob);
+  }
   if(token!==serial)return;
-  cleanAudio();audioURL=URL.createObjectURL(result.toBlob());audio=new Audio(audioURL);
+  cleanAudio();audioURL=URL.createObjectURL(blob);audio=new Audio(audioURL);
   audio.playbackRate=Number($('rate').value)||1;
   $('test-play').textContent='■ Stop test';status('Voice test: playing');
   audio.onended=()=>{if(token===serial){cleanAudio();$('test-play').textContent='▶ Play sample';status('Voice test complete — George works without an EPUB')}};
