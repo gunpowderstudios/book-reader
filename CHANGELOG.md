@@ -1,5 +1,10 @@
 # Chapter & Verse — Version history
 
+## v1.2.1 — 22 October 2026
+- Simplified voice selector to George only; removed browser voices from the interface.
+- Cache up to six generated voice-test samples in memory so repeating identical text plays without regenerating speech in the same tab.
+- This doesn't speed up first-time synthesis or permanently cache samples across reloads.
+
 ## v1.2.0 — 22 October 2026
 - Added a dedicated **Test a Voice** tab with editable sample text and its own Play/Stop button.
 - Voice tests work without an EPUB, separating narration/model issues from book-file issues.
