@@ -76,5 +76,21 @@ function toggle({S,update,render}){
   finally{if(!s.cancelled&&token===serial){stop();S.playing=false;S.paused=false;$('play').textContent='▶ Play'}}
  })();
 }
-window.chapterKokoro={toggle,stop};
+async function testVoice(text){
+ stop();const token=serial;status('Voice test: preparing George…');
+ try{
+  const tts=await getEngine();if(token!==serial)return;
+  status('Voice test: generating sample…');
+  const result=await tts.generate(text.slice(0,220),{voice:'bm_george'});
+  if(token!==serial)return;
+  cleanAudio();audioURL=URL.createObjectURL(result.toBlob());audio=new Audio(audioURL);
+  audio.playbackRate=Number($('rate').value)||1;
+  $('test-play').textContent='■ Stop test';status('Voice test: playing');
+  audio.onended=()=>{if(token===serial){cleanAudio();$('test-play').textContent='▶ Play sample';status('Voice test complete — George works without an EPUB')}};
+  audio.onerror=()=>{if(token===serial){cleanAudio();$('test-play').textContent='▶ Play sample';status('Voice test: audio could not play')}};
+  await audio.play();
+ }catch(e){if(token===serial){$('test-play').textContent='▶ Play sample';status('Voice test failed: '+e.message)}}
+}
+function stopTest(){stop();if($('test-play'))$('test-play').textContent='▶ Play sample'}
+window.chapterKokoro={toggle,stop,testVoice,stopTest};
 })();
