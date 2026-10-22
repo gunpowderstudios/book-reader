@@ -8,8 +8,8 @@ function stop(){run++;paused=false;generating=false;release()}
 async function load(){
  if(model)return model;
  if(!loading)loading=(async()=>{
-  message('Preparing George… first download may be 80–300 MB.');
-  const {KokoroTTS}=await import('https://esm.sh/kokoro-js@1.2.1');
+  message('Preparing George… downloading the browser-compatible model.');
+  const {KokoroTTS}=await import('https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js');
   const t=await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX',{
    dtype:'q8',device:'wasm',progress_callback:p=>{
     if(p.status==='progress'&&p.progress!=null)message('Downloading George model: '+Math.round(p.progress)+'%');
