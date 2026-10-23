@@ -31,6 +31,11 @@ George uses the `bm_george` British voice of Kokoro 82M via `kokoro-js`. All spe
 
 Files: `index.html` (reader and interface), `kokoro.js` (playback, queue and cache), `kokoro-worker.js` (model and inference).
 
+## My Library, read-ahead and the download bar (v1.4.0)
+- **My Library** saves each EPUB you open in this browser, with your place; open the tab and press Continue. Per device only (not synced). Private browsing blocks it.
+- **Download bar** shows the model download in MB and the real data George has fetched this visit.
+- **Read-ahead** prepares about 6 minutes of speech ahead (adjustable in Voice settings). The meter shows how fast George is working. If it is below 1× speaking speed, try Fast mode (bigger 326 MB download, uses several cores), or make an audiobook with the tool below.
+
 ## Audiobook maker (no pauses, plays anywhere)
 
 The browser reader generates speech while you listen, which needs a fast computer. For phones, tablets and long books, use the tool in [`audiobook/`](audiobook/): it turns an EPUB into a finished `.m4b` audiobook read by George, once, on your own computer. See [audiobook/README.md](audiobook/README.md).

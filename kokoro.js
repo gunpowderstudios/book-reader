@@ -1,19 +1,73 @@
-/* Chapter & Verse v1.3.0 — Kokoro narration controller (main thread).
+/* Chapter & Verse v1.4.0 — Kokoro narration controller (main thread).
    Speech is generated inside kokoro-worker.js, a Web Worker, so this page never runs the model itself.
-   One generation at a time; stale requests are dropped; every finished clip is cached. */
+   One generation at a time; stale requests are dropped; every finished clip is cached.
+   While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.3.0';
+const VERSION='1.4.0';
 const VOICES={bm_george:'George — British male'}; /* add more Kokoro voice ids here later; the Test tab picks them up */
 const DEFAULT_VOICE='bm_george';
+const MODES={
+ standard:{label:'Standard',mb:92},
+ fast:{label:'Fast (multi-core)',mb:326},
+ gpu:{label:'GPU (experimental)',mb:326}
+};
 const MAX_TEST_CHARS=300;            /* keeps a sample well inside Kokoro's ~510-token limit */
-const CACHE_MAX_BYTES=48*1024*1024;  /* generated audio kept in memory (LRU) */
-const INIT_TIMEOUT=150000,GENERATE_TIMEOUT=180000; /* worker silence limits before we give up and restart it */
+const CACHE_MAX_BYTES=96*1024*1024;  /* generated audio kept in memory (LRU) */
+const MAX_PENDING=2,MAX_AHEAD=400;   /* passages queued in the worker at once / held ahead of playback */
+const INIT_TIMEOUT=300000,GENERATE_TIMEOUT=180000; /* worker silence limits before we give up and restart it */
 const $=id=>document.getElementById(id);
 const norm=s=>String(s||'').replace(/\s+/g,' ').trim();
-const mb=n=>Math.round(n/1048576);
+const fmtMB=n=>(n/1048576).toFixed(n<10485760?1:0)+' MB';
+const fmtDur=s=>{s=Math.max(0,Math.round(s));return s>=60?Math.floor(s/60)+'m '+String(s%60).padStart(2,'0')+'s':s+'s'};
 const CANCELLED=new Error('Cancelled');
 const status=s=>{const el=$('status');if(el)el.textContent=s};
 const rate=()=>Number($('rate')&&$('rate').value)||1;
+const store={
+ get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v}catch(_){return d}},
+ set(k,v){try{localStorage.setItem(k,v)}catch(_){}}
+};
+
+/* ───────── Settings ───────── */
+let mode=MODES[store.get('cv-mode','standard')]?store.get('cv-mode','standard'):'standard';
+const bufferTarget=()=>{const m=Number(store.get('cv-buffer','6'));return (m>0&&m<=30?m:6)*60};
+const installed=()=>store.get('cv-ready-'+mode,'')==='1';
+const isolated=()=>typeof crossOriginIsolated!=='undefined'&&crossOriginIsolated===true;
+
+/* ───────── Engine state and the download bar ───────── */
+const eng={phase:'idle',loaded:0,total:0,net:0,used:null,sec:0,isolated:false,cores:0,note:'',error:''};
+const modeName=m=>(MODES[m]||MODES.standard).label;
+function describeEngine(){
+ if(eng.used==='gpu')return 'on your graphics card';
+ if(eng.used==='fast')return eng.isolated?(n=>'using '+n+(n===1?' core':' cores'))(Math.min(4,Math.ceil((eng.cores||2)/2))):'one core only (multi-core is not active on this page)';
+ return 'one core';
+}
+function renderEngine(){
+ const text=$('eng-text'),fill=$('eng-fill'),bar=$('eng-bar'),netEl=$('net-text');
+ if(!text&&!netEl)return;
+ let pct=0,msg,state=eng.phase;
+ switch(eng.phase){
+  case 'library':pct=2;msg='Fetching the speech library…';break;
+  case 'downloading':
+   pct=eng.total?Math.min(100,eng.loaded/eng.total*100):0;
+   msg='Loading George: '+fmtMB(eng.loaded)+' of '+(eng.total?fmtMB(eng.total):'?')+' ('+Math.round(pct)+'%)';break;
+  case 'starting':pct=100;msg='Starting the voice engine…';break;
+  case 'ready':pct=100;msg='George is ready — '+modeName(eng.used)+', '+describeEngine()+', started in '+eng.sec.toFixed(1)+' s';break;
+  case 'error':pct=100;msg=eng.error||'George could not load.';break;
+  default:
+   msg=installed()?'George is installed on this device and starts when you press Play.'
+    :'George is not loaded yet. He starts when you press Play (a one-off download of about '+MODES[mode].mb+' MB).';
+ }
+ if(eng.note)msg+=' — '+eng.note;
+ if(text)text.textContent=msg;
+ if(fill){fill.style.width=pct.toFixed(1)+'%'}
+ if(bar){bar.dataset.state=state;bar.setAttribute('aria-valuenow',String(Math.round(pct)))}
+ if(netEl){
+  let t='Downloaded by George this visit: '+fmtMB(eng.net);
+  if(eng.phase==='ready'&&eng.net<1572864)t+=' — nothing new; he loaded from your browser’s saved copy';
+  netEl.textContent=t;
+ }
+}
+function engineReset(note){Object.assign(eng,{phase:'idle',loaded:0,total:0,net:0,used:null,sec:0,error:'',note:note||''});renderEngine()}
 
 /* ───────── Worker client ───────── */
 let worker=null,readyPromise=null,initWaiter=null,engineReady=false,watchdog=null,nextId=1,sink=null;
@@ -24,23 +78,39 @@ function armWatchdog(){
  if(!initWaiter&&!calls.size)return;
  watchdog=setTimeout(()=>failWorker(new Error('George stopped responding. Press Play to try again.')),initWaiter?INIT_TIMEOUT:GENERATE_TIMEOUT);
 }
-function failWorker(err){
+function failWorker(err,silent){
  clearTimeout(watchdog);watchdog=null;
  const w=worker;worker=null;readyPromise=null;engineReady=false;
  try{if(w)w.terminate()}catch(_){}
  const iw=initWaiter;initWaiter=null;if(iw)iw.reject(err);
  const pending=[...calls.values()];calls.clear();pending.forEach(c=>c.reject(err));
+ if(!silent){eng.phase='error';eng.error=err.message;renderEngine()}
 }
 function onWorkerMessage(w,m){
  if(w!==worker)return;
  switch(m.type){
   case 'stage':
+   if(m.stage==='library'){eng.phase='library'}
+   else if(m.stage==='model'){eng.phase='downloading'}
+   else if(m.stage==='warmup'){eng.phase='starting'}
+   renderEngine();
    if(sink)sink(m.stage==='library'?'Loading George: fetching the speech library…':m.stage==='warmup'?'Loading George: starting the voice engine…':'Loading George: downloading the voice model…');
    break;
   case 'progress':
-   if(sink)sink('Loading George: '+(m.total?Math.round(m.loaded/m.total*100):0)+'% ('+mb(m.loaded)+' of '+mb(m.total)+' MB)');
+   eng.phase='downloading';eng.loaded=m.loaded;eng.total=m.total;if(typeof m.net==='number')eng.net=m.net;renderEngine();
+   if(sink)sink('Loading George: '+(m.total?Math.round(m.loaded/m.total*100):0)+'% ('+fmtMB(m.loaded)+' of '+fmtMB(m.total)+')');
    break;
-  case 'ready':{engineReady=true;const iw=initWaiter;initWaiter=null;if(iw)iw.resolve(m.ms);break}
+  case 'net':eng.net=m.bytes;renderEngine();break;
+  case 'fallback':
+   eng.note=modeName(m.from)+' mode did not work here ('+m.reason+') — using '+modeName(m.to)+' instead';renderEngine();
+   break;
+  case 'ready':{
+   engineReady=true;eng.phase='ready';eng.used=m.mode||mode;eng.sec=(m.ms||0)/1000;eng.isolated=!!m.isolated;eng.cores=m.cores||0;
+   if(eng.used===mode)eng.note='';
+   store.set('cv-ready-'+(m.mode||mode),'1');
+   if(m.mode&&m.mode!==mode)store.set('cv-ready-'+mode,'');
+   renderEngine();
+   const iw=initWaiter;initWaiter=null;if(iw)iw.resolve(m.ms);break}
   case 'init-error':failWorker(new Error('George could not load: '+m.message));return;
   case 'audio':{const c=calls.get(m.id);if(c){calls.delete(m.id);c.resolve(m)}break}
   case 'error':{const c=calls.get(m.id);if(c){calls.delete(m.id);c.reject(new Error(m.message))}else console.error('Kokoro worker:',m.message);break}
@@ -60,7 +130,13 @@ function startWorker(){
 function ready(){
  if(readyPromise)return readyPromise;
  let w;try{w=startWorker()}catch(e){return Promise.reject(e)}
- readyPromise=new Promise((resolve,reject)=>{initWaiter={resolve,reject};w.postMessage({type:'init',voice:DEFAULT_VOICE})});
+ eng.phase='library';eng.error='';eng.loaded=0;eng.total=0;
+ if(mode==='fast'&&!isolated()){
+  const st=(()=>{try{return sessionStorage.getItem('cv-coi')}catch(_){return null}})();
+  eng.note=st==='failed'||st==='unsupported'?'multi-core is not available in this browser, so Fast mode runs on one core':'multi-core is not active on this page';
+ }
+ renderEngine();
+ readyPromise=new Promise((resolve,reject)=>{initWaiter={resolve,reject};w.postMessage({type:'init',voice:DEFAULT_VOICE,mode})});
  readyPromise.catch(()=>{});
  armWatchdog();
  return readyPromise;
@@ -68,8 +144,21 @@ function ready(){
 function call(msg){
  return new Promise((resolve,reject)=>{
   if(!worker){reject(new Error('George is not running. Press Play to try again.'));return}
-  const id=nextId++;calls.set(id,{resolve,reject});worker.postMessage({...msg,id});armWatchdog();
+  const id=nextId++;calls.set(id,{resolve,reject});worker.postMessage({...msg,id,mode});armWatchdog();
  });
+}
+function haltAll(){ /* stop playback through the page (so its buttons reset), falling back to our own stop */
+ if(window.chapterApp&&window.chapterApp.stop)window.chapterApp.stop();else stop();
+}
+function setMode(next){
+ if(!MODES[next]||next===mode)return mode;
+ mode=next;store.set('cv-mode',next);
+ if(worker||readyPromise)failWorker(new Error('Switching mode'),true);
+ cache.clear();cacheBytes=0;recent.length=0;lastSpeed=0; /* clips from another engine are not reused when comparing speed */
+ engineReset(next==='fast'&&!isolated()?'multi-core needs a one-time page reload':'');
+ if(next==='fast'&&!isolated()&&window.cvIsolation)window.cvIsolation.enable();
+ renderBuffer();
+ return mode;
 }
 
 /* ───────── Audio helpers and cache ───────── */
@@ -88,7 +177,12 @@ function trimSilence(f){ /* Kokoro pads each clip with silence; trimming it shor
  a=Math.max(0,a-pad);b=Math.min(f.length,b+pad*2);
  return b-a<2400?f:f.subarray(a,b);
 }
-let lastSpeed=0; /* seconds of speech produced per second of generating (>1 = faster than real time) */
+let lastSpeed=0;const recent=[]; /* speed = seconds of speech produced per second of generating (>1 = faster than real time) */
+function noteGen(audioSec,genSec){
+ if(!(genSec>0))return;
+ recent.push({a:audioSec,g:genSec});if(recent.length>8)recent.shift();
+ let A=0,G=0;for(const r of recent){A+=r.a;G+=r.g}lastSpeed=G>0?A/G:0;
+}
 const cache=new Map();let cacheBytes=0;
 function cacheGet(k){const v=cache.get(k);if(v){cache.delete(k);cache.set(k,v)}return v}
 function cachePut(k,v){
@@ -100,7 +194,7 @@ function cachePut(k,v){
 /* ───────── Generation queue ───────── */
 const queue=[];let busy=false;
 function synth(rawText,voice,opts={}){
- const text=norm(rawText),key=voice+'|'+text,hit=cacheGet(key);
+ const text=norm(rawText),key=mode+'|'+voice+'|'+text,hit=cacheGet(key);
  if(hit)return Promise.resolve({blob:hit.blob,audioSec:hit.audioSec,cached:true});
  return new Promise((resolve,reject)=>{queue.push({key,text,voice,stale:opts.stale||(()=>false),onGenerate:opts.onGenerate,resolve,reject});pump()});
 }
@@ -118,9 +212,10 @@ async function pump(){
     if(job.onGenerate)job.onGenerate();
     const r=await call({type:'generate',text:job.text,voice:job.voice});
     const pcm=trimSilence(r.samples),blob=toWav(pcm,r.rate),audioSec=pcm.length/r.rate;
-    if(r.ms>0)lastSpeed=audioSec/(r.ms/1000);
+    noteGen(audioSec,r.ms/1000);
     cachePut(job.key,{blob,audioSec}); /* cached even if the user pressed Stop meanwhile */
     job.resolve({blob,audioSec,genSec:r.ms/1000,cached:false});
+    renderBuffer();
    }catch(e){job.reject(e)}
   }
  }finally{busy=false}
@@ -159,14 +254,58 @@ function playBlob(blob){ /* resolves true when finished, false if stopped */
  });
 }
 
+/* ───────── Buffer meter (how far ahead George is, and how fast he works) ───────── */
+let meterTimer=null,bufInfo={ready:0,target:0,waiting:0,waits:0,waitSec:0};
+function hint(){
+ const need=Math.max(1,rate()); /* listening at 1.5× needs speech made 1.5× faster than it is spoken */
+ if(recent.length<3||lastSpeed>=need)return null;
+ const sp=lastSpeed.toFixed(1)+'×';
+ if(mode==='standard')return {text:'On this device George makes speech at '+sp+' speaking speed in Standard mode, so pauses are unavoidable. Fast mode is usually about twice as quick on a Mac or PC.',action:'Try Fast mode',to:'fast'};
+ if(mode==='fast')return {text:'Even in Fast mode George makes speech at '+sp+' speaking speed here, so pauses will return once the buffer is used up. A graphics card may be quicker, or make a finished audiobook once and listen with no waiting.',action:'Try GPU mode (experimental)',to:'gpu'};
+ return {text:'George makes speech at '+sp+' speaking speed here. Making a finished audiobook once avoids any waiting.',action:null};
+}
+function renderBuffer(){
+ const text=$('buf-text'),fill=$('buf-fill'),bar=$('buf-bar'),hintEl=$('speed-hint');
+ const active=session&&!session.cancelled;
+ const speed=lastSpeed?lastSpeed.toFixed(1)+'× speaking speed':'';
+ let msg,state='idle',pct=0;
+ if(active){
+  const t=bufInfo.target||bufferTarget();
+  pct=Math.min(100,bufInfo.ready/t*100);
+  if(bufInfo.waiting){state='empty';msg='Waiting for George — nothing buffered yet'}
+  else{state=bufInfo.ready<20?'low':'ok';msg='Ready ahead: '+fmtDur(bufInfo.ready)+' of '+fmtDur(t)}
+  if(speed)msg+=' · George works at '+speed;
+  if(bufInfo.waits)msg+=' · pauses: '+bufInfo.waits+' ('+fmtDur(bufInfo.waitSec)+')';
+ }else{
+  msg='Read-ahead starts when you press Play (up to '+Math.round(bufferTarget()/60)+' min)'+(speed?' · last measured: George works at '+speed:'');
+ }
+ if(text)text.textContent=msg;
+ if(fill)fill.style.width=pct.toFixed(1)+'%';
+ if(bar){bar.dataset.state=state;bar.setAttribute('aria-valuenow',String(Math.round(pct)))}
+ if(hintEl){
+  const h=hint();
+  if(h){
+   hintEl.hidden=false;hintEl.replaceChildren(document.createTextNode(h.text+' '));
+   if(h.action){const b=document.createElement('button');b.textContent=h.action;b.onclick=()=>{haltAll();setMode(h.to);const sel=$('mode-select');if(sel)sel.value=mode};hintEl.append(b)}
+  }else hintEl.hidden=true;
+ }
+}
+function tick(){
+ if(bufInfo.waiting&&session&&!session.cancelled)status('George is catching up… '+Math.round((Date.now()-bufInfo.waiting)/1000)+' s');
+ renderBuffer();
+}
+function startMeter(){stopMeter();bufInfo={ready:0,target:bufferTarget(),waiting:0,waits:0,waitSec:0};meterTimer=setInterval(tick,500);renderBuffer()}
+function stopMeter(){if(meterTimer){clearInterval(meterTimer);meterTimer=null}bufInfo.waiting=0;renderBuffer()}
+
 /* ───────── Stop (shared by the Test tab and the book reader) ───────── */
-let serial=0,session=null,testState='idle';
+let serial=0,session=null,testState='idle',prefetchToken=0;
 function stop(){
  serial++;
  if(session){session.cancelled=true;if(session.wake)session.wake();session=null}
  sink=null;
  if(endPlay)endPlay(false);
  releasePlayer();
+ stopMeter();
  if(testActive())setTest('idle','Stopped.');
 }
 
@@ -185,7 +324,7 @@ async function testVoice(raw){
  if(!text){setTest('error','Type some sample text first.');return}
  unlockAudio();
  try{
-  if(cacheGet(voice+'|'+text))setTest('generating','Using cached audio…');
+  if(cacheGet(mode+'|'+voice+'|'+text))setTest('generating','Using cached audio…');
   else if(!engineReady){
    setTest('loading','Loading George… (first visit downloads the voice model once; your browser keeps it afterwards)');
    sink=t=>{if(!stale())setTest('loading',t)};
@@ -206,7 +345,6 @@ async function testVoice(raw){
 function stopTest(){stop();if(testState==='error')setTest('idle','Ready.')}
 
 /* ───────── Book narration ───────── */
-const LOOKAHEAD=3;                  /* passages generated ahead of the one being played */
 const CHUNK_MAX=230,FIRST_CHUNK_MAX=140; /* short first passage = faster start */
 const ABBR=/\b(?:Mr|Mrs|Ms|Dr|St|Prof|Sr|Jr|vs|etc|No|Mt|Capt|Col|Gen|Lt|Sgt)\.$/;
 function sentences(str){
@@ -256,46 +394,69 @@ async function playback(blob,s){
  await unpause(s);if(s.cancelled)return;
  await playBlob(blob);
 }
+/* Generate the first few passages before Play is pressed, so reading starts at once.
+   Only when George is already installed on this device (never starts a big download by surprise). */
+function prefetch(S,count=3){
+ if(session&&!session.cancelled)return;
+ if(!(engineReady||installed()))return;
+ if(!S||!S.chapters||!S.chapters.length)return;
+ const my=++prefetchToken,it=segments(S);let n=0;
+ for(let r=it.next();!r.done&&n<count;r=it.next(),n++){
+  synth(r.value.text,DEFAULT_VOICE,{stale:()=>my!==prefetchToken||!!session}).catch(()=>{});
+ }
+}
 function toggle({S,update,render}){
  if(session&&!session.cancelled){
   session.paused=!session.paused;S.playing=!session.paused;
   $('play').textContent=session.paused?'▶ Resume':'Ⅱ Pause';
-  if(session.paused){player.pause();status('Paused')}
+  if(session.paused){player.pause();status('Paused — George keeps preparing the next passages')}
   else{if(session.wake)session.wake();if(playerURL&&player.paused)player.play().catch(e=>{if(e&&e.name!=='AbortError')status('Playback error: '+e.message)});status('Reading with George')}
   return;
  }
- stop();const token=serial,s={cancelled:false,paused:false,wake:null};session=s;
+ stop();prefetchToken++;
+ const token=serial,s={cancelled:false,paused:false,wake:null};session=s;
  const stale=()=>s.cancelled||token!==serial;
  S.playing=true;S.paused=false;$('play').textContent='Ⅱ Pause';
- unlockAudio();
+ unlockAudio();startMeter();
  (async()=>{
   try{
    if(!engineReady){status('Loading George… (first visit downloads the voice model once)');sink=t=>{if(!stale())status(t)}}
-   const it=segments(S),ahead=[];
-   /* Keep the next few passages generating while the current one plays. The queue is serial, so this never runs two at once. */
+   const it=segments(S),ahead=[];let exhausted=false,firstItem=true;
+   const readySec=()=>{let t=0;for(const i of ahead)if(i.done&&i.sec)t+=i.sec;return t};
+   /* Keep two passages queued in the worker whenever less than the chosen number of minutes is ready ahead.
+      Runs again each time a passage finishes, so it carries on while you listen and even while paused. */
    const fill=()=>{
-    while(ahead.length<LOOKAHEAD){
-     const n=it.next();if(n.done)break;
-     const item={seg:n.value,done:false};
-     item.job=synth(n.value.text,DEFAULT_VOICE,{stale,onGenerate:()=>{if(!stale()){sink=null}}});
-     item.job.then(()=>{item.done=true},()=>{item.done=true});
-     ahead.push(item);
+    if(stale())return;
+    let pending=0;for(const i of ahead)if(!i.done)pending++;
+    const target=bufferTarget();
+    while(pending<MAX_PENDING&&!exhausted&&readySec()<target&&ahead.length<MAX_AHEAD){
+     const n=it.next();if(n.done){exhausted=true;break}
+     const item={seg:n.value,done:false,sec:0};
+     item.job=synth(n.value.text,DEFAULT_VOICE,{stale,onGenerate:()=>{if(!stale())sink=null}});
+     item.job.then(res=>{item.done=true;item.sec=res.audioSec;fill();bufInfo.ready=readySec();renderBuffer()},()=>{item.done=true});
+     ahead.push(item);pending++;
     }
+    bufInfo.target=target;bufInfo.ready=readySec();
    };
    fill();
    while(!stale()){
+    if(!ahead.length)fill();
     const item=ahead.shift();
     if(!item){status('Finished book');break}
     fill();
     await unpause(s);if(stale())return;
-    if(!item.done&&engineReady){
-     const spd=lastSpeed&&lastSpeed<rate()*1.05?' This device makes speech at '+lastSpeed.toFixed(1)+'× real time, so lower the Speed slider to reduce pauses.':'';
-     status('George is catching up…'+spd);
-    }
+    let waitedFrom=0;
+    if(!item.done&&engineReady){waitedFrom=Date.now();bufInfo.waiting=waitedFrom;status('George is catching up…');renderBuffer()}
     const res=await item.job;if(stale())return;
+    if(waitedFrom){
+     const w=(Date.now()-waitedFrom)/1000;bufInfo.waiting=0;
+     if(!firstItem&&w>=0.4){bufInfo.waits++;bufInfo.waitSec+=w}
+    }
+    firstItem=false;
     const g=item.seg;
     if(g.ci!==S.index){S.index=g.ci;S.p=g.p;render()}else if(S.p!==g.p){S.p=g.p;update()}
     status('George is reading…');
+    bufInfo.ready=readySec();renderBuffer();
     await playback(res.blob,s);
     if(stale())return;
     if(g.last){S.p=g.p+1;update()}
@@ -305,12 +466,21 @@ function toggle({S,update,render}){
  })();
 }
 
-/* ───────── Test panel wiring ───────── */
-(function wireTestPanel(){
+/* ───────── Panel wiring ───────── */
+(function wirePanels(){
  const sel=$('test-voice');
  if(sel){sel.replaceChildren(...Object.entries(VOICES).map(([id,label])=>new Option(label,id)));sel.value=DEFAULT_VOICE;sel.hidden=Object.keys(VOICES).length<2}
  const ta=$('test-text'),count=$('test-count');
  if(ta&&count){const update=()=>{count.textContent=ta.value.length+' / '+MAX_TEST_CHARS};ta.addEventListener('input',update);update()}
+ const ms=$('mode-select');
+ if(ms){
+  ms.replaceChildren(...Object.entries(MODES).map(([id,m])=>new Option(m.label+' — '+(id==='standard'?'works everywhere':id==='fast'?'recommended for Mac/PC, more cores':'uses the graphics card')+', '+m.mb+' MB',id)));
+  ms.value=mode;ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=mode};
+ }
+ const bs=$('buffer-select');
+ if(bs){bs.value=String(Math.round(bufferTarget()/60));if(bs.value!==String(Math.round(bufferTarget()/60)))bs.value='6';bs.onchange=()=>{store.set('cv-buffer',bs.value);renderBuffer()}}
+ renderEngine();renderBuffer();
 })();
-window.chapterKokoro={toggle,stop,testVoice,stopTest,testActive,version:VERSION};
+window.chapterKokoro={toggle,stop,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,version:VERSION,
+ stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode})};
 })();

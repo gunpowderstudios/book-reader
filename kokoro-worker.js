@@ -1,41 +1,91 @@
-/* Chapter & Verse v1.3.0 — Kokoro inference worker.
+/* Chapter & Verse v1.4.0 — Kokoro inference worker.
    Model download, phonemising and ONNX inference all run here, off the page's main thread,
    so the interface stays responsive while George is generating speech.
-   Protocol (main -> worker): {type:'init',voice} · {type:'generate',id,text,voice}
-   Protocol (worker -> main): stage · progress · ready · init-error · audio · error */
+   Protocol (main -> worker): {type:'init',voice,mode} · {type:'generate',id,text,voice}
+   Protocol (worker -> main): stage · progress · net · fallback · ready · init-error · audio · error */
 const KOKORO_URL='https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js';
 const MODEL_ID='onnx-community/Kokoro-82M-v1.0-ONNX';
-const MODEL_OPTIONS={dtype:'q8',device:'wasm'}; /* q8 (~90 MB) is the smallest model that runs well on WASM */
+/* standard: 8-bit model, one core (~92 MB).  fast: full-precision model, all cores when the page is
+   cross-origin isolated (~326 MB).  gpu: full-precision model on the graphics card (~326 MB, experimental). */
+const MODES={standard:{device:'wasm',dtype:'q8'},fast:{device:'wasm',dtype:'fp32'},gpu:{device:'webgpu',dtype:'fp32'}};
+const FALLBACKS={gpu:['gpu','fast','standard'],fast:['fast','standard'],standard:['standard']};
 
-let tts=null,loading=null,chain=Promise.resolve();
+let lib=null,tts=null,loading=null,chain=Promise.resolve();
 const say=(m,transfer)=>self.postMessage(m,transfer||[]);
 const describe=e=>String((e&&e.message)||e||'Unknown error');
 
-/* Download progress is reported per file by transformers.js; add the files up into one figure. */
-const files=new Map();let lastPost=0;
+/* ───── Count the bytes that really come over the network (cache hits do not count) ───── */
+const net={bytes:0};let lastNet=0;
+function postNet(force){const now=Date.now();if(!force&&now-lastNet<250)return;lastNet=now;say({type:'net',bytes:net.bytes+moduleBytes()})}
+function moduleBytes(){ /* script/module/wasm loads that bypass fetch(); only counted when the browser reports a real transfer */
+ try{let n=0;for(const e of performance.getEntriesByType('resource'))if(e.initiatorType!=='fetch'&&e.initiatorType!=='xmlhttprequest'&&e.transferSize>0)n+=e.transferSize;return n}catch(_){return 0}
+}
+if(typeof self.fetch==='function'&&typeof TransformStream==='function'){
+ const origFetch=self.fetch.bind(self);
+ self.fetch=async function(input,init){
+  const res=await origFetch(input,init);
+  try{
+   if(!res.body||!res.ok)return res;
+   const counter=new TransformStream({
+    transform(chunk,ctl){net.bytes+=chunk.byteLength;postNet(false);ctl.enqueue(chunk)},
+    flush(){postNet(true)}
+   });
+   const wrapped=new Response(res.body.pipeThrough(counter),{status:res.status,statusText:res.statusText,headers:res.headers});
+   try{Object.defineProperty(wrapped,'url',{value:res.url})}catch(_){}
+   try{Object.defineProperty(wrapped,'redirected',{value:res.redirected})}catch(_){}
+   return wrapped;
+  }catch(_){return res}
+ };
+}
+
+/* ───── Model download progress: one figure across all files, led by the big model file ───── */
+const files=new Map();let lastProgress=0;
 function onProgress(p){
  if(!p||!p.file)return;
  if(p.status==='progress'&&p.total)files.set(p.file,{loaded:p.loaded,total:p.total});
  else if(p.status==='done'){const f=files.get(p.file);if(f)f.loaded=f.total}
  else return;
- const now=Date.now();if(p.status!=='done'&&now-lastPost<150)return;lastPost=now;
- let loaded=0,total=0;for(const f of files.values()){loaded+=f.loaded;total+=f.total}
- say({type:'progress',loaded,total});
+ const now=Date.now();if(p.status!=='done'&&now-lastProgress<150)return;lastProgress=now;
+ let loaded=0,total=0,big=false;
+ for(const f of files.values())if(f.total>1048576)big=true;
+ for(const f of files.values()){if(big&&f.total<=1048576)continue;loaded+=f.loaded;total+=f.total}
+ say({type:'progress',loaded,total,file:p.file});
+ postNet(false);
 }
 
-function load(voice){
+async function build(mode,voice){
+ const o=MODES[mode];
+ files.clear();
+ say({type:'stage',stage:'model',mode});
+ const model=await lib.KokoroTTS.from_pretrained(MODEL_ID,{dtype:o.dtype,device:o.device,progress_callback:onProgress});
+ say({type:'stage',stage:'warmup',mode});
+ /* A tiny first generation fetches the voice file, starts the phonemiser and initialises ONNX now,
+    so any failure shows up as a clear loading error (or a fallback) instead of mid-playback. */
+ await model.generate('Ready.',{voice});
+ return model;
+}
+
+function load(voice,mode){
  if(!loading)loading=(async()=>{
   const t0=Date.now();
   say({type:'stage',stage:'library'});
-  const {KokoroTTS}=await import(KOKORO_URL);
-  say({type:'stage',stage:'model'});
-  const model=await KokoroTTS.from_pretrained(MODEL_ID,{...MODEL_OPTIONS,progress_callback:onProgress});
-  say({type:'stage',stage:'warmup'});
-  /* A tiny first generation fetches the voice file, starts the phonemiser and initialises ONNX now,
-     so any failure shows up as a clear loading error instead of mid-playback. */
-  await model.generate('Ready.',{voice});
-  tts=model;
-  return {ms:Date.now()-t0};
+  lib=await import(KOKORO_URL);
+  const order=FALLBACKS[mode]||FALLBACKS.standard;let used=null,lastErr=null;
+  for(let i=0;i<order.length;i++){
+   const m=order[i];
+   try{
+    if(m==='gpu'){
+     if(!self.navigator||!self.navigator.gpu)throw new Error('WebGPU is not available in this browser');
+     if(!(await self.navigator.gpu.requestAdapter()))throw new Error('no compatible graphics adapter was found');
+    }
+    tts=await build(m,voice);used=m;break;
+   }catch(e){
+    lastErr=e;
+    if(i+1<order.length)say({type:'fallback',from:m,to:order[i+1],reason:describe(e)});
+   }
+  }
+  if(!used)throw lastErr||new Error('George could not start');
+  return {ms:Date.now()-t0,mode:used,isolated:self.crossOriginIsolated===true,cores:(self.navigator&&self.navigator.hardwareConcurrency)||0};
  })().catch(e=>{loading=null;throw e});
  return loading;
 }
@@ -43,12 +93,12 @@ function load(voice){
 self.onmessage=ev=>{
  const m=ev.data||{};
  if(m.type==='init'){
-  load(m.voice).then(info=>say({type:'ready',ms:info.ms}),e=>say({type:'init-error',message:describe(e)}));
+  load(m.voice,m.mode||'standard').then(info=>{postNet(true);say({type:'ready',...info})},e=>say({type:'init-error',message:describe(e)}));
  }else if(m.type==='generate'){
   /* One generation at a time; requests simply wait their turn. */
   chain=chain.then(async()=>{
    try{
-    await load(m.voice);
+    await load(m.voice,m.mode||'standard');
     const t0=Date.now();
     const out=await tts.generate(m.text,{voice:m.voice});
     let samples=out.audio;
