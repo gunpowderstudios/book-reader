@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.10.1 — 24 October 2026
+- Display the wide EPUB sign at full available width on mobile, replacing the small square icon and significantly increasing its apparent size.
+- Centre the version beneath the sign and put Load a Book underneath to prevent overlap on narrow screens.
+
 ## v1.10.0 — 24 October 2026
 - Narrator loading now has an animated indeterminate progress bar while the voice or speech engine prepares, rather than jumping abruptly to 100%.
 - Show real percentage progress only when Kokoro supplies download totals; new voice choices show an explicit preparing-voice message.
