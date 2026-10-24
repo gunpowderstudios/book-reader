@@ -37,8 +37,8 @@ function start(text,p,progress){
  el.replaceChildren(...parts);el.classList.add('speaking');
  active={element:el,original,spans,startAt,endAt,last:-1};
  // Keep the current passage near the top without scrolling every word.
- const top=el.getBoundingClientRect().top;
- if(Math.abs(top-150)>90)window.scrollBy({top:top-150,behavior:'smooth'});
+ const scroller=$('text');
+ if(scroller){const top=el.offsetTop-scroller.offsetTop;if(Math.abs(scroller.scrollTop-top)>80)scroller.scrollTo({top:Math.max(0,top-18),behavior:'smooth'});}
  function tick(){
   if(!active||!enabled)return;
   const fraction=Math.max(0,Math.min(0.999,Number(progress())||0));
