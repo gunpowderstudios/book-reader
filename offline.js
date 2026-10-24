@@ -19,7 +19,7 @@ async function refresh(){
  if(cancelBtn)cancelBtn.hidden=!preparing;
  if(!v){note('Open an EPUB to prepare a chapter.');if(play)play.disabled=true;return}
  const e=estimate(),total=clips(v.chapter).length;
- $('offline-estimate').textContent=v.chapter.title+' · '+e.words.toLocaleString()+' words · ~'+Math.round(e.seconds/60)+' min · ~'+formatMB(e.bytes)+' of local audio storage (WAV). George’s '+e.model+' voice model downloads once if not cached.';
+ $('offline-estimate').textContent=v.chapter.title+' · '+e.words.toLocaleString()+' words · ~'+Math.round(e.seconds/60)+' min · ~'+formatMB(e.bytes)+' of local audio storage (WAV). The selected narrator’s '+e.model+' voice model downloads once if not cached.';
  let done=0,actual=0;
  try{for(let i=0;i<total;i++){const c=await entry(audioKey(v.id,i));if(c?.blob){done++;actual+=c.blob.size}}}catch(err){note('Offline storage unavailable: '+err.message);if(play)play.disabled=true;return}
  if(play)play.disabled=done!==total||!total;
