@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.9.5 — 24 October 2026
+- Added a **Bedtime** button to the bottom playback controls. It shows an edge-to-edge black overlay with the animated candle from `images/candel.gif` centred.
+- Narration continues underneath the overlay; tap/click anywhere or press Escape, Enter or Space to return to the reader. Does not attempt screen-off playback.
+
 ## v1.9.4 — 24 October 2026
 - Open **My Library** by default on every fresh page visit, even when books are already stored.
 - Move the narrator loading, download and processing-speed panel from above the reading tabs into the right-hand column above **Captain's Log** on the Book Reader tab.
