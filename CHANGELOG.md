@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+## v1.7.1 — 24 October 2026
+- Linked Gunpowder Studios in the copyright footer to https://www.gunpowderstudios.co.uk/apps/.
+
 ## v1.7.0 — 24 October 2026
 - Added **Bookmarks & sharing**, collapsed by default, with named bookmarks saved per book in browser localStorage.
 - Bookmark entries can reopen a saved chapter and paragraph or be removed independently of normal automatic reading-position saving.
