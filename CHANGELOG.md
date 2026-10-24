@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+## v1.8.2 — 24 October 2026
+- Centred the wide pub-sign logo at the top of the page with the version number directly beneath it. Kept Load a Book accessible on the right and the responsive square icon on small screens.
+
 ## v1.8.1 — 24 October 2026
 - Used the uploaded wide pub sign logo in the page header and the square logo for browser favicon and iPad home-screen icon.
 - Small-screen header adapts to the square logo on narrow devices. Original uploaded filenames, including `sqaure`, are used unchanged.
