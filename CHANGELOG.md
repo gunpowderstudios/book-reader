@@ -1,5 +1,11 @@
 # Book Reader — Version history
 
+## v1.6.2 — 24 October 2026
+- Added a concise, professional credits and copyright notice near the bottom of the reader, above the fixed playback controls.
+- Credited the Kokoro text-to-speech model and contributors, with links to the official model, project and available voices.
+- Clarified that users should only read material they own, public-domain works, or material they are authorised to use; copyright remains with the original rights holders.
+- Added a link to the open-source Book Reader GitHub repository and a Gunpowder Studios copyright line.
+
 ## v1.6.1 — 24 October 2026
 - Added a yellow word-following highlight during George's live narration, with the current passage scrolled near the top of the reading area.
 - Added a **Highlight spoken words in yellow** toggle beside Listen Now; preference is saved per browser.
