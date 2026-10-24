@@ -1,5 +1,10 @@
 # Book Reader — Version history
 
+## v1.9.8 — 24 October 2026
+- Simplified reader-facing voice performance choices to **Automatic (recommended)**, **Fast**, and **Low Memory**. GPU remains internal for developer experiments.
+- Automatic selects Fast for computers and Low Memory for phones/tablets. Saved manual choices are carried forward and users can return to Automatic.
+- Replaced the detailed technical mode description with simple language in the optional performance settings panel.
+
 ## v1.9.7 — 24 October 2026
 - Removed the manual voice speed benchmark panel and its script from the public Meet the Narrators page.
 - Simplified narrator testing instructions and removed outdated George-only technical explanations.
