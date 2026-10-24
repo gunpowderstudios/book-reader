@@ -1,5 +1,10 @@
 # Book Reader — Version history
 
+## v1.7.2 — 24 October 2026
+- Removed redundant **Listen Now** button; the bottom playback bar remains the single primary Play/Pause control.
+- Updated the heading to show **Load a Book…**, the loaded title, and **Now Playing** when narration starts.
+- Made the story text independently scrollable so long EPUB chapters no longer push the credits to the end of the entire story; read-along scrolling follows inside that pane.
+
 ## v1.7.1 — 24 October 2026
 - Linked Gunpowder Studios in the copyright footer to https://www.gunpowderstudios.co.uk/apps/.
 
