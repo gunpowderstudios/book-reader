@@ -1,5 +1,11 @@
 # Book Reader — Version history
 
+## v1.5.1 — 24 October 2026
+- Added a **Run speed test** button under Test a Voice to measure model start + three short samples, real-time generation rate, and browser UI delays on the user's device.
+- Fast is the recommended default for *new* users. Existing saved mode preferences are preserved; unsupported modes fall back to a lighter option.
+- Explained model download sizes, memory trade-offs, and why chapter preparation avoids live speech-generation gaps.
+- Benchmarks do not automatically run, and test results should be interpreted as indicative rather than a guarantee of gapless playback.
+
 ## v1.5.0 — 24 October 2026
 - Added **Prepare Chapter** to Book Reader, with estimates for narration duration, uncompressed WAV storage and the selected AI model download.
 - Generate George's narration one chapter at a time, save every completed audio passage in IndexedDB and resume preparation later without regenerating saved passages.
