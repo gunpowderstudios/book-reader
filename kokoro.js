@@ -3,9 +3,10 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.6.1';
-const VOICES={bm_george:'George — British male'}; /* add more Kokoro voice ids here later; the Test tab picks them up */
+const VERSION='1.9.0';
+const VOICES={bm_george:'George — British male',bf_emma:'Emma — British female'}; /* add more Kokoro voice ids here later; the Test tab picks them up */
 const DEFAULT_VOICE='bm_george';
+const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
 const MODES={
  standard:{label:'Standard — lower memory',mb:92},
  fast:{label:'Fast — recommended when supported',mb:326},
@@ -144,7 +145,7 @@ function ready(){
   eng.note=st==='failed'||st==='unsupported'?'multi-core is not available in this browser, so Fast mode runs on one core':'multi-core is not active on this page';
  }
  renderEngine();
- readyPromise=new Promise((resolve,reject)=>{initWaiter={resolve,reject};w.postMessage({type:'init',voice:DEFAULT_VOICE,mode:runMode||mode})});
+ readyPromise=new Promise((resolve,reject)=>{initWaiter={resolve,reject};w.postMessage({type:'init',voice:currentVoice(),mode:runMode||mode})});
  readyPromise.catch(()=>{});
  armWatchdog();
  return readyPromise;
@@ -412,7 +413,7 @@ function prefetch(S,count=3){
  if(!S||!S.chapters||!S.chapters.length)return;
  const my=++prefetchToken,it=segments(S);let n=0;
  for(let r=it.next();!r.done&&n<count;r=it.next(),n++){
-  synth(r.value.text,DEFAULT_VOICE,{stale:()=>my!==prefetchToken||!!session}).catch(()=>{});
+  synth(r.value.text,currentVoice(),{stale:()=>my!==prefetchToken||!!session}).catch(()=>{});
  }
 }
 function toggle({S,update,render}){
@@ -424,7 +425,7 @@ function toggle({S,update,render}){
   return;
  }
  stop();prefetchToken++;
- const token=serial,s={cancelled:false,paused:false,wake:null};session=s;
+ const token=serial,s={cancelled:false,paused:false,wake:null,voice:currentVoice()};session=s;
  const stale=()=>s.cancelled||token!==serial;
  S.playing=true;S.paused=false;$('play').textContent='Ⅱ Pause';
  unlockAudio();startMeter();
@@ -442,7 +443,7 @@ function toggle({S,update,render}){
     while(pending<MAX_PENDING&&!exhausted&&readySec()<target&&ahead.length<MAX_AHEAD){
      const n=it.next();if(n.done){exhausted=true;break}
      const item={seg:n.value,done:false,sec:0};
-     item.job=synth(n.value.text,DEFAULT_VOICE,{stale,onGenerate:()=>{if(!stale())sink=null}});
+     item.job=synth(n.value.text,currentVoice(),{stale,onGenerate:()=>{if(!stale())sink=null}});
      item.job.then(res=>{item.done=true;item.sec=res.audioSec;fill();bufInfo.ready=readySec();renderBuffer()},()=>{item.done=true});
      ahead.push(item);pending++;
     }
@@ -481,7 +482,7 @@ function toggle({S,update,render}){
 /* ───────── Panel wiring ───────── */
 (function wirePanels(){
  const sel=$('test-voice');
- if(sel){sel.replaceChildren(...Object.entries(VOICES).map(([id,label])=>new Option(label,id)));sel.value=DEFAULT_VOICE;sel.hidden=Object.keys(VOICES).length<2}
+ if(sel){sel.replaceChildren(...Object.entries(VOICES).map(([id,label])=>new Option(label,id)));sel.value=currentVoice();sel.hidden=Object.keys(VOICES).length<2}
  const ta=$('test-text'),count=$('test-count');
  if(ta&&count){const update=()=>{count.textContent=ta.value.length+' / '+MAX_TEST_CHARS};ta.addEventListener('input',update);update()}
  const ms=$('mode-select');
@@ -493,6 +494,6 @@ function toggle({S,update,render}){
  if(bs){bs.value=String(Math.round(bufferTarget()/60));if(bs.value!==String(Math.round(bufferTarget()/60)))bs.value='6';bs.onchange=()=>{store.set('cv-buffer',bs.value);renderBuffer()}}
  renderEngine();renderBuffer();
 })();
-window.chapterKokoro={toggle,stop,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,generateClip:(text)=>synth(text,DEFAULT_VOICE),splitText:(text)=>chunks(text),version:VERSION,
+window.chapterKokoro={toggle,stop,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,generateClip:(text,id)=>synth(text,VOICES[id]?id:currentVoice()),currentVoice,voices:VOICES,splitText:(text)=>chunks(text),version:VERSION,
  stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode}),measured:()=>Number(store.get('cv-measured-'+mode,'0'))};
 })();
