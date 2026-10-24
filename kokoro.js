@@ -3,10 +3,12 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.9.0';
+const VERSION='1.9.2';
 const VOICES={bm_george:'George — British male',bf_emma:'Emma — British female'}; /* add more Kokoro voice ids here later; the Test tab picks them up */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
+const narratorName=()=>currentVoice()==='bf_emma'?'Emma':'George';
+const named=s=>String(s).replaceAll('George',narratorName());
 const MODES={
  standard:{label:'Standard — lower memory',mb:92},
  fast:{label:'Fast — recommended when supported',mb:326},
@@ -21,7 +23,7 @@ const norm=s=>String(s||'').replace(/\s+/g,' ').trim();
 const fmtMB=n=>(n/1048576).toFixed(n<10485760?1:0)+' MB';
 const fmtDur=s=>{s=Math.max(0,Math.round(s));return s>=60?Math.floor(s/60)+'m '+String(s%60).padStart(2,'0')+'s':s+'s'};
 const CANCELLED=new Error('Cancelled');
-const status=s=>{const el=$('status');if(el)el.textContent=s};
+const status=s=>{const el=$('status');if(el)el.textContent=named(s)};
 const rate=()=>Number($('rate')&&$('rate').value)||1;
 const store={
  get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v}catch(_){return d}},
@@ -59,13 +61,13 @@ function renderEngine(){
     :'George is not loaded yet. He starts when you press Play (a one-off download of about '+MODES[mode].mb+' MB).';
  }
  if(eng.note)msg+=' — '+eng.note;
- if(text)text.textContent=msg;
+ if(text)text.textContent=named(msg);
  if(fill){fill.style.width=pct.toFixed(1)+'%'}
  if(bar){bar.dataset.state=state;bar.setAttribute('aria-valuenow',String(Math.round(pct)))}
  if(netEl){
   let t='Downloaded by George this visit: '+fmtMB(eng.net);
   if(eng.phase==='ready'&&eng.net<1572864)t+=' — nothing new; he loaded from your browser’s saved copy';
-  netEl.textContent=t;
+  netEl.textContent=named(t);
  }
 }
 function engineReset(note){Object.assign(eng,{phase:'idle',loaded:0,total:0,net:0,used:null,sec:0,error:'',note:note||''});renderEngine()}
@@ -289,13 +291,13 @@ function renderBuffer(){
  }else{
   msg='Read-ahead starts when you press Play (up to '+Math.round(bufferTarget()/60)+' min)'+(speed?' · last measured: George works at '+speed:'');
  }
- if(text)text.textContent=msg;
+ if(text)text.textContent=named(msg);
  if(fill)fill.style.width=pct.toFixed(1)+'%';
  if(bar){bar.dataset.state=state;bar.setAttribute('aria-valuenow',String(Math.round(pct)))}
  if(hintEl){
   const h=hint();
   if(h){
-   hintEl.hidden=false;hintEl.replaceChildren(document.createTextNode(h.text+' '));
+   hintEl.hidden=false;hintEl.replaceChildren(document.createTextNode(named(h.text)+' '));
    if(h.action){const b=document.createElement('button');b.textContent=h.action;b.onclick=()=>{haltAll();setMode(h.to);const sel=$('mode-select');if(sel)sel.value=mode};hintEl.append(b)}
   }else hintEl.hidden=true;
  }
@@ -325,7 +327,7 @@ const testActive=()=>testState==='loading'||testState==='generating'||testState=
 function setTest(state,msg){
  testState=state;
  const btn=$('test-play');if(btn){btn.textContent=state==='idle'||state==='error'?'▶ Play sample':'■ Stop';btn.dataset.state=state}
- const el=$('test-status');if(el){el.textContent=msg;el.dataset.state=state}
+ const el=$('test-status');if(el){el.textContent=named(msg);el.dataset.state=state}
  status(msg);
 }
 const testVoiceId=()=>($('test-voice')&&$('test-voice').value)||DEFAULT_VOICE;
@@ -495,5 +497,5 @@ function toggle({S,update,render}){
  renderEngine();renderBuffer();
 })();
 window.chapterKokoro={toggle,stop,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,generateClip:(text,id)=>synth(text,VOICES[id]?id:currentVoice()),currentVoice,voices:VOICES,splitText:(text)=>chunks(text),version:VERSION,
- stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode}),measured:()=>Number(store.get('cv-measured-'+mode,'0'))};
+ refreshNarrator:()=>{renderEngine();renderBuffer()},stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode}),measured:()=>Number(store.get('cv-measured-'+mode,'0'))};
 })();
