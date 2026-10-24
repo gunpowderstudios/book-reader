@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.9.6 — 24 October 2026
+- Added American Male — Eric (`am_eric`) and American Female — Aoede (`af_aoede`) alongside British Male — George and British Female — Emma.
+- Narrator dropdowns and status labels use the appropriate accent, gender and character names. Existing narrator selection and prepared audio remain supported.
+
 ## v1.9.5 — 24 October 2026
 - Added a **Bedtime** button to the bottom playback controls. It shows an edge-to-edge black overlay with the animated candle from `images/candel.gif` centred.
 - Narration continues underneath the overlay; tap/click anywhere or press Escape, Enter or Space to return to the reader. Does not attempt screen-off playback.
