@@ -1,5 +1,11 @@
 # Book Reader — Version history
 
+## v1.6.1 — 24 October 2026
+- Added a yellow word-following highlight during George's live narration, with the current passage scrolled near the top of the reading area.
+- Added a **Highlight spoken words in yellow** toggle beside Listen Now; preference is saved per browser.
+- Word timing is approximate, based on progress through each generated audio passage. Kokoro does not return per-word speech timestamps, so highlighting will not always align exactly with the spoken word.
+- Offline prepared chapter playback has no individual word timing and is unchanged.
+
 ## v1.6.0 — 24 October 2026
 - Simplified the reading screen with a prominent **Listen Now** button and a collapsible **Save for Later** chapter preparation section.
 - Moved technical voice-mode choices under Advanced voice settings; the existing Fast default and fallback behavior remain.
