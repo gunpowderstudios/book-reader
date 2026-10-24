@@ -3,13 +3,13 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.4.1';
+const VERSION='1.5.1';
 const VOICES={bm_george:'George — British male'}; /* add more Kokoro voice ids here later; the Test tab picks them up */
 const DEFAULT_VOICE='bm_george';
 const MODES={
- standard:{label:'Standard',mb:92},
- fast:{label:'Fast (multi-core)',mb:326},
- gpu:{label:'GPU (experimental)',mb:326}
+ standard:{label:'Standard — lower memory',mb:92},
+ fast:{label:'Fast — recommended when supported',mb:326},
+ gpu:{label:'GPU — experimental',mb:326}
 };
 const MAX_TEST_CHARS=300;            /* keeps a sample well inside Kokoro's ~510-token limit */
 const CACHE_MAX_BYTES=96*1024*1024;  /* generated audio kept in memory (LRU) */
@@ -28,7 +28,7 @@ const store={
 };
 
 /* ───────── Settings ───────── */
-let mode=MODES[store.get('cv-mode','standard')]?store.get('cv-mode','standard'):'standard';
+let mode=MODES[store.get('cv-mode','fast')]?store.get('cv-mode','standard'):'standard';
 const bufferTarget=()=>{const m=Number(store.get('cv-buffer','6'));return (m>0&&m<=30?m:6)*60};
 const installed=()=>store.get('cv-ready-'+mode,'')==='1';
 const isolated=()=>typeof crossOriginIsolated!=='undefined'&&crossOriginIsolated===true;
