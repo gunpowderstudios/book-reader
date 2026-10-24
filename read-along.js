@@ -38,7 +38,7 @@ function start(text,p,progress){
  active={element:el,original,spans,startAt,endAt,last:-1};
  // Keep the current passage near the top without scrolling every word.
  const scroller=$('text');
- if(scroller){const top=el.offsetTop-scroller.offsetTop;if(Math.abs(scroller.scrollTop-top)>80)scroller.scrollTo({top:Math.max(0,top-18),behavior:'smooth'});}
+ if(scroller){const top=el.getBoundingClientRect().top-scroller.getBoundingClientRect().top+scroller.scrollTop;if(Math.abs(scroller.scrollTop-top)>80)scroller.scrollTo({top:Math.max(0,top-18),behavior:'smooth'});}
  function tick(){
   if(!active||!enabled)return;
   const fraction=Math.max(0,Math.min(0.999,Number(progress())||0));
