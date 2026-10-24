@@ -1,5 +1,10 @@
 # Book Reader — Version history
 
+## v1.9.4 — 24 October 2026
+- Open **My Library** by default on every fresh page visit, even when books are already stored.
+- Move the narrator loading, download and processing-speed panel from above the reading tabs into the right-hand column above **Captain's Log** on the Book Reader tab.
+- On narrow screens this sidebar sits underneath the reader, keeping the top of the mobile layout uncluttered.
+
 ## v1.9.3 — 24 October 2026
 - Simplified speed setup: Book Reader automatically recommends **Fast** on desktop computers and the lower-memory **Standard** mode on phones and tablets for first-time users; this is a device-based starting recommendation, not an exhaustive benchmark.
 - Existing manually chosen modes remain saved. The active speed and recommendation are shown above the collapsed **Change speed (optional)** settings.
