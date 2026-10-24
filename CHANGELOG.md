@@ -1,5 +1,10 @@
 # Book Reader — Version history
 
+## v1.5.2 — 24 October 2026
+- Added a right-hand **Activity Log** on the Book Reader tab, showing live voice engine status, buffering, preparation, playback, benchmarks and errors.
+- Added **Copy Log** and **Clear** controls, with a rolling 250-event history; no EPUB book text is recorded.
+- On narrower screens and iPads the log moves below the reader. The log is session-only and does not upload diagnostics.
+
 ## v1.5.1 — 24 October 2026
 - Added a **Run speed test** button under Test a Voice to measure model start + three short samples, real-time generation rate, and browser UI delays on the user's device.
 - Fast is the recommended default for *new* users. Existing saved mode preferences are preserved; unsupported modes fall back to a lighter option.
