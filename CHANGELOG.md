@@ -1,5 +1,12 @@
 # Book Reader — Version history
 
+## v1.7.0 — 24 October 2026
+- Added **Bookmarks & sharing**, collapsed by default, with named bookmarks saved per book in browser localStorage.
+- Bookmark entries can reopen a saved chapter and paragraph or be removed independently of normal automatic reading-position saving.
+- **Share My Place** copies a URL containing the EPUB content identifier, chapter and paragraph; it does not share copyrighted book content.
+- Opening a shared link retrieves the matching EPUB from My Library on that device and jumps to the requested position; otherwise the user is prompted to add the same EPUB. The two devices do not automatically sync their libraries or bookmarks.
+- Shared position accuracy is paragraph-level; book files must match, and browser storage can be cleared by the user or browser.
+
 ## v1.6.2 — 24 October 2026
 - Added a concise, professional credits and copyright notice near the bottom of the reader, above the fixed playback controls.
 - Credited the Kokoro text-to-speech model and contributors, with links to the official model, project and available voices.
