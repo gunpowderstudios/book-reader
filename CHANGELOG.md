@@ -1,5 +1,13 @@
 # Book Reader — Version history
 
+## v1.5.0 — 24 October 2026
+- Added **Prepare Chapter** to Book Reader, with estimates for narration duration, uncompressed WAV storage and the selected AI model download.
+- Generate George's narration one chapter at a time, save every completed audio passage in IndexedDB and resume preparation later without regenerating saved passages.
+- Added **Play prepared chapter**: assemble saved PCM-WAV passages into one continuous audio file for seamless playback without live AI inference.
+- Preparation stays on the device, not a streaming speech download. Progress must remain open in the foreground; iPad Safari may suspend background generation. The browser may evict stored audio, and the GitHub Pages app itself is not yet guaranteed to open offline.
+- This first release saves large WAV audio files rather than MP3/M4B; exporting compressed offline audiobooks remains a separate Mac-based feature.
+- No changes to EPUB import, existing live narration or My Library logic.
+
 ## v1.4.2 — 24 October 2026
 - Renamed the app header and browser tab to **Book Reader**, followed by the version number. No functional changes.
 
