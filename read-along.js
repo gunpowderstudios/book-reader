@@ -2,7 +2,7 @@
    Kokoro does not provide word alignment; words advance proportionally to audio time. */
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
-let active=null,timer=null,enabled=true,lastParagraph=null,nextWord=0;
+let active=null,timer=null,enabled=true,lastParagraph=null,lastElement=null,nextWord=0;
 try{enabled=localStorage.getItem('br-highlight')!=='off'}catch(_){}
 function clear(){
  if(timer){clearInterval(timer);timer=null}
@@ -19,7 +19,7 @@ function start(text,p,progress){
  // Find the generated passage within the paragraph; handle minor punctuation variations.
  const canon=x=>x.toLocaleLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
  const target=spoken.map(canon).filter(Boolean),tokens=all.map(x=>canon(x[0]));
- let from=p===lastParagraph?nextWord:0;
+ let from=p===lastParagraph&&el===lastElement?nextWord:0;
  let startAt=-1,best=-1;
  for(let i=from;i<all.length;i++){
   if(tokens[i]!==target[0])continue;
@@ -29,7 +29,7 @@ function start(text,p,progress){
  }
  if(startAt<0)startAt=Math.min(from,all.length-1);
  const endAt=Math.min(all.length,startAt+spoken.length);
- lastParagraph=p;nextWord=endAt;
+ lastParagraph=p;lastElement=el;nextWord=endAt;
  let pos=0;const spans=[];
  const parts=[];
  all.forEach((m,i)=>{if(m.index>pos)parts.push(document.createTextNode(original.slice(pos,m.index)));const span=document.createElement('span');span.textContent=m[0];span.className='spoken-word';parts.push(span);spans.push(span);pos=m.index+m[0].length});
