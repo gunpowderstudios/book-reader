@@ -1,5 +1,12 @@
 # Book Reader — Version history
 
+## v1.6.0 — 24 October 2026
+- Simplified the reading screen with a prominent **Listen Now** button and a collapsible **Save for Later** chapter preparation section.
+- Moved technical voice-mode choices under Advanced voice settings; the existing Fast default and fallback behavior remain.
+- Automatically remember George's observed generation speed during normal narration, then recommend live listening or prepared playback without a surprise benchmark or additional model download.
+- Fixed the offline preparation estimate to show ~326 MB for Fast/GPU mode instead of incorrectly showing 92 MB.
+- Performance advice is based on measured speech-generation throughput; it is not a hardware benchmark or guaranteed uninterrupted playback.
+
 ## v1.5.3 — 24 October 2026
 - Renamed Activity Log to **Captain's Log (look under the hood)**.
 - Collapsed by default to keep the reading interface uncluttered; tap the title to show or hide diagnostics. Logging, Copy Log and Clear remain functional while collapsed.
