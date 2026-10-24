@@ -9,7 +9,7 @@ const MODEL_ID='onnx-community/Kokoro-82M-v1.0-ONNX';
    cross-origin isolated (~326 MB).  gpu: full-precision model on the graphics card (~326 MB, experimental). */
 const MODES={standard:{device:'wasm',dtype:'q8'},fast:{device:'wasm',dtype:'fp32'},gpu:{device:'webgpu',dtype:'fp32'}};
 
-let lib=null,tts=null,loading=null,chain=Promise.resolve();
+let lib=null,tts=null,loading=null,chain=Promise.resolve(),preparedVoices=new Set();
 const say=(m,transfer)=>self.postMessage(m,transfer||[]);
 const describe=e=>String((e&&e.message)||e||'Unknown error');
 
@@ -57,10 +57,11 @@ async function build(mode,voice){
  files.clear();
  say({type:'stage',stage:'model',mode});
  const model=await lib.KokoroTTS.from_pretrained(MODEL_ID,{dtype:o.dtype,device:o.device,progress_callback:onProgress});
- say({type:'stage',stage:'warmup',mode});
+ say({type:'stage',stage:'voice',voice,mode});
  /* A tiny first generation fetches the voice file, starts the phonemiser and initialises ONNX now,
     so any failure shows up as a clear loading error (or a fallback) instead of mid-playback. */
  await model.generate('Ready.',{voice});
+ preparedVoices.add(voice);
  return model;
 }
 
@@ -99,7 +100,9 @@ self.onmessage=ev=>{
    try{
     await load(m.voice,m.mode||'standard');
     const t0=Date.now();
+    if(!preparedVoices.has(m.voice))say({type:'voice-start',voice:m.voice});
     const out=await tts.generate(m.text,{voice:m.voice});
+    if(!preparedVoices.has(m.voice)){preparedVoices.add(m.voice);say({type:'voice-ready',voice:m.voice})}
     let samples=out.audio;
     if(samples.byteOffset!==0||samples.byteLength!==samples.buffer.byteLength)samples=samples.slice();
     say({type:'audio',id:m.id,samples,rate:out.sampling_rate,ms:Date.now()-t0},[samples.buffer]);
