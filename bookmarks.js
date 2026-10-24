@@ -18,12 +18,13 @@ async function share(){const s=current();if(!s)return message('Open a book first
 function pending(){const u=new URL(location.href),id=u.searchParams.get('book'),ch=Number(u.searchParams.get('chapter')),p=Number(u.searchParams.get('paragraph'));if(!id||!Number.isSafeInteger(ch)||!Number.isSafeInteger(p)||ch<0||p<0)return null;return{id,ch,p}}
 let incoming=pending(),working=false;
 async function tryLink(){
- if(!incoming||working)return;const lib=window.chapterLibrary;if(!lib?.available)return;
+ if(!incoming||working)return;const lib=window.chapterLibrary;if(!lib)return;
  working=true;
- try{const rec=await lib.get(incoming.id);if(!rec){message('Shared place: add the same EPUB to My Library on this device, then open it.');return}
- const s=current();if(s?.key!==incoming.id){await app().openFromLibrary(incoming.id)}
- const now=current();if(now?.key!==incoming.id)return;
- jump(incoming.ch,incoming.p);message('Opened the shared reading position.');incoming=null;
+ try{await lib.ready;if(!lib.available)return;const target=incoming;const rec=await lib.get(target.id);if(!rec){message('Shared place: add the same EPUB to My Library on this device, then open it.');return}
+ const s=current();if(s?.key!==target.id){await app().openFromLibrary(target.id)}
+ if(!incoming)return;
+ const now=current();if(now?.key!==target.id)return;
+ jump(target.ch,target.p);message('Opened the shared reading position.');incoming=null;
  const u=new URL(location.href);u.searchParams.delete('book');u.searchParams.delete('chapter');u.searchParams.delete('paragraph');history.replaceState(null,'',u);
  }catch(e){message('Unable to open shared place: '+e.message)}
  finally{working=false}
