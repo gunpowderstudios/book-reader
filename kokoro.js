@@ -33,7 +33,9 @@ const store={
 /* ───────── Settings ───────── */
 const mobileDevice=()=>/iPad|iPhone|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const suggestedMode=()=>mobileDevice()?'standard':'fast';
-let mode=MODES[store.get('cv-mode','')]?store.get('cv-mode',''):suggestedMode();
+let preference=store.get('cv-mode-choice',store.get('cv-mode','')||'auto');
+if(!['auto','fast','standard'].includes(preference))preference='auto';
+let mode=preference==='auto'?suggestedMode():preference;
 const bufferTarget=()=>{const m=Number(store.get('cv-buffer','6'));return (m>0&&m<=30?m:6)*60};
 const installed=()=>store.get('cv-ready-'+mode,'')==='1';
 const isolated=()=>typeof crossOriginIsolated!=='undefined'&&crossOriginIsolated===true;
@@ -164,8 +166,11 @@ function haltAll(){ /* stop playback through the page (so its buttons reset), fa
  if(window.chapterApp&&window.chapterApp.stop)window.chapterApp.stop();else stop();
 }
 function setMode(next){
- if(!MODES[next]||next===mode)return mode;
- mode=next;runMode=null;store.set('cv-mode',next);
+ if(!['auto','fast','standard'].includes(next))return mode;
+ preference=next;store.set('cv-mode-choice',next);
+ const chosen=next==='auto'?suggestedMode():next;
+ if(chosen===mode){showRecommendation();return mode}
+ mode=chosen;runMode=null;store.set('cv-mode',chosen);
  if(worker||readyPromise)failWorker(new Error('Switching mode'),true);
  cache.clear();cacheBytes=0;recent.length=0;lastSpeed=0; /* clips from another engine are not reused when comparing speed */
  engineReset(next==='fast'&&!isolated()?'multi-core needs a one-time page reload':'');
@@ -485,10 +490,8 @@ function toggle({S,update,render}){
 
 function showRecommendation(){
  const el=$('recommended-speed');if(!el)return;
- const mobile=mobileDevice(),name=mode==='fast'?'Fast':mode==='standard'?'Standard':'GPU';
- const basis=mobile?'Lower-memory starting point for phones and tablets.':'Faster starting point for computers.';
- const selected=store.get('cv-mode','')?'Your chosen setting is remembered.':'Recommended starting setting selected automatically.';
- el.textContent='✓ '+name+' mode · '+selected+' '+basis+' Change it below if needed.';
+ const name=mode==='fast'?'Fast':'Low Memory';
+ el.textContent=preference==='auto'?'✓ Automatic · '+name+' selected for this device.':'✓ '+name+' selected. You can switch back to Automatic at any time.';
 }
 /* ───────── Panel wiring ───────── */
 (function wirePanels(){
@@ -498,8 +501,8 @@ function showRecommendation(){
  if(ta&&count){const update=()=>{count.textContent=ta.value.length+' / '+MAX_TEST_CHARS};ta.addEventListener('input',update);update()}
  const ms=$('mode-select');
  if(ms){
-  ms.replaceChildren(...Object.entries(MODES).map(([id,m])=>new Option(m.label+' — '+(id==='standard'?'works everywhere':id==='fast'?'recommended for Mac/PC, more cores':'uses the graphics card')+', '+m.mb+' MB',id)));
-  ms.value=mode;ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=mode;showRecommendation()};
+  ms.replaceChildren(new Option('Automatic (recommended)','auto'),new Option('Fast — for powerful computers','fast'),new Option('Low Memory — for phones and older devices','standard'));
+  ms.value=preference;ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=preference;showRecommendation()};
  }
  const bs=$('buffer-select');
  if(bs){bs.value=String(Math.round(bufferTarget()/60));if(bs.value!==String(Math.round(bufferTarget()/60)))bs.value='6';bs.onchange=()=>{store.set('cv-buffer',bs.value);renderBuffer()}}
