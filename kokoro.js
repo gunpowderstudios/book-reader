@@ -443,7 +443,7 @@ function toggle({S,update,render}){
     while(pending<MAX_PENDING&&!exhausted&&readySec()<target&&ahead.length<MAX_AHEAD){
      const n=it.next();if(n.done){exhausted=true;break}
      const item={seg:n.value,done:false,sec:0};
-     item.job=synth(n.value.text,currentVoice(),{stale,onGenerate:()=>{if(!stale())sink=null}});
+     item.job=synth(n.value.text,s.voice,{stale,onGenerate:()=>{if(!stale())sink=null}});
      item.job.then(res=>{item.done=true;item.sec=res.audioSec;fill();bufInfo.ready=readySec();renderBuffer()},()=>{item.done=true});
      ahead.push(item);pending++;
     }
