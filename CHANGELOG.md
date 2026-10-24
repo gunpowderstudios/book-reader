@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+## v1.10.5 — 24 October 2026
+- Changed links and visited links to warm yellow for better contrast on the dark theme, with a pale yellow hover and keyboard-focus state.
+
 ## v1.10.4 — 24 October 2026
 - Fixed a read-along jump between sentences: removed competing automatic smooth scrolling from the reading-position updater, leaving the read-along tracker in charge.
 - Tracking now scrolls only when the active paragraph is outside the visible reading pane, with no animated overshoot.
