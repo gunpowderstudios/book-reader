@@ -1,0 +1,5 @@
+/* Book Reader v1.7.2 — show book playback state above reading area. */
+(()=>{'use strict';const $=id=>document.getElementById(id);let old='';
+function update(){const s=window.chapterApp?.state,heading=$('book-load-status'),desc=$('book-load-description');if(!heading||!desc)return;let h='📖 Load a Book…',d='Choose an EPUB above or open a book from My Library, then use Play in the bottom bar.';if(s?.chapters?.length){const book=$('title')?.textContent||'Your book',chapter=s.chapters[s.index]?.title||'';h=s.playing?'🔊 Now Playing: '+book:'📖 '+book;d=s.playing?'George is reading '+chapter+'. Use Pause in the bottom player.':s.paused?'Paused · '+chapter+'. Use Resume in the bottom player.':'Ready to play · '+chapter+'. Use Play in the bottom bar.'}if(h+'|'+d!==old){heading.textContent=h;desc.textContent=d;old=h+'|'+d}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{update();setInterval(update,600)});else{update();setInterval(update,600)}
+})();
