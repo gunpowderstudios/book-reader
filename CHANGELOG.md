@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.9.9 — 24 October 2026
+- Added **Check for updates** at the bottom of Captain's Log. On demand, it compares the reader's Kokoro JS version with the npm registry's latest release and links to release details when newer.
+- No automatic upgrades or model swaps; model upgrades need separate compatibility review. The check requires internet access.
+
 ## v1.9.8 — 24 October 2026
 - Simplified reader-facing voice performance choices to **Automatic (recommended)**, **Fast**, and **Low Memory**. GPU remains internal for developer experiments.
 - Automatic selects Fast for computers and Low Memory for phones/tablets. Saved manual choices are carried forward and users can return to Automatic.
