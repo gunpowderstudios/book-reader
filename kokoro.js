@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.9.2';
+const VERSION='1.9.3';
 const VOICES={bm_george:'George — British male',bf_emma:'Emma — British female'}; /* add more Kokoro voice ids here later; the Test tab picks them up */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -31,7 +31,9 @@ const store={
 };
 
 /* ───────── Settings ───────── */
-let mode=MODES[store.get('cv-mode','fast')]?store.get('cv-mode','standard'):'standard';
+const mobileDevice=()=>/iPad|iPhone|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const suggestedMode=()=>mobileDevice()?'standard':'fast';
+let mode=MODES[store.get('cv-mode','')]?store.get('cv-mode',''):suggestedMode();
 const bufferTarget=()=>{const m=Number(store.get('cv-buffer','6'));return (m>0&&m<=30?m:6)*60};
 const installed=()=>store.get('cv-ready-'+mode,'')==='1';
 const isolated=()=>typeof crossOriginIsolated!=='undefined'&&crossOriginIsolated===true;
@@ -496,6 +498,6 @@ function toggle({S,update,render}){
  if(bs){bs.value=String(Math.round(bufferTarget()/60));if(bs.value!==String(Math.round(bufferTarget()/60)))bs.value='6';bs.onchange=()=>{store.set('cv-buffer',bs.value);renderBuffer()}}
  renderEngine();renderBuffer();
 })();
-window.chapterKokoro={toggle,stop,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,generateClip:(text,id)=>synth(text,VOICES[id]?id:currentVoice()),currentVoice,voices:VOICES,splitText:(text)=>chunks(text),version:VERSION,
+window.chapterKokoro={toggle,stop,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,recommendMode:suggestedMode,isMobile:mobileDevice,generateClip:(text,id)=>synth(text,VOICES[id]?id:currentVoice()),currentVoice,voices:VOICES,splitText:(text)=>chunks(text),version:VERSION,
  refreshNarrator:()=>{renderEngine();renderBuffer()},stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode}),measured:()=>Number(store.get('cv-measured-'+mode,'0'))};
 })();
