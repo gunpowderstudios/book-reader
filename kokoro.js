@@ -1,9 +1,9 @@
-/* Chapter & Verse v1.4.0 — Kokoro narration controller (main thread).
+/* Chapter & Verse v1.4.1 — Kokoro narration controller (main thread).
    Speech is generated inside kokoro-worker.js, a Web Worker, so this page never runs the model itself.
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.4.0';
+const VERSION='1.4.1';
 const VOICES={bm_george:'George — British male'}; /* add more Kokoro voice ids here later; the Test tab picks them up */
 const DEFAULT_VOICE='bm_george';
 const MODES={
@@ -70,6 +70,8 @@ function renderEngine(){
 function engineReset(note){Object.assign(eng,{phase:'idle',loaded:0,total:0,net:0,used:null,sec:0,error:'',note:note||''});renderEngine()}
 
 /* ───────── Worker client ───────── */
+const FALLBACKS={gpu:'fast',fast:'standard'};
+let runMode=null;
 let worker=null,readyPromise=null,initWaiter=null,engineReady=false,watchdog=null,nextId=1,sink=null;
 const calls=new Map();
 
@@ -101,17 +103,23 @@ function onWorkerMessage(w,m){
    if(sink)sink('Loading George: '+(m.total?Math.round(m.loaded/m.total*100):0)+'% ('+fmtMB(m.loaded)+' of '+fmtMB(m.total)+')');
    break;
   case 'net':eng.net=m.bytes;renderEngine();break;
-  case 'fallback':
-   eng.note=modeName(m.from)+' mode did not work here ('+m.reason+') — using '+modeName(m.to)+' instead';renderEngine();
-   break;
   case 'ready':{
    engineReady=true;eng.phase='ready';eng.used=m.mode||mode;eng.sec=(m.ms||0)/1000;eng.isolated=!!m.isolated;eng.cores=m.cores||0;
    if(eng.used===mode)eng.note='';
    store.set('cv-ready-'+(m.mode||mode),'1');
-   if(m.mode&&m.mode!==mode)store.set('cv-ready-'+mode,'');
+   if(m.mode&&m.mode!==mode){store.set('cv-ready-'+mode,'');mode=m.mode;store.set('cv-mode',mode);const sel=$('mode-select');if(sel)sel.value=mode} /* remember the mode that works on this device */
    renderEngine();
    const iw=initWaiter;initWaiter=null;if(iw)iw.resolve(m.ms);break}
-  case 'init-error':failWorker(new Error('George could not load: '+m.message));return;
+  case 'init-error':{
+   const from=m.mode||runMode||mode,next=FALLBACKS[from];
+   if(next&&initWaiter){ /* lighter mode in a fresh worker (a failed load can leave memory held) */
+    const iw=initWaiter;initWaiter=null;
+    failWorker(new Error('retry'),true);
+    eng.note=modeName(from)+' mode did not work here ('+String(m.message).replace(/^no available backend found\. ERR: /,'')+') — using '+modeName(next)+' instead';
+    runMode=next;ready().then(iw.resolve,iw.reject);
+    return;
+   }
+   failWorker(new Error('George could not load: '+m.message));return}
   case 'audio':{const c=calls.get(m.id);if(c){calls.delete(m.id);c.resolve(m)}break}
   case 'error':{const c=calls.get(m.id);if(c){calls.delete(m.id);c.reject(new Error(m.message))}else console.error('Kokoro worker:',m.message);break}
  }
@@ -136,7 +144,7 @@ function ready(){
   eng.note=st==='failed'||st==='unsupported'?'multi-core is not available in this browser, so Fast mode runs on one core':'multi-core is not active on this page';
  }
  renderEngine();
- readyPromise=new Promise((resolve,reject)=>{initWaiter={resolve,reject};w.postMessage({type:'init',voice:DEFAULT_VOICE,mode})});
+ readyPromise=new Promise((resolve,reject)=>{initWaiter={resolve,reject};w.postMessage({type:'init',voice:DEFAULT_VOICE,mode:runMode||mode})});
  readyPromise.catch(()=>{});
  armWatchdog();
  return readyPromise;
@@ -144,7 +152,7 @@ function ready(){
 function call(msg){
  return new Promise((resolve,reject)=>{
   if(!worker){reject(new Error('George is not running. Press Play to try again.'));return}
-  const id=nextId++;calls.set(id,{resolve,reject});worker.postMessage({...msg,id,mode});armWatchdog();
+  const id=nextId++;calls.set(id,{resolve,reject});worker.postMessage({...msg,id,mode:runMode||mode});armWatchdog();
  });
 }
 function haltAll(){ /* stop playback through the page (so its buttons reset), falling back to our own stop */
@@ -152,7 +160,7 @@ function haltAll(){ /* stop playback through the page (so its buttons reset), fa
 }
 function setMode(next){
  if(!MODES[next]||next===mode)return mode;
- mode=next;store.set('cv-mode',next);
+ mode=next;runMode=null;store.set('cv-mode',next);
  if(worker||readyPromise)failWorker(new Error('Switching mode'),true);
  cache.clear();cacheBytes=0;recent.length=0;lastSpeed=0; /* clips from another engine are not reused when comparing speed */
  engineReset(next==='fast'&&!isolated()?'multi-core needs a one-time page reload':'');

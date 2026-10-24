@@ -1,5 +1,12 @@
 # Chapter & Verse — Version history
 
+## v1.4.1 — 24 October 2026
+**Fixes "George could not load: no available backend found. ERR: [wasm] RangeError: Out of memory".**
+- Cause: a failed load (typically the 326 MB Fast/GPU model, which needs far more memory on phones and tablets) left WebAssembly memory held inside the worker, so the automatic fallback to Standard in the *same* worker also ran out of memory. On a page with multi-core enabled, Standard also picked several threads, needing more memory still.
+- Fix: each attempt now runs in its own worker. If it fails, that worker is discarded and a fresh one starts in the next lighter mode (GPU → Fast → Standard). The mode that works is remembered on that device, and the bar explains what happened.
+- Standard is always single-threaded now (set explicitly), even after Fast mode has enabled multi-core on the page; Fast uses up to 4 threads only when the page is isolated.
+- Tested: worker (24 checks) and page (153 checks), including the fresh-worker fallback. Not reproduced on a real phone/iPad here.
+
 ## v1.4.0 — 23 October 2026
 **Read-ahead, a download/data bar, and My Library.**
 - **Read-ahead by minutes.** George now prepares audio ahead of what you are hearing, up to a target (default 6 minutes; Voice settings: 1–30), keeping two passages in the engine at a time, and keeps preparing while paused. The first passages are also prepared as soon as a book opens, if George is already installed on the device (no surprise download).

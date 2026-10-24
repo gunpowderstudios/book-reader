@@ -1,4 +1,4 @@
-/* Chapter & Verse v1.4.0 — My Library.
+/* Chapter & Verse v1.4.1 — My Library.
    Keeps your EPUB files and your place in each one in this browser's own database (IndexedDB).
    Nothing is uploaded; nothing is shared between your devices. */
 (()=>{'use strict';

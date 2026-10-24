@@ -1,14 +1,13 @@
-/* Chapter & Verse v1.4.0 — Kokoro inference worker.
+/* Chapter & Verse v1.4.1 — Kokoro inference worker.
    Model download, phonemising and ONNX inference all run here, off the page's main thread,
    so the interface stays responsive while George is generating speech.
    Protocol (main -> worker): {type:'init',voice,mode} · {type:'generate',id,text,voice}
-   Protocol (worker -> main): stage · progress · net · fallback · ready · init-error · audio · error */
+   Protocol (worker -> main): stage · progress · net · ready · init-error{mode} · audio · error */
 const KOKORO_URL='https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js';
 const MODEL_ID='onnx-community/Kokoro-82M-v1.0-ONNX';
 /* standard: 8-bit model, one core (~92 MB).  fast: full-precision model, all cores when the page is
    cross-origin isolated (~326 MB).  gpu: full-precision model on the graphics card (~326 MB, experimental). */
 const MODES={standard:{device:'wasm',dtype:'q8'},fast:{device:'wasm',dtype:'fp32'},gpu:{device:'webgpu',dtype:'fp32'}};
-const FALLBACKS={gpu:['gpu','fast','standard'],fast:['fast','standard'],standard:['standard']};
 
 let lib=null,tts=null,loading=null,chain=Promise.resolve();
 const say=(m,transfer)=>self.postMessage(m,transfer||[]);
@@ -66,26 +65,26 @@ async function build(mode,voice){
 }
 
 function load(voice,mode){
+ /* Tries exactly the requested mode. A failed attempt can leave WebAssembly memory held by this worker, so any
+    fallback to a lighter mode is done by the page in a brand-new worker (see init-error.next). */
  if(!loading)loading=(async()=>{
   const t0=Date.now();
+  if(!MODES[mode])mode='standard';
   say({type:'stage',stage:'library'});
   lib=await import(KOKORO_URL);
-  const order=FALLBACKS[mode]||FALLBACKS.standard;let used=null,lastErr=null;
-  for(let i=0;i<order.length;i++){
-   const m=order[i];
-   try{
-    if(m==='gpu'){
-     if(!self.navigator||!self.navigator.gpu)throw new Error('WebGPU is not available in this browser');
-     if(!(await self.navigator.gpu.requestAdapter()))throw new Error('no compatible graphics adapter was found');
-    }
-    tts=await build(m,voice);used=m;break;
-   }catch(e){
-    lastErr=e;
-    if(i+1<order.length)say({type:'fallback',from:m,to:order[i+1],reason:describe(e)});
-   }
+  if(mode==='gpu'){
+   if(!self.navigator||!self.navigator.gpu)throw new Error('WebGPU is not available in this browser');
+   if(!(await self.navigator.gpu.requestAdapter()))throw new Error('no compatible graphics adapter was found');
   }
-  if(!used)throw lastErr||new Error('George could not start');
-  return {ms:Date.now()-t0,mode:used,isolated:self.crossOriginIsolated===true,cores:(self.navigator&&self.navigator.hardwareConcurrency)||0};
+  /* Threads must be chosen explicitly: Standard is always single-threaded (even on an isolated page, where the
+     library would otherwise pick several threads and need far more memory). */
+  try{
+   const cores=(self.navigator&&self.navigator.hardwareConcurrency)||2;
+   const wasm=lib.env&&lib.env.backends&&lib.env.backends.onnx&&lib.env.backends.onnx.wasm;
+   if(wasm)wasm.numThreads=mode==='fast'&&self.crossOriginIsolated===true?Math.max(1,Math.min(4,Math.ceil(cores/2))):1;
+  }catch(_){}
+  tts=await build(mode,voice);
+  return {ms:Date.now()-t0,mode,isolated:self.crossOriginIsolated===true,cores:(self.navigator&&self.navigator.hardwareConcurrency)||0};
  })().catch(e=>{loading=null;throw e});
  return loading;
 }
@@ -93,7 +92,7 @@ function load(voice,mode){
 self.onmessage=ev=>{
  const m=ev.data||{};
  if(m.type==='init'){
-  load(m.voice,m.mode||'standard').then(info=>{postNet(true);say({type:'ready',...info})},e=>say({type:'init-error',message:describe(e)}));
+  load(m.voice,m.mode||'standard').then(info=>{postNet(true);say({type:'ready',...info})},e=>say({type:'init-error',message:describe(e),mode:m.mode||'standard'}));
  }else if(m.type==='generate'){
   /* One generation at a time; requests simply wait their turn. */
   chain=chain.then(async()=>{
