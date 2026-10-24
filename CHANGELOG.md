@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+## v1.10.2 — 24 October 2026
+- Increased desktop long-logo size by 30% (430 to 559 px maximum width), preserving mobile full-width layout.
+
 ## v1.10.1 — 24 October 2026
 - Display the wide EPUB sign at full available width on mobile, replacing the small square icon and significantly increasing its apparent size.
 - Centre the version beneath the sign and put Load a Book underneath to prevent overlap on narrow screens.
