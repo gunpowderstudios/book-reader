@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.6.0';
+const VERSION='1.6.1';
 const VOICES={bm_george:'George — British male'}; /* add more Kokoro voice ids here later; the Test tab picks them up */
 const DEFAULT_VOICE='bm_george';
 const MODES={
@@ -309,6 +309,7 @@ function stopMeter(){if(meterTimer){clearInterval(meterTimer);meterTimer=null}bu
 /* ───────── Stop (shared by the Test tab and the book reader) ───────── */
 let serial=0,session=null,testState='idle',prefetchToken=0;
 function stop(){
+ window.readerTracking?.clear?.();
  serial++;
  if(session){session.cancelled=true;if(session.wake)session.wake();session=null}
  sink=null;
@@ -466,7 +467,9 @@ function toggle({S,update,render}){
     if(g.ci!==S.index){S.index=g.ci;S.p=g.p;render()}else if(S.p!==g.p){S.p=g.p;update()}
     status('George is reading…');
     bufInfo.ready=readySec();renderBuffer();
+    window.readerTracking?.start?.(g.text,g.p,()=>{const duration=player.duration||res.audioSec;return duration>0?player.currentTime/duration:0});
     await playback(res.blob,s);
+    window.readerTracking?.clear?.();
     if(stale())return;
     if(g.last){S.p=g.p+1;update()}
    }
