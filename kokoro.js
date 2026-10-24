@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.5.1';
+const VERSION='1.6.0';
 const VOICES={bm_george:'George — British male'}; /* add more Kokoro voice ids here later; the Test tab picks them up */
 const DEFAULT_VOICE='bm_george';
 const MODES={
@@ -190,6 +190,7 @@ function noteGen(audioSec,genSec){
  if(!(genSec>0))return;
  recent.push({a:audioSec,g:genSec});if(recent.length>8)recent.shift();
  let A=0,G=0;for(const r of recent){A+=r.a;G+=r.g}lastSpeed=G>0?A/G:0;
+ try{store.set('cv-measured-'+(eng.used||mode),String(lastSpeed))}catch(_){}
 }
 const cache=new Map();let cacheBytes=0;
 function cacheGet(k){const v=cache.get(k);if(v){cache.delete(k);cache.set(k,v)}return v}
@@ -490,5 +491,5 @@ function toggle({S,update,render}){
  renderEngine();renderBuffer();
 })();
 window.chapterKokoro={toggle,stop,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,generateClip:(text)=>synth(text,DEFAULT_VOICE),splitText:(text)=>chunks(text),version:VERSION,
- stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode})};
+ stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode}),measured:()=>Number(store.get('cv-measured-'+mode,'0'))};
 })();
