@@ -1,4 +1,7 @@
-# Chapter & Verse — Version history
+# Book Reader — Version history
+
+## v1.4.2 — 24 October 2026
+- Renamed the app header and browser tab to **Book Reader**, followed by the version number. No functional changes.
 
 ## v1.4.1 — 24 October 2026
 **Fixes "George could not load: no available backend found. ERR: [wasm] RangeError: Out of memory".**
