@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.8.1 — 24 October 2026
+- Used the uploaded wide pub sign logo in the page header and the square logo for browser favicon and iPad home-screen icon.
+- Small-screen header adapts to the square logo on narrow devices. Original uploaded filenames, including `sqaure`, are used unchanged.
+
 ## v1.8.0 — 24 October 2026
 - Featured the complete uploaded 17-story *Conan: Original Published Stories* EPUB as a free included book in My Library, with an original SVG cover and an Open free book button.
 - Added context on UK public-domain status from 1 January 2007 and a personal-reading / not-offered-for-resale notice, while clarifying that public-domain texts cannot be newly restricted.
