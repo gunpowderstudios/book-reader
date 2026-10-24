@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+## v1.9.1 — 24 October 2026
+- Space bar now toggles Play/Pause when the reader is open. Ignores held-key repeats, text fields, selects, buttons and other interactive controls.
+
 ## v1.9.0 — 24 October 2026
 - Added Kokoro British female narrator Emma (`bf_emma`) alongside George (`bm_george`) using the existing model and worker.
 - Enabled narrator selection in the bottom player; choices persist on each device and can be auditioned in Meet the Narrators.
