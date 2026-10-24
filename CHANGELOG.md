@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.8.0 — 24 October 2026
+- Featured the complete uploaded 17-story *Conan: Original Published Stories* EPUB as a free included book in My Library, with an original SVG cover and an Open free book button.
+- Added context on UK public-domain status from 1 January 2007 and a personal-reading / not-offered-for-resale notice, while clarifying that public-domain texts cannot be newly restricted.
+
 ## v1.7.2 — 24 October 2026
 - Removed redundant **Listen Now** button; the bottom playback bar remains the single primary Play/Pause control.
 - Updated the heading to show **Load a Book…**, the loaded title, and **Now Playing** when narration starts.
