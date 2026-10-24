@@ -10,7 +10,7 @@ async function entry(key){const d=await db();return new Promise((resolve,reject)
 async function save(key,value){const d=await db();return new Promise((resolve,reject)=>{const t=d.transaction('clips','readwrite');t.objectStore('clips').put(value,key);t.oncomplete=resolve;t.onerror=()=>reject(t.error)})}
 function clips(chapter){return chapter.paragraphs.flatMap(p=>voice().splitText(p)).filter(Boolean)}
 function formatMB(n){return (n/1048576).toFixed(1)+' MB'}
-function estimate(){const v=current();if(!v)return null;const words=v.chapter.paragraphs.join(' ').trim().split(/\s+/).filter(Boolean).length;const seconds=words/140*60;const bytes=seconds*24000*2;return {words,seconds,bytes,model:voice()?.getMode?.()==='fast'?'~326 MB':'~92 MB'}}
+function estimate(){const v=current();if(!v)return null;const words=v.chapter.paragraphs.join(' ').trim().split(/\s+/).filter(Boolean).length;const seconds=words/140*60;const bytes=seconds*24000*2;const mode=voice()?.getMode?.()||'standard';return {words,seconds,bytes,model:mode==='standard'?'~92 MB':'~326 MB'}}
 async function refresh(){
  const v=current(),btn=$('offline-prepare'),play=$('offline-play'),cancelBtn=$('offline-cancel');
  if(btn)btn.disabled=!v||preparing;
