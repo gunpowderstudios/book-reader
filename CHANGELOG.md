@@ -1,5 +1,10 @@
 # Book Reader — Version history
 
+## v1.10.0 — 24 October 2026
+- Narrator loading now has an animated indeterminate progress bar while the voice or speech engine prepares, rather than jumping abruptly to 100%.
+- Show real percentage progress only when Kokoro supplies download totals; new voice choices show an explicit preparing-voice message.
+- Respects reduced-motion preferences.
+
 ## v1.9.9 — 24 October 2026
 - Added **Check for updates** at the bottom of Captain's Log. On demand, it compares the reader's Kokoro JS version with the npm registry's latest release and links to release details when newer.
 - No automatic upgrades or model swaps; model upgrades need separate compatibility review. The check requires internet access.
