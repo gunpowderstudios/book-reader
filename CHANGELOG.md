@@ -1,5 +1,10 @@
 # Book Reader — Version history
 
+## v1.9.0 — 24 October 2026
+- Added Kokoro British female narrator Emma (`bf_emma`) alongside George (`bm_george`) using the existing model and worker.
+- Enabled narrator selection in the bottom player; choices persist on each device and can be auditioned in Meet the Narrators.
+- Prepared audio caches distinguish George and Emma so speech is not mixed between narrators.
+
 ## v1.8.2 — 24 October 2026
 - Centred the wide pub-sign logo at the top of the page with the version number directly beneath it. Kept Load a Book accessible on the right and the responsive square icon on small screens.
 
