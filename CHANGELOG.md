@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.10.4 — 24 October 2026
+- Fixed a read-along jump between sentences: removed competing automatic smooth scrolling from the reading-position updater, leaving the read-along tracker in charge.
+- Tracking now scrolls only when the active paragraph is outside the visible reading pane, with no animated overshoot.
+
 ## v1.10.3 — 24 October 2026
 - Linked Robert E. Howard's name on the included Conan book card to his Wikipedia biography, opening in a new tab.
 
