@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+## v1.10.3 — 24 October 2026
+- Linked Robert E. Howard's name on the included Conan book card to his Wikipedia biography, opening in a new tab.
+
 ## v1.10.2 — 24 October 2026
 - Increased desktop long-logo size by 30% (430 to 559 px maximum width), preserving mobile full-width layout.
 
