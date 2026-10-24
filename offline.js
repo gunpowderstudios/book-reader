@@ -4,6 +4,8 @@
 const $=id=>document.getElementById(id),app=()=>window.chapterApp,voice=()=>window.chapterKokoro;
 let dbTask,preparing=false,cancel=false,playing=null,url=null;
 function note(s){const e=$('offline-status');if(e)e.textContent=s}
+function narrator(){return voice().currentVoice()}
+function audioKey(id,i){const n=narrator();return id+':'+i+(n==='bm_george'?'':':'+n)}
 function current(){const s=app()?.state;return s?.chapters?.[s.index]?{s,chapter:s.chapters[s.index],id:s.key+':'+s.index}:null}
 function db(){if(!dbTask)dbTask=new Promise((resolve,reject)=>{const r=indexedDB.open('book-reader-audio-v1',1);r.onupgradeneeded=()=>r.result.createObjectStore('clips');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});return dbTask}
 async function entry(key){const d=await db();return new Promise((resolve,reject)=>{const t=d.transaction('clips','readonly'),q=t.objectStore('clips').get(key);q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)})}
@@ -19,7 +21,7 @@ async function refresh(){
  const e=estimate(),total=clips(v.chapter).length;
  $('offline-estimate').textContent=v.chapter.title+' · '+e.words.toLocaleString()+' words · ~'+Math.round(e.seconds/60)+' min · ~'+formatMB(e.bytes)+' of local audio storage (WAV). George’s '+e.model+' voice model downloads once if not cached.';
  let done=0,actual=0;
- try{for(let i=0;i<total;i++){const c=await entry(v.id+':'+i);if(c?.blob){done++;actual+=c.blob.size}}}catch(err){note('Offline storage unavailable: '+err.message);if(play)play.disabled=true;return}
+ try{for(let i=0;i<total;i++){const c=await entry(audioKey(v.id,i));if(c?.blob){done++;actual+=c.blob.size}}}catch(err){note('Offline storage unavailable: '+err.message);if(play)play.disabled=true;return}
  if(play)play.disabled=done!==total||!total;
  if(!preparing)note(done===total&&total?'Ready: saved audio can play without generating speech. Use Play prepared chapter.':done?'Saved '+done+' of '+total+' passages ('+formatMB(actual)+'). Select Prepare to resume.':'Not prepared yet. The chapter will be generated once and stored on this device.');
 }
@@ -31,7 +33,7 @@ async function prepare(){
  try{
   for(let i=0;i<total;i++){
    if(cancel||current()?.id!==v.id)break;
-   const key=v.id+':'+i;let stored=await entry(key);
+   const key=audioKey(v.id,i);let stored=await entry(key);
    if(!stored?.blob){
     note('Generating passage '+(i+1)+' of '+total+'… Keep this tab open and unlocked.'); 
     const r=await voice().generateClip(lines[i]);stored={blob:r.blob,at:Date.now()};
@@ -52,7 +54,7 @@ async function playPrepared(){
  try{
   const parts=clips(v.chapter),blobs=[];let rate=24000,bytes=0;
   for(let i=0;i<parts.length;i++){
-   const e=await entry(v.id+':'+i);if(!e?.blob)throw Error('Chapter is not fully prepared');
+   const e=await entry(audioKey(v.id,i));if(!e?.blob)throw Error('Chapter is not fully prepared');
    const b=e.blob; if(b.size<44)throw Error('Invalid saved audio');
    const header=new DataView(await b.slice(0,44).arrayBuffer());const hz=header.getUint32(24,true);
    if(i===0)rate=hz;else if(hz!==rate)throw Error('Audio sample rates differ; regenerate this chapter');
