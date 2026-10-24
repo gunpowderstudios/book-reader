@@ -1,5 +1,10 @@
 # Book Reader — Version history
 
+## v1.9.3 — 24 October 2026
+- Simplified speed setup: Book Reader automatically recommends **Fast** on desktop computers and the lower-memory **Standard** mode on phones and tablets for first-time users; this is a device-based starting recommendation, not an exhaustive benchmark.
+- Existing manually chosen modes remain saved. The active speed and recommendation are shown above the collapsed **Change speed (optional)** settings.
+- Corrected the initial default-mode selection logic so a new desktop visitor actually starts in Fast rather than silently selecting Standard.
+
 ## v1.9.2 — 24 October 2026
 - Fixed the engine heading and narration status to show Emma when Emma is selected instead of always saying George.
 - Voice mode status refreshes immediately when switching narrators. The voice engine and model remain shared.
