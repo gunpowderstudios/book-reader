@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.9.2 — 24 October 2026
+- Fixed the engine heading and narration status to show Emma when Emma is selected instead of always saying George.
+- Voice mode status refreshes immediately when switching narrators. The voice engine and model remain shared.
+
 ## v1.9.1 — 24 October 2026
 - Space bar now toggles Play/Pause when the reader is open. Ignores held-key repeats, text fields, selects, buttons and other interactive controls.
 
