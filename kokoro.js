@@ -57,7 +57,8 @@ function renderEngine(){
   case 'downloading':
    pct=eng.total?Math.min(100,eng.loaded/eng.total*100):0;
    msg='Loading George: '+fmtMB(eng.loaded)+' of '+(eng.total?fmtMB(eng.total):'?')+' ('+Math.round(pct)+'%)';break;
-  case 'starting':pct=100;msg='Starting the voice engine…';break;
+  case 'starting':pct=0;msg='Starting the voice engine…';break;
+  case 'voice':pct=0;msg='Preparing '+narratorName()+'’s voice…';break;
   case 'ready':pct=100;msg='George is ready — '+modeName(eng.used)+', '+describeEngine()+', started in '+eng.sec.toFixed(1)+' s';break;
   case 'error':pct=100;msg=eng.error||'George could not load.';break;
   default:
@@ -67,7 +68,7 @@ function renderEngine(){
  if(eng.note)msg+=' — '+eng.note;
  if(text)text.textContent=named(msg);
  if(fill){fill.style.width=pct.toFixed(1)+'%'}
- if(bar){bar.dataset.state=state;bar.setAttribute('aria-valuenow',String(Math.round(pct)))}
+ if(bar){bar.dataset.state=state;if(['library','starting','voice'].includes(state)||(state==='downloading'&&!eng.total)){bar.removeAttribute('aria-valuenow');bar.setAttribute('aria-valuetext',named(msg))}else{bar.setAttribute('aria-valuenow',String(Math.round(pct)));bar.removeAttribute('aria-valuetext')}}
  if(netEl){
   let t='Downloaded by George this visit: '+fmtMB(eng.net);
   if(eng.phase==='ready'&&eng.net<1572864)t+=' — nothing new; he loaded from your browser’s saved copy';
@@ -102,14 +103,17 @@ function onWorkerMessage(w,m){
    if(m.stage==='library'){eng.phase='library'}
    else if(m.stage==='model'){eng.phase='downloading'}
    else if(m.stage==='warmup'){eng.phase='starting'}
+   else if(m.stage==='voice'){eng.phase='voice'}
    renderEngine();
-   if(sink)sink(m.stage==='library'?'Loading George: fetching the speech library…':m.stage==='warmup'?'Loading George: starting the voice engine…':'Loading George: downloading the voice model…');
+   if(sink)sink(m.stage==='library'?'Loading George: fetching the speech library…':m.stage==='warmup'?'Loading George: starting the voice engine…':m.stage==='voice'?'Preparing '+narratorName()+'’s voice…':'Loading George: downloading the voice model…');
    break;
   case 'progress':
    eng.phase='downloading';eng.loaded=m.loaded;eng.total=m.total;if(typeof m.net==='number')eng.net=m.net;renderEngine();
    if(sink)sink('Loading George: '+(m.total?Math.round(m.loaded/m.total*100):0)+'% ('+fmtMB(m.loaded)+' of '+fmtMB(m.total)+')');
    break;
   case 'net':eng.net=m.bytes;renderEngine();break;
+  case 'voice-start':if(m.voice===currentVoice()){eng.phase='voice';renderEngine();status('Preparing '+narratorName()+'’s voice…')}break;
+  case 'voice-ready':if(m.voice===currentVoice()){eng.phase='ready';renderEngine()}break;
   case 'ready':{
    engineReady=true;eng.phase='ready';eng.used=m.mode||mode;eng.sec=(m.ms||0)/1000;eng.isolated=!!m.isolated;eng.cores=m.cores||0;
    if(eng.used===mode)eng.note='';
