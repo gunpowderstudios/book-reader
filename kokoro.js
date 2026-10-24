@@ -489,6 +489,6 @@ function toggle({S,update,render}){
  if(bs){bs.value=String(Math.round(bufferTarget()/60));if(bs.value!==String(Math.round(bufferTarget()/60)))bs.value='6';bs.onchange=()=>{store.set('cv-buffer',bs.value);renderBuffer()}}
  renderEngine();renderBuffer();
 })();
-window.chapterKokoro={toggle,stop,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,version:VERSION,
+window.chapterKokoro={toggle,stop,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,generateClip:(text)=>synth(text,DEFAULT_VOICE),splitText:(text)=>chunks(text),version:VERSION,
  stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode})};
 })();
