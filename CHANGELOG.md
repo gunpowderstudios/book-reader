@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.5.3 — 24 October 2026
+- Renamed Activity Log to **Captain's Log (look under the hood)**.
+- Collapsed by default to keep the reading interface uncluttered; tap the title to show or hide diagnostics. Logging, Copy Log and Clear remain functional while collapsed.
+
 ## v1.5.2 — 24 October 2026
 - Added a right-hand **Activity Log** on the Book Reader tab, showing live voice engine status, buffering, preparation, playback, benchmarks and errors.
 - Added **Copy Log** and **Clear** controls, with a rolling 250-event history; no EPUB book text is recorded.
