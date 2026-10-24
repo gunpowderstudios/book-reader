@@ -483,6 +483,13 @@ function toggle({S,update,render}){
  })();
 }
 
+function showRecommendation(){
+ const el=$('recommended-speed');if(!el)return;
+ const mobile=mobileDevice(),name=mode==='fast'?'Fast':mode==='standard'?'Standard':'GPU';
+ const basis=mobile?'Lower-memory starting point for phones and tablets.':'Faster starting point for computers.';
+ const selected=store.get('cv-mode','')?'Your chosen setting is remembered.':'Recommended starting setting selected automatically.';
+ el.textContent='✓ '+name+' mode · '+selected+' '+basis+' Change it below if needed.';
+}
 /* ───────── Panel wiring ───────── */
 (function wirePanels(){
  const sel=$('test-voice');
@@ -492,11 +499,11 @@ function toggle({S,update,render}){
  const ms=$('mode-select');
  if(ms){
   ms.replaceChildren(...Object.entries(MODES).map(([id,m])=>new Option(m.label+' — '+(id==='standard'?'works everywhere':id==='fast'?'recommended for Mac/PC, more cores':'uses the graphics card')+', '+m.mb+' MB',id)));
-  ms.value=mode;ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=mode};
+  ms.value=mode;ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=mode;showRecommendation()};
  }
  const bs=$('buffer-select');
  if(bs){bs.value=String(Math.round(bufferTarget()/60));if(bs.value!==String(Math.round(bufferTarget()/60)))bs.value='6';bs.onchange=()=>{store.set('cv-buffer',bs.value);renderBuffer()}}
- renderEngine();renderBuffer();
+ renderEngine();renderBuffer();showRecommendation();
 })();
 window.chapterKokoro={toggle,stop,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,recommendMode:suggestedMode,isMobile:mobileDevice,generateClip:(text,id)=>synth(text,VOICES[id]?id:currentVoice()),currentVoice,voices:VOICES,splitText:(text)=>chunks(text),version:VERSION,
  refreshNarrator:()=>{renderEngine();renderBuffer()},stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode}),measured:()=>Number(store.get('cv-measured-'+mode,'0'))};
