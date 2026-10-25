@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.12.13 — 25 October 2026
+- Stop AI narration and prepared-chapter playback when the page is reloaded or navigated away from.
+- Reset playback if a browser restores the page from back/forward cache, without deleting downloaded models, EPUBs, bookmarks or saved audio.
+
 ## v1.12.12 — 25 October 2026
 - Now Playing information panel on the reading page starts collapsed and expands by tapping the heading.
 - Keep the detached mobile playback panel visible outside the collapsed section.
