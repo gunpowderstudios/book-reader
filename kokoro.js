@@ -285,6 +285,8 @@ function playBlob(blob){ /* resolves true when finished, false if stopped */
 
 /* ───────── Buffer meter (how far ahead George is, and how fast he works) ───────── */
 let meterTimer=null,bufInfo={ready:0,target:0,waiting:0,waits:0,waitSec:0};
+let nextPassageState='idle';
+function showNextPassage(state){if(nextPassageState===state)return;nextPassageState=state;const label=$('next-passage-label'),track=$('next-passage-track'),fill=$('next-passage-fill');if(label)label.textContent=state==='ready'?'Next passage: ready':state==='working'?'Next passage: preparing…':'Next passage: waiting';if(track)track.dataset.state=state;if(fill&&state!=='working')fill.style.width=state==='ready'?'100%':'0%';else if(fill)fill.style.width=''}
 function hint(){
  const need=Math.max(1,rate());
  if(recent.length<3||lastSpeed>=need)return null;
@@ -327,7 +329,7 @@ function stopMeter(){if(meterTimer){clearInterval(meterTimer);meterTimer=null}bu
 /* ───────── Stop (shared by the Test tab and the book reader) ───────── */
 let serial=0,session=null,testState='idle',prefetchToken=0;
 function stop(){
- awaitingNarration=false;spinner(false);
+ showNextPassage('idle');awaitingNarration=false;spinner(false);
  window.readerTracking?.clear?.();
  serial++;
  if(session){session.cancelled=true;if(session.wake)session.wake();session=null}
@@ -463,15 +465,17 @@ function toggle({S,update,render}){
      const n=it.next();if(n.done){exhausted=true;break}
      const item={seg:n.value,done:false,sec:0};
      item.job=synth(n.value.text,s.voice,{stale,onGenerate:()=>{if(!stale())sink=null}});
-     item.job.then(res=>{item.done=true;item.sec=res.audioSec;fill();bufInfo.ready=readySec();renderBuffer()},()=>{item.done=true});
+     item.job.then(res=>{item.done=true;item.sec=res.audioSec;fill();showNextPassage(ahead.length?(ahead[0].done?'ready':'working'):(exhausted?'idle':'working'));bufInfo.ready=readySec();renderBuffer()},()=>{item.done=true});
      ahead.push(item);pending++;
     }
     bufInfo.target=target;bufInfo.ready=readySec();
+    showNextPassage(ahead.length?(ahead[0].done?'ready':'working'):(exhausted?'idle':'working'));
    };
    fill();
    while(!stale()){
     if(!ahead.length)fill();
     const item=ahead.shift();
+    showNextPassage(ahead.length?(ahead[0].done?'ready':'working'):(exhausted?'idle':'working'));
     if(!item){status('Finished book');break}
     fill();
     await unpause(s);if(stale())return;
