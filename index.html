@@ -80,7 +80,7 @@ $('progress-file').onchange=async e=>{
  const file=e.target.files&&e.target.files[0];e.target.value='';if(!file)return;
  try{
   if(file.size>1024*1024)throw Error('This progress file is too large.');
-  const data=JSON.parse(await file.text());
+  const data=JSON.parse(await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Cannot read this file'));reader.readAsText(file)}));
   if(data.format!=='epub-reader-positions'||data.version!==1||!Array.isArray(data.books))throw Error('This is not an EPub Reader progress file.');
   if(data.books.length>1000)throw Error('This file contains too many books.');
   let restored=0,here=null;
