@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.12.5 — 25 October 2026
+- Returned status and performance settings to a persistent right-hand column, visible alongside each tab.
+- On smaller screens, the settings panel stacks below the main content, with controls contained within the viewport.
+
 ## v1.12.4 — 25 October 2026
 - Moved voice status and performance settings into a shared panel above all tab content.
 - Reworked layout to prevent the Automatic performance selector overflowing the page on narrow displays.
