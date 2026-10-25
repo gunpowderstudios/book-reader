@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.34';
+const VERSION='1.12.35';
 const VOICES={bm_george:'British Male — George',bf_emma:'British Female — Emma',am_eric:'American Male — Eric',af_aoede:'American Female — Aoede'}; /* add more Kokoro voice ids here later; the Test tab picks them up */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -29,7 +29,7 @@ const rate=()=>Number($('rate')&&$('rate').value)||1;
 /* Narration style: 'natural' (default) = the voice itself speaks faster/slower, a second voice for quoted speech (acting), longer passages, smoother phrasing and longer pauses;
    'pace' = the same, one voice, quoted speech a little quicker; 'single' = the same with one voice; 'classic' = exactly the behaviour of v1.12.28 (browser speed-up, one voice, short chunks). */
 const STYLES=['natural','pace','single','classic'];
-const PACE_MUL=1.08; /* 'pace' style: quoted speech is spoken a little quicker, in the same voice */
+const PACE_MUL=1.18; /* 'pace' style: quoted speech is spoken a little quicker, in the same voice */
 const styleNow=()=>{try{const v=localStorage.getItem('cv-narration');return STYLES.includes(v)?v:'natural'}catch(_){return 'natural'}};
 const DIALOGUE={bm_george:'bm_fable',bf_emma:'bf_isabella',am_eric:'am_michael',af_aoede:'af_bella'}; /* same accent and gender, different character */
 const bake=(style=styleNow(),mul=1)=>style==='classic'?1:Math.round(Math.min(2,Math.max(0.5,Math.min(2,Math.max(0.5,rate()))*mul))*100)/100; /* speed built into the speech itself */
@@ -489,7 +489,7 @@ function spoken(t){ /* what is sent to the voice (the page keeps showing the ori
   .replace(/,\s*,/g,',').replace(/([.!?\u2026]["\u201d\u2019']?),\s/g,'$1 ').replace(/^[,\s]+/,'').replace(/\s+/g,' ').trim();
  return sayable(out)?out:norm(t);
 }
-function dialogueRuns(para){ /* splits a paragraph into narration and quoted speech; anything unclear stays narration */
+function dialogueRuns(para,minLetters=14){ /* splits a paragraph into narration and quoted speech; anything unclear stays narration */
  const t=norm(para),whole=[{t,d:false}];
  if(!/["\u201c\u201d]/.test(t))return whole;
  let runs=[],buf='',inQ=false;
@@ -500,7 +500,7 @@ function dialogueRuns(para){ /* splits a paragraph into narration and quoted spe
  }
  if(inQ)return whole;
  if(buf)runs.push({t:buf,d:false});
- runs=runs.map(r=>r.d&&r.t.replace(/[^\p{L}\p{N}]/gu,'').length<14?{t:r.t,d:false}:r).filter(r=>sayable(r.t)); /* very short quotes stay with the narrator */
+ runs=runs.map(r=>r.d&&r.t.replace(/[^\p{L}\p{N}]/gu,'').length<minLetters?{t:r.t,d:false}:r).filter(r=>sayable(r.t)); /* very short quotes stay with the narrator */
  const merged=[];for(const r of runs){const l=merged[merged.length-1];if(l&&l.d===r.d)l.t+=' '+r.t;else merged.push({...r})}
  return merged.length?merged:whole;
 }
@@ -510,7 +510,7 @@ function plan(paras,p,narr,style,first){
  if(style==='classic')return chunks(para,first?FIRST_CHUNK_MAX:CHUNK_MAX).map((t,k,a)=>({text:t,say:t,voice:narr,last:k===a.length-1,pad:k===a.length-1?PARA_PAD:0}));
  const max=first?NAT_FIRST_MAX:NAT_MAX,dlg=style==='natural'&&DIALOGUE[narr]?DIALOGUE[narr]:narr,out=[];
  const next=paras[p+1],scene=next!=null&&SCENE.test(next),heading=!/[.!?\u2026"\u201d]$/.test(norm(para))&&norm(para).length<80&&(p===0||SCENE.test(paras[p-1]||''));
- for(const r of dialogueRuns(para)){
+ for(const r of dialogueRuns(para,style==='pace'?5:14)){
   for(const t of chunks(r.t,max)){const say=spoken(t);if(sayable(say))out.push({text:t,say,voice:r.d?dlg:narr,d:r.d,mul:r.d&&style==='pace'?PACE_MUL:1,last:false,pad:0})}
  }
  for(let i=0;i<out.length;i++)if(i<out.length-1&&style!=='single'&&out[i].d!==out[i+1].d)out[i].pad=0.12;

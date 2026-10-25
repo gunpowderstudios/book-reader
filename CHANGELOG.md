@@ -1,7 +1,10 @@
 # Book Reader — Version history
 
+## v1.12.35 — 25 October 2026
+- The “livelier speech” style was too subtle to hear. Quoted speech is now about 18% quicker (was 8%), and even short quotes such as “Yes.” are included.
+
 ## v1.12.34 — 25 October 2026
-- **New narration style: “Natural, same voice with livelier speech”** (Settings → Narration style). The narrator keeps one voice, and quoted speech is spoken about 8% quicker with a small pause either side. The second-voice acting style stays the default.
+- **New narration style: “Natural, same voice with livelier speech”** (Settings → Narration style). The narrator keeps one voice, and quoted speech is spoken about 8% quicker (18% from v1.12.35) with a small pause either side. The second-voice acting style stays the default.
 
 ## v1.12.33 — 25 October 2026
 - The free Conan book now always shows its cover in My Library (Continue / Start), like your other books, instead of a plain letter.
