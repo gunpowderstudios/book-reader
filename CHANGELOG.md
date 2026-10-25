@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.12.10 — 25 October 2026
+- Loading indicator now tracks the actual browser audio `playing` event instead of vanishing when speech generation completes.
+- Keeps the spinner and preparation status visible between model loading and the first audible passage; cleans up audio event handlers on stop.
+
 ## v1.12.9 — 25 October 2026
 - Added a small animated loading wheel beside the selected narrator in the right-hand status panel, during AI engine startup and initial speech generation.
 - The wheel disappears when narration begins or loading is stopped, and respects reduced-motion settings.
