@@ -1,4 +1,8 @@
-# Book Reader — EPUB audiobook reader
+# E.D.D.i. — Every Day Digital Intelligence
+
+*Your friendly AI reading companion.*
+
+Formerly EPUB Reader / Book Reader.
 
 A free browser-based reader that turns DRM-free EPUB books into spoken audiobooks using Kokoro AI voices, with yellow word-by-word highlighting. Runs on GitHub Pages with no build step, account or paid service. Your books never leave your device.
 
