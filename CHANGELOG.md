@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.12.23 — 25 October 2026
+- Added Next passage status and an animated progress strip beside playback controls.
+- Display Preparing while audio generation is pending, Ready when the next clip is generated, and Waiting when inactive. Does not invent a percentage from an AI operation that has no progress reports.
+
 ## v1.12.22 — 25 October 2026
 - Made continuous background read-ahead the clearly labelled default **Smooth Listening** behaviour when pressing Play; it already existed in the Kokoro player.
 - New users default to a two-minute target instead of six minutes; existing readers retain saved preferences. Audio starts after the first available passage rather than waiting for the full target to prepare.
