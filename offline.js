@@ -41,6 +41,7 @@ function clips(chapter){return voice().chapterClips(chapter)}
 function formatMB(n){return (n/1048576).toFixed(1)+' MB'}
 function estimate(){const v=current();if(!v)return null;const words=v.chapter.paragraphs.join(' ').trim().split(/\s+/).filter(Boolean).length;const seconds=words/140*60;return {words,seconds,bytes:seconds*24000*2}}
 async function refresh(){
+ if(!$('offline-panel'))return; /* the "prepare a chapter" page is switched off for now */
  const v=current(),btn=$('offline-prepare'),cancelBtn=$('offline-cancel'),clear=$('offline-clear');
  if(btn)btn.disabled=!v||preparing;
  if(cancelBtn)cancelBtn.hidden=!preparing;
@@ -81,6 +82,7 @@ async function clearAll(){
  await refresh();
 }
 function setup(){
+ if(!$('offline-prepare')){try{indexedDB.deleteDatabase('book-reader-audio-v1')}catch(_){}purgeTemp();return} /* UI removed for now: saved audio and parked passages still work */
  $('offline-prepare').onclick=prepare;
  $('offline-cancel').onclick=()=>{cancel=true;note('Stopping after the current passage…')};
  $('offline-clear').onclick=clearAll;

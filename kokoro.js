@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.38';
+const VERSION='1.12.39';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -347,8 +347,8 @@ function showNextPassage(state){if(nextPassageState===state)return;nextPassageSt
 function hint(){
  const need=Math.max(1,effRate());
  if(recent.length<3||lastSpeed>=need)return null;
- if(mode==='standard')return {text:'Speech may pause on this device. Try Fast in Performance settings, or prepare a chapter in Listening Tools for smoother listening.',action:null};
- return {text:'Speech may pause while the next passage is prepared. For uninterrupted listening, prepare the chapter first in Listening Tools.',action:null};
+ if(mode==='standard')return {text:'Speech may pause on this device. Try Fast in Settings, or turn up Smooth Listening so more is prepared ahead.',action:null};
+ return {text:'Speech may pause while the next passage is prepared. Turn up Smooth Listening in Settings so more is prepared ahead.',action:null};
 }
 function renderBuffer(){
  const text=$('buf-text'),fill=$('buf-fill'),bar=$('buf-bar'),hintEl=$('speed-hint');

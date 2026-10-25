@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+## v1.12.39 — 25 October 2026
+- **Removed “Prepare a whole chapter” and “Bookmarks & sharing” from Settings for now.** Settings now has the voice performance choice, read-ahead and the yellow-word highlight.
+
 ## v1.12.38 — 25 October 2026
 - **Narration style removed from Settings.** Everyone gets the natural single-voice narration. Choose the narrator from the Voice menu on the play strip.
 - **All British and American Kokoro voices added to the Voice menu** (28 in total: 8 British, 11 American female, 9 American male), best-rated first within each group. The lower-rated ones (grades D and below on the Kokoro voice page) sound less polished.
