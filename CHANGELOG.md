@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+## v1.12.7 — 25 October 2026
+- Playback description and automatic listening advice now display the selected AI narrator's name (George, Emma, Eric or Aoede) instead of always saying George.
+
 ## v1.12.6 — 25 October 2026
 - On mobile, playback controls are no longer fixed to the bottom of the screen. The full player becomes a standalone panel beneath the active tab’s opening description.
 - Player buttons stack and wrap for narrow phones; desktop retains the existing fixed playback bar.
