@@ -6,8 +6,8 @@
 const KOKORO_URL='https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js';
 const MODEL_ID='onnx-community/Kokoro-82M-v1.0-ONNX';
 /* standard (Low Memory): 8-bit model, one core (~92 MB).  fast: full-precision model, several cores when the page is
-   cross-origin isolated (~326 MB). */
-const MODES={standard:{device:'wasm',dtype:'q8'},fast:{device:'wasm',dtype:'fp32'}};
+   cross-origin isolated (~326 MB).  gpu: full-precision model on the graphics chip (~326 MB). */
+const MODES={standard:{device:'wasm',dtype:'q8'},fast:{device:'wasm',dtype:'fp32'},gpu:{device:'webgpu',dtype:'fp32'}};
 
 let lib=null,tts=null,loading=null,chain=Promise.resolve(),preparedVoices=new Set();
 const say=(m,transfer)=>self.postMessage(m,transfer||[]);
@@ -73,6 +73,10 @@ function load(voice,mode){
   if(!MODES[mode])mode='standard';
   say({type:'stage',stage:'library'});
   lib=await import(KOKORO_URL);
+  if(mode==='gpu'){
+   if(!self.navigator||!self.navigator.gpu)throw new Error('WebGPU is not available in this browser');
+   if(!(await self.navigator.gpu.requestAdapter()))throw new Error('no compatible graphics adapter was found');
+  }
   /* Threads must be chosen explicitly: Standard is always single-threaded (even on an isolated page, where the
      library would otherwise pick several threads and need far more memory). */
   try{

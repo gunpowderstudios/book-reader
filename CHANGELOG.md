@@ -1,5 +1,13 @@
 # Book Reader — Version history
 
+## v1.12.26 — 25 October 2026
+Faster starts and fewer gaps. Tested in real Chromium with a stand-in voice (42 checks across two suites); real speed on your devices, WebGPU on real hardware and iPhone/iPad Safari are not tested here.
+- **Head start instead of repeated pauses.** After the first two passages the reader measures how fast the voice is. If it is slower than your listening speed it works out how much audio must be ready to read the rest without stopping, shows "Getting ahead so George can read without stopping: 1m 05s of 3m 40s ready (about 2m 10s to go)", and starts automatically. A **Start now (may pause)** button skips the wait. In the test (voice at 0.6× speed) reading then had no pauses. A fast voice never waits. Prepared chapters start at once.
+- **Graphics chip mode (WebGPU).** New option, and the Automatic choice on a capable computer (not a phone or tablet, 4+ cores, 8 GB+ memory) whose browser supports it. Falls back safely (to Fast, then Low Memory) and remembers what failed. If a page is killed while a heavier mode loads, which phones do without any message, the next visit switches to a lighter option and says so. It can be picked by hand on phones and tablets.
+- **Voice engine starts when the page opens** once it has been installed, so Play is near-instant (skipped when the browser asks to save data).
+- **Deep read-ahead without memory cost.** Only about 3 minutes (phones) or 6 minutes (computers) of prepared speech stays in memory; the rest is parked in browser storage and removed when played or stopped.
+- Fixed: after any fallback the reader quietly turned Automatic into a fixed Low Memory choice on the next visit; Automatic now stays Automatic. The fallback explanation now stays visible while the first passage is prepared.
+
 ## v1.12.25 — 25 October 2026
 Code-review fixes. Tested in real Chromium with a stand-in voice model (29 checks); not tested on real iPhone/iPad Safari or with the real Kokoro model.
 **Playback**

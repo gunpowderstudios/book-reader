@@ -27,7 +27,13 @@ function db(){
 const tx=(mode,work)=>db().then(d=>new Promise((resolve,reject)=>{const t=d.transaction(STORE,mode),res={v:undefined};t.oncomplete=()=>resolve(res.v);t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error);work(t.objectStore(STORE),res)}));
 async function get(v,text){const row=await tx('readonly',(st,res)=>{const q=st.get(clipKey(v,norm(text)));q.onsuccess=()=>{res.v=q.result}});return row&&row.blob&&row.blob.size>44?row.blob:null}
 function put(v,text,blob){return tx('readwrite',st=>{st.put({blob,at:Date.now()},clipKey(v,norm(text)))})}
-const savedKeys=()=>tx('readonly',(st,res)=>{const q=st.getAllKeys();q.onsuccess=()=>{res.v=new Set(q.result)}}).then(x=>x||new Set());
+/* Short-lived storage for passages prepared ahead during normal listening (kept out of memory; removed once played or stopped). */
+const tmpKey=k=>'tmp|'+fingerprint(k);
+const putTemp=(k,blob)=>tx('readwrite',st=>{st.put({blob,at:Date.now()},tmpKey(k))});
+const getTemp=k=>tx('readonly',(st,res)=>{const q=st.get(tmpKey(k));q.onsuccess=()=>{res.v=q.result}}).then(r=>{if(r&&r.blob)return r.blob;throw new Error('missing')});
+const dropTemp=k=>tx('readwrite',st=>{st.delete(tmpKey(k))});
+const purgeTemp=()=>tx('readwrite',st=>{st.delete(IDBKeyRange.bound('tmp|','tmp|\uffff'))}).catch(()=>{});
+const savedKeys=()=>tx('readonly',(st,res)=>{const q=st.getAllKeys();q.onsuccess=()=>{res.v=new Set(q.result.filter(k=>typeof k==='string'&&!k.startsWith('tmp|')))}}).then(x=>x||new Set());
 function norm(s){return String(s||'').replace(/\s+/g,' ').trim()}
 function clips(chapter){return chapter.paragraphs.flatMap(p=>voice().splitText(p)).map(norm).filter(Boolean)}
 function formatMB(n){return (n/1048576).toFixed(1)+' MB'}
@@ -77,8 +83,9 @@ function setup(){
  $('offline-clear').onclick=clearAll;
  $('offline-help').textContent='Audio is saved only in this browser, on this device, and the browser may clear it if storage runs low. Keep this tab open while preparing.';
  try{indexedDB.deleteDatabase('book-reader-audio-v1')}catch(_){} /* the earlier, less reliable store */
+ purgeTemp(); /* leftovers from a closed tab */
  refresh();
 }
-window.bookOffline={refresh,get:(v,t)=>get(v,t),put};
+window.bookOffline={refresh,get:(v,t)=>get(v,t),put,putTemp,getTemp,dropTemp,purgeTemp};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
 })();

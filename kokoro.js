@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.25';
+const VERSION='1.12.26';
 const VOICES={bm_george:'British Male — George',bf_emma:'British Female — Emma',am_eric:'American Male — Eric',af_aoede:'American Female — Aoede'}; /* add more Kokoro voice ids here later; the Test tab picks them up */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -11,12 +11,13 @@ const narratorName=()=>({bm_george:'George',bf_emma:'Emma',am_eric:'Eric',af_aoe
 const named=s=>String(s).replaceAll('George',narratorName());
 const MODES={
  standard:{label:'Low Memory',mb:92},
- fast:{label:'Fast',mb:326}
+ fast:{label:'Fast',mb:326},
+ gpu:{label:'Graphics chip',mb:326}
 };
 const MAX_TEST_CHARS=300;            /* keeps a sample well inside Kokoro's ~510-token limit */
 const CACHE_MAX_BYTES=(/iPad|iPhone|iPod|Android/i.test(navigator.userAgent)?16:48)*1024*1024; /* temporary speech clips, not voice models */
 const PARA_PAD=0.3;                  /* seconds of quiet added after each paragraph, like an audiobook narrator's breath */
-const MAX_PENDING=2,MAX_AHEAD=400;   /* passages queued in the worker at once / held ahead of playback */
+const MAX_PENDING=2,MAX_AHEAD=600;   /* passages queued in the worker at once / held ahead of playback */
 const INIT_TIMEOUT=300000,GENERATE_TIMEOUT=180000; /* worker silence limits before we give up and restart it */
 const $=id=>document.getElementById(id);
 const norm=s=>String(s||'').replace(/\s+/g,' ').trim();
@@ -32,21 +33,36 @@ const store={
 
 /* ───────── Settings ───────── */
 const mobileDevice=()=>/iPad|iPhone|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-/* Automatic: Fast only on a capable computer (see cvAutoMode in index.html), and never again after Fast has failed here. */
-const suggestedMode=()=>store.get('cv-auto-fallback','')==='standard'?'standard':(window.cvAutoMode?window.cvAutoMode():(mobileDevice()?'standard':'fast'));
-let preference=store.get('cv-mode-choice',store.get('cv-mode','')||'auto');
-if(!['auto','fast','standard'].includes(preference))preference='auto';
+const RANK=['gpu','fast','standard'];
+const below=m=>RANK[Math.min(RANK.length-1,RANK.indexOf(m)+1)];
+const PREFS=['auto','gpu','fast','standard'];
+/* If the page died while a heavier mode was loading (a phone running out of memory kills the tab without any message),
+   remember that and let Automatic choose something lighter from now on. */
+let startupNote='';
+{
+ const t=store.get('cv-trying','');
+ if(t&&t!=='standard'&&RANK.includes(t)){
+  store.set('cv-trying','');store.set('cv-auto-fallback',below(t));
+  if(store.get('cv-mode-choice','')===t)store.set('cv-mode-choice','auto');
+  startupNote='the last start with '+(MODES[t]||{}).label+' stopped the page, so a lighter option is being used';
+ }
+}
+/* Automatic: see cvAutoMode in index.html (graphics chip or multi-core only on a capable computer; remembers failures). */
+const suggestedMode=()=>window.cvAutoMode?window.cvAutoMode():(mobileDevice()?'standard':'fast');
+let preference=store.get('cv-mode-choice','auto');
+if(!PREFS.includes(preference))preference='auto';
 let mode=preference==='auto'?suggestedMode():preference;
 const bufferTarget=()=>{const m=Number(store.get('cv-buffer','2'));return Math.min(m>0&&m<=30?m:2,mobileDevice()?6:30)*60};
 const installed=()=>store.get('cv-ready-'+mode,'')==='1';
 const isolated=()=>typeof crossOriginIsolated!=='undefined'&&crossOriginIsolated===true;
 
 /* ───────── Engine state and the download bar ───────── */
-const eng={phase:'idle',loaded:0,total:0,net:0,used:null,sec:0,isolated:false,cores:0,note:'',error:''};
+const eng={phase:'idle',loaded:0,total:0,net:0,used:null,sec:0,isolated:false,cores:0,note:startupNote,error:''};
 let awaitingNarration=false;
 function spinner(on){const el=$('voice-spinner');if(el)el.hidden=!on;}
 const modeName=m=>(MODES[m]||MODES.standard).label;
 function describeEngine(){
+ if(eng.used==='gpu')return 'on your graphics chip';
  if(eng.used==='fast')return eng.isolated?(n=>'using '+n+(n===1?' core':' cores'))(Math.min(4,Math.ceil((eng.cores||2)/2))):'one core only (multi-core is not active on this page)';
  return 'one core';
 }
@@ -68,8 +84,8 @@ function renderEngine(){
    msg=installed()?'George is installed on this device and starts when you press Play.'
     :'George is not loaded yet. He starts when you press Play (a one-off download of about '+MODES[mode].mb+' MB).';
  }
- if(eng.note)msg+=' — '+eng.note;
  if(awaitingNarration&&state==='ready'){msg='Preparing the first passage for playback…';state='starting';pct=0}
+ if(eng.note)msg+=' — '+eng.note;
  if(text)text.textContent=named(msg);
  if(fill){fill.style.width=pct.toFixed(1)+'%'}
  if(bar){bar.dataset.state=state;if(['library','starting','voice'].includes(state)||(state==='downloading'&&!eng.total)){bar.removeAttribute('aria-valuenow');bar.setAttribute('aria-valuetext',named(msg))}else{bar.setAttribute('aria-valuenow',String(Math.round(pct)));bar.removeAttribute('aria-valuetext')}}
@@ -83,7 +99,8 @@ function engineReset(note){Object.assign(eng,{phase:'idle',loaded:0,total:0,net:
 
 /* ───────── Worker client ───────── */
 const FALLBACKS={fast:'standard'};
-let runMode=null;
+let runMode=null,failedModes=[];
+const nextLighter=from=>from==='gpu'?(isolated()?'fast':'standard'):FALLBACKS[from];
 let worker=null,readyPromise=null,initWaiter=null,engineReady=false,watchdog=null,nextId=1,sink=null;
 const calls=new Map();
 
@@ -122,11 +139,14 @@ function onWorkerMessage(w,m){
    engineReady=true;eng.phase='ready';eng.used=m.mode||mode;eng.sec=(m.ms||0)/1000;eng.isolated=!!m.isolated;eng.cores=m.cores||0;
    if(eng.used===mode)eng.note='';
    store.set('cv-ready-'+(m.mode||mode),'1');
-   if(m.mode&&m.mode!==mode){store.set('cv-ready-'+mode,'');if(preference==='auto')store.set('cv-auto-fallback',m.mode);mode=m.mode;store.set('cv-mode',mode);const sel=$('mode-select');if(sel)sel.value=mode} /* remember the mode that works on this device */
+   store.set('cv-trying','');
+   if(failedModes.length&&preference==='auto')store.set('cv-auto-fallback',below(RANK[Math.max(...failedModes.map(x=>RANK.indexOf(x)))]));
+   if(m.mode&&m.mode!==mode){store.set('cv-ready-'+mode,'');mode=m.mode;const sel=$('mode-select');if(sel)sel.value=mode} /* remember the mode that works on this device */
    renderEngine();
    const iw=initWaiter;initWaiter=null;if(iw)iw.resolve(m.ms);break}
   case 'init-error':{
-   const from=m.mode||runMode||mode,next=FALLBACKS[from];
+   const from=m.mode||runMode||mode,next=nextLighter(from);
+   store.set('cv-trying','');if(!failedModes.includes(from))failedModes.push(from);
    if(next&&initWaiter){ /* lighter mode in a fresh worker (a failed load can leave memory held) */
     const iw=initWaiter;initWaiter=null;
     failWorker(new Error('retry'),true);
@@ -159,6 +179,7 @@ function ready(){
   eng.note=st==='failed'||st==='unsupported'?'multi-core is not available in this browser, so Fast mode runs on one core':'multi-core is not active on this page';
  }
  renderEngine();
+if((runMode||mode)!=='standard')store.set('cv-trying',runMode||mode);
  readyPromise=new Promise((resolve,reject)=>{initWaiter={resolve,reject};w.postMessage({type:'init',voice:currentVoice(),mode:runMode||mode})});
  readyPromise.catch(()=>{});
  armWatchdog();
@@ -174,15 +195,15 @@ function haltAll(){ /* stop playback through the page (so its buttons reset), fa
  if(window.chapterApp&&window.chapterApp.stop)window.chapterApp.stop();else stop();
 }
 function setMode(next){
- if(!['auto','fast','standard'].includes(next))return mode;
+ if(!PREFS.includes(next))return mode;
  preference=next;store.set('cv-mode-choice',next);if(next==='auto')store.set('cv-auto-fallback','');
  const chosen=next==='auto'?suggestedMode():next;
  if(chosen===mode){showRecommendation();return mode}
- mode=chosen;runMode=null;store.set('cv-mode',chosen);
+ mode=chosen;runMode=null;failedModes=[];
  if(worker||readyPromise)failWorker(new Error('Switching mode'),true);
  cache.clear();cacheBytes=0;recent.length=0;lastSpeed=0; /* clips from another engine are not reused when comparing speed */
- engineReset(next==='fast'&&!isolated()?'multi-core needs a one-time page reload':'');
- if(next==='fast'&&!isolated()&&window.cvIsolation)window.cvIsolation.enable();
+ engineReset(chosen==='fast'&&!isolated()?'multi-core needs a one-time page reload':'');
+ if(chosen==='fast'&&!isolated()&&window.cvIsolation)window.cvIsolation.enable();
  renderBuffer();
  return mode;
 }
@@ -203,6 +224,7 @@ function trimSilence(f){ /* Kokoro pads each clip with silence; trimming it shor
  a=Math.max(0,a-pad);b=Math.min(f.length,b+pad*2);
  return b-a<2400?f:f.subarray(a,b);
 }
+const charStat={sec:0,chars:0};
 let lastSpeed=0;const recent=[]; /* speed = seconds of speech produced per second of generating (>1 = faster than real time) */
 function noteGen(audioSec,genSec){
  if(!(genSec>0))return;
@@ -260,7 +282,7 @@ async function pump(){
     let pcm=trimSilence(r.samples);const speechSec=pcm.length/r.rate;
     if(job.pad){const padded=new Float32Array(pcm.length+Math.round(job.pad*r.rate));padded.set(pcm);pcm=padded}
     const blob=toWav(pcm,r.rate),audioSec=pcm.length/r.rate;
-    noteGen(speechSec,r.ms/1000);
+    noteGen(speechSec,r.ms/1000);charStat.sec+=speechSec;charStat.chars+=job.text.length;
     cachePut(job.key,{blob,audioSec}); /* cached even if the user pressed Stop meanwhile */
     job.resolve({blob,audioSec,genSec:r.ms/1000,cached:false});
     renderBuffer();
@@ -337,7 +359,10 @@ function renderBuffer(){
  if(bar){bar.dataset.state=state;bar.setAttribute('aria-valuenow',String(Math.round(pct)))}
  if(hintEl){
   const h=hint();
-  if(h){
+  if(active&&session.holding){
+   hintEl.hidden=false;const b=document.createElement('button');b.textContent='Start now (may pause)';b.onclick=()=>{session.startNow=true};
+   hintEl.replaceChildren(document.createTextNode(named('George is getting a head start so he can read without stopping. ')),b);
+  }else if(h){
    hintEl.hidden=false;hintEl.replaceChildren(document.createTextNode(named(h.text)+' '));
   }else hintEl.hidden=true;
  }
@@ -356,7 +381,7 @@ function stop(){
  window.readerTracking?.clear?.();window.readerTracking?.reset?.();
  try{if('mediaSession' in navigator)navigator.mediaSession.playbackState='none'}catch(_){}
  serial++;
- if(session){session.cancelled=true;if(session.wake)session.wake();session=null}
+ if(session){try{window.bookOffline&&window.bookOffline.purgeTemp&&window.bookOffline.purgeTemp()}catch(_){}session.cancelled=true;if(session.wake)session.wake();session=null}
  sink=null;
  if(endPlay)endPlay(false);
  releasePlayer();
@@ -493,7 +518,7 @@ function toggle({S,update,render}){
   return;
  }
  stop();awaitingNarration=true;spinner(true);renderEngine();prefetchToken++;
- const token=serial,s={cancelled:false,paused:false,wake:null,voice:currentVoice()};session=s;
+ const token=serial,s={cancelled:false,paused:false,wake:null,voice:currentVoice(),need:0,holding:false,startNow:false};session=s;
  const stale=()=>s.cancelled||token!==serial;
  S.playing=true;S.paused=false;$('play').textContent='Ⅱ Pause';
  unlockAudio();startMeter();mediaControls(S);
@@ -502,22 +527,50 @@ function toggle({S,update,render}){
    if(!engineReady){status('Loading George… (first visit downloads the voice model once)');sink=t=>{if(!stale())status(t)}}
    const it=segments(S),ahead=[];let exhausted=false,firstItem=true;
    const readySec=()=>{let t=0;for(const i of ahead)if(i.done&&i.sec)t+=i.sec;return t};
+   /* How much audio must be ready before reading starts so that it never has to stop: if the voice makes s seconds of
+      speech per second and you listen at rate r, the shortfall over the audio still to read (up to ~40 min) is R(1 - s/r). */
+   const spc=()=>charStat.chars>200?charStat.sec/charStat.chars:1/14;
+   const remaining=(()=>{let chars=0,secCap=2400/spc();for(let ci=S.index;ci<S.chapters.length&&chars<secCap;ci++){const ps=S.chapters[ci].paragraphs;for(let p=ci===S.index?S.p:0;p<ps.length&&chars<secCap;p++)chars+=ps[p].length}return chars*spc()})();
+   const needNow=()=>{if(recent.length<2)return 0;const r=Math.max(0.6,rate()),sp=lastSpeed/1.15;if(!(sp<r))return 0;return Math.min(mobileDevice()?600:1200,remaining*(1-sp/r))};
+   /* Passages beyond a few minutes are parked in browser storage instead of memory. */
+   const MEM_SEC=mobileDevice()?180:360;
+   const memSec=()=>{let t=0;for(const i of ahead)if(i.done&&!i.spilled)t+=i.sec;return t};
+   const tmpKey=item=>keyOf(s.voice,norm(item.seg.text),item.seg.last?PARA_PAD:0);
    /* Keep two passages queued in the worker whenever less than the chosen number of minutes is ready ahead.
       Runs again each time a passage finishes, so it carries on while you listen and even while paused. */
    const fill=()=>{
     if(stale())return;
     let pending=0;for(const i of ahead)if(!i.done)pending++;
-    const target=bufferTarget();
+    s.need=needNow();const target=Math.max(bufferTarget(),s.need);
     while(pending<MAX_PENDING&&!exhausted&&readySec()<target&&ahead.length<MAX_AHEAD){
      const n=it.next();if(n.done){exhausted=true;break}
      const item={seg:n.value,done:false,sec:0};
      item.job=synth(n.value.text,s.voice,{stale,pad:n.value.last?PARA_PAD:0,onGenerate:()=>{if(!stale())sink=null}});
-     item.job.then(res=>{item.done=true;item.sec=res.audioSec;fill();showNextPassage(ahead.length?(ahead[0].done?'ready':'working'):(exhausted?'idle':'working'));bufInfo.ready=readySec();renderBuffer()},()=>{item.done=true});
+     item.job.then(async res=>{item.done=true;item.sec=res.audioSec;
+      if(!res.saved&&window.bookOffline&&window.bookOffline.putTemp&&memSec()>MEM_SEC&&ahead.includes(item)&&!stale()){
+       try{await window.bookOffline.putTemp(tmpKey(item),res.blob);item.spilled=true;item.job=null;cacheDrop(tmpKey(item))}catch(_){}
+      }
+      fill();showNextPassage(ahead.length?(ahead[0].done?'ready':'working'):(exhausted?'idle':'working'));bufInfo.ready=readySec();renderBuffer()},()=>{item.done=true});
      ahead.push(item);pending++;
     }
     bufInfo.target=target;bufInfo.ready=readySec();
     showNextPassage(ahead.length?(ahead[0].done?'ready':'working'):(exhausted?'idle':'working'));
    };
+   async function holdForHeadStart(firstSec){
+    while(!stale()&&!s.startNow){
+     await unpause(s);if(stale())return;
+     const need=needNow();s.need=need;fill();
+     const have=readySec()+firstSec,known=recent.length>=2;
+     if((known&&have>=need)||exhausted||ahead.length>=MAX_AHEAD)break;
+     if(known){
+      s.holding=true;bufInfo.target=Math.max(bufInfo.target,need);bufInfo.ready=have;
+      status('Getting ahead so George can read without stopping: '+fmtDur(have)+' of '+fmtDur(need)+' ready (about '+fmtDur(Math.max(0,need-have)/Math.max(0.1,lastSpeed))+' to go)');
+     }
+     renderBuffer();
+     await new Promise(r=>setTimeout(r,300));
+    }
+    s.holding=false;renderBuffer();
+   }
    fill();
    while(!stale()){
     if(!ahead.length)fill();
@@ -528,7 +581,14 @@ function toggle({S,update,render}){
     await unpause(s);if(stale())return;
     let waitedFrom=0;
     if(!item.done&&engineReady){waitedFrom=Date.now();bufInfo.waiting=waitedFrom;status('George is catching up…');renderBuffer()}
-    const res=await item.job;if(stale())return;
+    let res;
+    if(item.spilled){
+     const blob=await window.bookOffline.getTemp(tmpKey(item)).catch(()=>null);
+     res=blob?{blob,audioSec:item.sec,cached:true}:await synth(item.seg.text,s.voice,{stale,pad:item.seg.last?PARA_PAD:0});
+    }else res=await item.job;
+    if(stale())return;
+    if(firstItem&&!res.cached&&!res.saved)await holdForHeadStart(res.audioSec);
+    if(stale())return;
     if(waitedFrom){
      const w=(Date.now()-waitedFrom)/1000;bufInfo.waiting=0;
      if(!firstItem&&w>=0.4){bufInfo.waits++;bufInfo.waitSec+=w}
@@ -543,6 +603,7 @@ function toggle({S,update,render}){
     await playback(res.blob,s);
     /* Once a passage has played, discard its temporary WAV clip from RAM. */
     cacheDrop(keyOf(s.voice,norm(g.text),g.last?PARA_PAD:0));
+    if(item.spilled)window.bookOffline.dropTemp(tmpKey(item)).catch(()=>{});
     window.readerTracking?.clear?.();
     if(stale())return;
     if(g.last){S.p=g.p+1;update()}
@@ -554,7 +615,7 @@ function toggle({S,update,render}){
 
 function showRecommendation(){
  const el=$('recommended-speed');if(!el)return;
- const name=mode==='fast'?'Fast':'Low Memory';
+ const name=(MODES[mode]||MODES.standard).label;
  el.textContent=preference==='auto'?'✓ Automatic · '+name+' selected for this device.':'✓ '+name+' selected. You can switch back to Automatic at any time.';
 }
 /* ───────── Panel wiring ───────── */
@@ -565,7 +626,7 @@ function showRecommendation(){
  if(ta&&count){const update=()=>{count.textContent=ta.value.length+' / '+MAX_TEST_CHARS};ta.addEventListener('input',update);update()}
  const ms=$('mode-select');
  if(ms){
-  ms.replaceChildren(new Option('Automatic (recommended)','auto'),new Option('Fast — for powerful computers','fast'),new Option('Low Memory — for phones and older devices','standard'));
+  ms.replaceChildren(new Option('Automatic (recommended)','auto'),new Option('Graphics chip — fastest on a Mac or PC with a good graphics chip','gpu'),new Option('Fast — for powerful computers','fast'),new Option('Low Memory — for phones and older devices','standard'));
   ms.value=preference;ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=preference;showRecommendation()};
  }
  const bs=$('buffer-select');
@@ -574,6 +635,10 @@ function showRecommendation(){
  if(bs){bs.value=String(Math.round(bufferTarget()/60));if(bs.value!==String(Math.round(bufferTarget()/60)))bs.value='2';bs.onchange=()=>{store.set('cv-buffer',bs.value);renderBuffer()}}
  renderEngine();renderBuffer();showRecommendation();
 })();
+/* Clear the "was loading" flag on a normal page close (a crash never gets here). */
+window.addEventListener('pagehide',()=>store.set('cv-trying',''));
+/* Start the voice engine in the background when the page opens, if it is already installed, so Play is near-instant. */
+setTimeout(()=>{try{if(installed()&&!worker&&!readyPromise&&!(navigator.connection&&navigator.connection.saveData))ready().catch(()=>{})}catch(_){}},1500);
 window.chapterKokoro={toggle,stop,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,recommendMode:suggestedMode,isMobile:mobileDevice,generateClip:(text,id)=>synth(text,VOICES[id]?id:currentVoice()),currentVoice,voices:VOICES,splitText:(text)=>chunks(text),version:VERSION,
  refreshNarrator:()=>{renderEngine();renderBuffer()},stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode}),measured:()=>Number(store.get('cv-measured-'+mode,'0'))};
 })();
