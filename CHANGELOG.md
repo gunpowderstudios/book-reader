@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.12.14 — 25 October 2026
+- Reduced temporary generated audio RAM cache to 16 MB on phones/tablets and 48 MB on desktops.
+- Discard completed speech clips from the in-memory cache as narration progresses. Preserve downloaded voice model, EPUBs and any separately prepared chapters.
+
 ## v1.12.13 — 25 October 2026
 - Stop AI narration and prepared-chapter playback when the page is reloaded or navigated away from.
 - Reset playback if a browser restores the page from back/forward cache, without deleting downloaded models, EPUBs, bookmarks or saved audio.
