@@ -69,6 +69,7 @@ function renderEngine(){
     :'George is not loaded yet. He starts when you press Play (a one-off download of about '+MODES[mode].mb+' MB).';
  }
  if(eng.note)msg+=' — '+eng.note;
+ if(awaitingNarration&&state==='ready'){msg='Preparing the first passage for playback…';state='starting';pct=0}
  if(text)text.textContent=named(msg);
  if(fill){fill.style.width=pct.toFixed(1)+'%'}
  if(bar){bar.dataset.state=state;if(['library','starting','voice'].includes(state)||(state==='downloading'&&!eng.total)){bar.removeAttribute('aria-valuenow');bar.setAttribute('aria-valuetext',named(msg))}else{bar.setAttribute('aria-valuenow',String(Math.round(pct)));bar.removeAttribute('aria-valuetext')}}
@@ -250,7 +251,7 @@ async function pump(){
 /* ───────── One shared <audio> element ───────── */
 const player=new Audio();let playerURL=null,silenceURL=null,endPlay=null;
 function releasePlayer(){
- player.onended=null;player.onerror=null;
+ player.onended=null;player.onerror=null;player.onplaying=null;
  try{player.pause()}catch(_){}
  player.removeAttribute('src');try{player.load()}catch(_){}
  if(playerURL){URL.revokeObjectURL(playerURL);playerURL=null}
@@ -267,7 +268,8 @@ function playBlob(blob){ /* resolves true when finished, false if stopped */
   releasePlayer();
   playerURL=URL.createObjectURL(blob);player.src=playerURL;
   const r=rate();player.defaultPlaybackRate=r;player.playbackRate=r; /* set after src: loading a new source resets the rate */
-  const clear=()=>{endPlay=null;player.onended=null;player.onerror=null};
+  const clear=()=>{endPlay=null;player.onended=null;player.onerror=null;player.onplaying=null};
+  player.onplaying=()=>{if(awaitingNarration){awaitingNarration=false;spinner(false);renderEngine();status('Reading with George')}};
   const finish=ok=>{clear();resolve(ok)};
   endPlay=finish;
   player.onended=()=>finish(true);
@@ -435,15 +437,14 @@ function prefetch(S,count=3){
  }
 }
 function toggle({S,update,render}){
- awaitingNarration=true;spinner(true);
  if(session&&!session.cancelled){
   session.paused=!session.paused;S.playing=!session.paused;
   $('play').textContent=session.paused?'▶ Resume':'Ⅱ Pause';
   if(session.paused){awaitingNarration=false;spinner(false);player.pause();status('Paused — George keeps preparing the next passages')}
-  else{if(session.wake)session.wake();if(playerURL&&player.paused)player.play().catch(e=>{if(e&&e.name!=='AbortError')status('Playback error: '+e.message)});status('Reading with George')}
+  else{awaitingNarration=true;spinner(true);if(session.wake)session.wake();if(playerURL&&player.paused)player.play().catch(e=>{if(e&&e.name!=='AbortError')status('Playback error: '+e.message)});status('Reading with George')}
   return;
  }
- stop();prefetchToken++;
+ stop();awaitingNarration=true;spinner(true);renderEngine();prefetchToken++;
  const token=serial,s={cancelled:false,paused:false,wake:null,voice:currentVoice()};session=s;
  const stale=()=>s.cancelled||token!==serial;
  S.playing=true;S.paused=false;$('play').textContent='Ⅱ Pause';
@@ -485,7 +486,7 @@ function toggle({S,update,render}){
     firstItem=false;
     const g=item.seg;
     if(g.ci!==S.index){S.index=g.ci;S.p=g.p;render()}else if(S.p!==g.p){S.p=g.p;update()}
-    awaitingNarration=false;spinner(false);status('George is reading…');
+    if(awaitingNarration){status('Audio prepared — starting playback…');renderEngine()}
     bufInfo.ready=readySec();renderBuffer();
     window.readerTracking?.start?.(g.text,g.p,()=>{const duration=player.duration||res.audioSec;return duration>0?player.currentTime/duration:0});
     await playback(res.blob,s);
