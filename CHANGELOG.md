@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.12.17 — 25 October 2026
+- Replaced the long, technical slow-narration warning with simple guidance for readers.
+- Removed the experimental GPU button from the warning because GPU mode is not currently selectable by the app's performance settings.
+
 ## v1.12.16 — 25 October 2026
 - Simplified the Now Reading collapsible title: display just the book name, without the confusing 'Now Playing' label.
 - Added a chapter selector and a missing-chapter-content recovery check in v1.12.15.
