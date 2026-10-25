@@ -114,6 +114,10 @@ header .brand>strong:has(#app-version){position:absolute;top:6px;right:10px;z-in
 <p><strong>What is this file?</strong> It is a tiny plain-text note (a “JSON” file) that records which book you are reading and where you stopped. JSON is a standard, widely used format that apps, websites and phones everywhere use to store simple information. It is safe: it contains no program code, nothing in it can run or change your device, and it holds only your reading places. You can open it in any text editor to see for yourself.</p>
 <p>Press <strong>Save Progress File</strong>, then save the file (named after your book, for example <code>Book Title - reading progress.json</code>) to Dropbox, iCloud Drive, Google Drive or another folder you can access on your other device.</p>
 <p><button id="progress-save" type="button">↓ Save Progress File</button></p>
+<h3>Move your book and bookmark together</h3>
+<p>Save the current EPUB and your reading position in one file. On your other device, load that one file to continue. This is for books you are allowed to copy for your own use.</p>
+<p><button id="bundle-save" type="button">↓ Save Book &amp; Progress</button> <label class="upload" for="bundle-file">↑ Load Book &amp; Progress</label><input id="bundle-file" type="file" accept=".zip,application/zip" hidden></p>
+<p id="bundle-status" role="status" aria-live="polite"><small>This is a manual transfer. The audio voice model is not included.</small></p>
 <h3>On your other device</h3>
 <p>Load the same EPUB, then press <strong>Load Progress File</strong> and select the saved file using your device's file picker.</p>
 <p><label class="upload" for="progress-file">↑ Load Progress File</label><input id="progress-file" type="file" accept=".json,application/json" hidden></p>
@@ -187,6 +191,57 @@ $('progress-save').onclick=async()=>{
   const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=fileName;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),15000);
   $('progress-status').textContent='Downloaded “'+fileName+'”. Choose its location in your browser’s download settings, or move it to Dropbox, iCloud Drive or Google Drive.';
  }catch(e){$('progress-status').textContent='Could not save progress: '+e.message}
+};
+// A portable ZIP: original EPUB plus a tiny progress JSON. No speech model or generated audio.
+$('bundle-save').onclick=async()=>{
+ const label=$('bundle-status');
+ try{
+  if(!S.key)throw Error('Open the book you want to transfer first.');
+  const lib=window.chapterLibrary;
+  if(!lib?.available)throw Error('Your browser library is unavailable. Load the EPUB again to save it.');
+  save();await lib.flush();
+  const rec=await lib.get(S.key),epub=await lib.getFile(S.key);
+  if(!epub)throw Error('The original EPUB is not saved in this browser. Please load it again.');
+  const name=(rec?.name||'book.epub').replace(/[^a-zA-Z0-9 ._()-]/g,'_').slice(0,110);
+  const epubName=name.toLowerCase().endsWith('.epub')?name:name+'.epub';
+  const zip=new JSZip();
+  zip.file('book.epub',epub);
+  zip.file('reading-progress.json',JSON.stringify({format:'eddi-book-bundle',version:1,bookName:epubName,progress:{index:S.index,p:S.p},createdAt:new Date().toISOString()},null,2));
+  label.textContent='Packaging book and bookmark…';
+  const blob=await zip.generateAsync({type:'blob',compression:'STORE'});
+  const filename=epubName.replace(/\.epub$/i,'').slice(0,95)+' - EDDi book and progress.zip';
+  if(typeof window.showSaveFilePicker==='function'){
+   try{
+    const h=await window.showSaveFilePicker({suggestedName:filename,types:[{description:'E.D.D.i. book and progress',accept:{'application/zip':['.zip']}}]});
+    const w=await h.createWritable();await w.write(blob);await w.close();
+    label.textContent='Saved your book and reading position together.';
+    return;
+   }catch(err){if(err.name==='AbortError'){label.textContent='Save cancelled.';return}console.warn('Save dialog unavailable:',err)}
+  }
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+  label.textContent='Downloaded your book and reading position together.';
+ }catch(err){label.textContent='Could not save book and progress: '+err.message}
+};
+$('bundle-file').onchange=async e=>{
+ const file=e.target.files?.[0];e.target.value='';if(!file)return;
+ const label=$('bundle-status');
+ try{
+  if(file.size>100*1024*1024)throw Error('This file is too large (100 MB maximum).');
+  label.textContent='Opening transferred book…';
+  const zip=await JSZip.loadAsync(file,{checkCRC32:true});
+  const entry=zip.file('book.epub'),meta=zip.file('reading-progress.json');
+  if(!entry||!meta)throw Error('Not an E.D.D.i. book and progress file.');
+  const info=JSON.parse(await meta.async('string'));
+  if(info.format!=='eddi-book-bundle'||info.version!==1||!info.progress||!Number.isSafeInteger(info.progress.index)||info.progress.index<0||!Number.isSafeInteger(info.progress.p)||info.progress.p<0)throw Error('Invalid reading position in this file.');
+  const book=await entry.async('blob');
+  if(book.size>100*1024*1024)throw Error('The EPUB is too large.');
+  const name=(typeof info.bookName==='string'&&info.bookName.toLowerCase().endsWith('.epub')?info.bookName:'book.epub').slice(0,140);
+  const epubFile=new File([book],name,{type:'application/epub+zip'});
+  const id=await fileId(epubFile,name);
+  const t=Date.now();try{localStorage.setItem('cv-'+id,JSON.stringify({index:info.progress.index,p:info.progress.p,t}))}catch(_){}
+  await openFile(epubFile,{id,name});
+  label.textContent='Book and bookmark imported. Ready to continue reading.';
+ }catch(err){label.textContent='Could not load book and progress: '+err.message}
 };
 $('progress-file').onchange=async e=>{
  const file=e.target.files&&e.target.files[0];e.target.value='';if(!file)return;
