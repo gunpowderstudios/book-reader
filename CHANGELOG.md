@@ -1,5 +1,11 @@
 # Book Reader — Version history
 
+## v1.12.22 — 25 October 2026
+- Made continuous background read-ahead the clearly labelled default **Smooth Listening** behaviour when pressing Play; it already existed in the Kokoro player.
+- New users default to a two-minute target instead of six minutes; existing readers retain saved preferences. Audio starts after the first available passage rather than waiting for the full target to prepare.
+- Reworded the optional full-chapter preparation as an extra for offline listening; no need to use it for normal playback.
+- If generation is slower than playback, occasional pauses remain possible.
+
 ## v1.12.21 — 25 October 2026
 - Removed the technical narration generation-speed advice from the collapsible Now Reading information panel.
 
