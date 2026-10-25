@@ -37,7 +37,7 @@ function updateUI(){const button=$('sync-signin'),out=$('sync-signout'),email=$(
  message(session?'Cloud sync connected. Only your reading position is synced; EPUB files remain on each device.':'Optional: sign in by email to sync your reading position between devices.')}
 async function signIn(){const email=$('sync-email')?.value.trim();if(!email||!email.includes('@')){message('Enter your email address first.');return}
  const button=$('sync-signin');button.disabled=true;message('Sending sign-in link…');
- try{await request('/auth/v1/otp','POST',{email,create_user:true,options:{email_redirect_to:location.origin+location.pathname}},false);message('Check your email for the sign-in link, then open it on this device.')}
+ try{await request('/auth/v1/otp','POST',{email,create_user:true,email_redirect_to:location.origin+location.pathname},false);message('Check your email for the sign-in link, then open it on this device.')}
  catch(e){message('Could not send link: '+e.message)}finally{button.disabled=false}}
 async function signOut(){try{if(session)await authorized('/auth/v1/logout','POST')}catch(_){}session=null;saveSession();updateUI()}
 function acceptRedirect(){const h=new URLSearchParams(location.hash.slice(1));if(h.get('access_token')&&h.get('refresh_token')){
