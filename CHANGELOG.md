@@ -1,5 +1,11 @@
 # Book Reader — Version history
 
+## v1.11.0 — 25 October 2026
+- Added **Classic Voice** using the browser's built-in speech synthesis, avoiding the Kokoro memory requirement on older iPads.
+- When Kokoro reports an out-of-memory loading failure, show a **Use Classic Voice** button to continue from the current reading position. Users may also select Classic Voice directly in the narrator selector.
+- Removed Captain's Log and its diagnostics/update checker from the interface; kept the narrator and performance status area.
+- Classic Voice uses paragraph-level highlighting rather than Kokoro's approximate yellow word-following.
+
 ## v1.10.5 — 24 October 2026
 - Changed links and visited links to warm yellow for better contrast on the dark theme, with a pale yellow hover and keyboard-focus state.
 
