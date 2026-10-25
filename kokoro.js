@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.35';
+const VERSION='1.12.37';
 const VOICES={bm_george:'British Male — George',bf_emma:'British Female — Emma',am_eric:'American Male — Eric',af_aoede:'American Female — Aoede'}; /* add more Kokoro voice ids here later; the Test tab picks them up */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -29,8 +29,8 @@ const rate=()=>Number($('rate')&&$('rate').value)||1;
 /* Narration style: 'natural' (default) = the voice itself speaks faster/slower, a second voice for quoted speech (acting), longer passages, smoother phrasing and longer pauses;
    'pace' = the same, one voice, quoted speech a little quicker; 'single' = the same with one voice; 'classic' = exactly the behaviour of v1.12.28 (browser speed-up, one voice, short chunks). */
 const STYLES=['natural','pace','single','classic'];
-const PACE_MUL=1.18; /* 'pace' style: quoted speech is spoken a little quicker, in the same voice */
-const styleNow=()=>{try{const v=localStorage.getItem('cv-narration');return STYLES.includes(v)?v:'natural'}catch(_){return 'natural'}};
+const PACE_MUL=1.10,PACE_PITCH=1.07; /* 'pace' style: quoted speech is spoken a little quicker (by the voice) and slightly higher (by the player), in the same voice */
+const styleNow=()=>{try{const v=localStorage.getItem('cv-voice-style');return STYLES.includes(v)?v:'single'}catch(_){return 'single'}};
 const DIALOGUE={bm_george:'bm_fable',bf_emma:'bf_isabella',am_eric:'am_michael',af_aoede:'af_bella'}; /* same accent and gender, different character */
 const bake=(style=styleNow(),mul=1)=>style==='classic'?1:Math.round(Math.min(2,Math.max(0.5,Math.min(2,Math.max(0.5,rate()))*mul))*100)/100; /* speed built into the speech itself */
 const effRate=()=>styleNow()==='classic'?rate():1; /* how much faster than real time the audio must be produced */
@@ -251,7 +251,7 @@ function cachePut(k,v){
 
 /* ───────── Generation queue ───────── */
 const queue=[];let busy=false;
-const keyOf=(voice,text,pad,speed)=>mode+'|'+voice+'|'+text+(pad?'|pad'+pad:'')+(speed&&speed!==1?'|x'+speed:'');
+const keyOf=(voice,text,pad,speed,pitch)=>mode+'|'+voice+'|'+text+(pad?'|pad'+pad:'')+(speed&&speed!==1?'|x'+speed:'')+(pitch&&pitch!==1?'|p'+pitch:'');
 function wavHeader(bytes,hz){
  const v=new DataView(new ArrayBuffer(44));
  const tag=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
@@ -264,9 +264,9 @@ async function padWav(blob,sec){const {hz,n}=await wavInfo(blob),zeros=new Uint8
 const within=(p,ms)=>Promise.race([p,new Promise(r=>setTimeout(()=>r(null),ms))]); /* a slow or stuck browser database must never hold up speech */
 async function savedClip(voice,text){try{return window.bookOffline&&window.bookOffline.get?await within(window.bookOffline.get(voice,text),400):null}catch(_){return null}}
 function synth(rawText,voice,opts={}){
- const text=norm(rawText),pad=opts.pad||0,speed=opts.speed||bake(),mul=opts.mul||1,key=keyOf(voice,text,pad,speed),hit=cacheGet(key);
- if(hit)return Promise.resolve({blob:hit.blob,audioSec:hit.audioSec,cached:true,speed:hit.speed||1,key});
- return new Promise((resolve,reject)=>{queue.push({key,text,voice,pad,speed,mul,tries:0,called:false,stale:opts.stale||(()=>false),onGenerate:opts.onGenerate,resolve,reject});pump()});
+ const text=norm(rawText),pad=opts.pad||0,speed=opts.speed||bake(),mul=opts.mul||1,pitch=opts.pitch||1,key=keyOf(voice,text,pad,speed,pitch),hit=cacheGet(key);
+ if(hit)return Promise.resolve({blob:hit.blob,audioSec:hit.audioSec,cached:true,speed:hit.speed||1,pitch:hit.pitch||1,key});
+ return new Promise((resolve,reject)=>{queue.push({key,text,voice,pad,speed,mul,pitch,tries:0,called:false,stale:opts.stale||(()=>false),onGenerate:opts.onGenerate,resolve,reject});pump()});
 }
 async function pump(){
  if(busy)return;busy=true;
@@ -275,13 +275,13 @@ async function pump(){
    const job=queue.shift();
    if(job.stale()){job.reject(CANCELLED);continue}
    const hit=cacheGet(job.key);
-   if(hit){job.resolve({blob:hit.blob,audioSec:hit.audioSec,cached:true,speed:hit.speed||1,key:job.key});continue}
+   if(hit){job.resolve({blob:hit.blob,audioSec:hit.audioSec,cached:true,speed:hit.speed||1,pitch:hit.pitch||1,key:job.key});continue}
    try{
     /* A chapter prepared in Listening Tools is played from saved audio: no voice engine needed. */
     const saved=await savedClip(job.voice,job.text);
     if(saved){
      const blob=job.pad?await padWav(saved,job.pad):saved,info=await wavInfo(blob),audioSec=info.n/info.hz;
-     cachePut(job.key,{blob,audioSec,speed:1});job.resolve({blob,audioSec,cached:true,saved:true,speed:1,key:job.key});renderBuffer();continue;
+     cachePut(job.key,{blob,audioSec,speed:1,pitch:job.pitch});job.resolve({blob,audioSec,cached:true,saved:true,speed:1,pitch:job.pitch,key:job.key});renderBuffer();continue;
     }
     await ready();
     if(job.stale()){job.reject(CANCELLED);continue}
@@ -292,8 +292,8 @@ async function pump(){
     if(job.pad){const padded=new Float32Array(pcm.length+Math.round(job.pad*r.rate));padded.set(pcm);pcm=padded}
     const blob=toWav(pcm,r.rate),audioSec=pcm.length/r.rate;
     noteGen(speechSec,r.ms/1000);charStat.sec+=speechSec;charStat.chars+=job.text.length;
-    cachePut(job.key,{blob,audioSec,speed:job.speed/job.mul}); /* speed is kept relative to the intended pace so playback can follow the speed slider */ /* cached even if the user pressed Stop meanwhile */
-    job.resolve({blob,audioSec,genSec:r.ms/1000,cached:false,speed:job.speed/job.mul,key:job.key});
+    cachePut(job.key,{blob,audioSec,speed:job.speed/job.mul,pitch:job.pitch}); /* speed is kept relative to the intended pace so playback can follow the speed slider */ /* cached even if the user pressed Stop meanwhile */
+    job.resolve({blob,audioSec,genSec:r.ms/1000,cached:false,speed:job.speed/job.mul,pitch:job.pitch,key:job.key});
     renderBuffer();
    }catch(e){
     /* One automatic retry if the voice engine hiccups mid-book (it restarts itself on the next request). */
@@ -319,11 +319,13 @@ function unlockAudio(){ /* call from a click: lets Safari/iOS allow playback tha
   player.src=silenceURL;const p=player.play();if(p&&p.catch)p.catch(()=>{});
  }catch(_){}
 }
-function playBlob(blob,baked=1){ /* resolves true when finished, false if stopped */
+function playBlob(blob,baked=1,pitch=1){ /* resolves true when finished, false if stopped */
  return new Promise((resolve,reject)=>{
   releasePlayer();
   playerURL=URL.createObjectURL(blob);player.src=playerURL;
-  const r=Math.min(4,Math.max(0.25,rate()/(baked||1)));player.defaultPlaybackRate=r;player.playbackRate=r; /* set after src: loading a new source resets the rate */
+  const r=Math.min(4,Math.max(0.25,rate()/(baked||1)*(pitch||1)));
+  const keep=!(pitch&&pitch!==1);player.preservesPitch=keep;player.webkitPreservesPitch=keep;player.mozPreservesPitch=keep; /* a slightly faster player also sounds slightly higher */
+  player.defaultPlaybackRate=r;player.playbackRate=r; /* set after src: loading a new source resets the rate */
   const clear=()=>{endPlay=null;player.onended=null;player.onerror=null;player.onplaying=null};
   player.onplaying=()=>{if(awaitingNarration){awaitingNarration=false;spinner(false);renderEngine();status('Reading with George')}};
   const finish=ok=>{clear();resolve(ok)};
@@ -413,14 +415,14 @@ async function testVoice(raw){
  const token=serial,stale=()=>token!==serial,voice=testVoiceId(),text=norm(raw).slice(0,MAX_TEST_CHARS);
  if(!text){setTest('error','Type some sample text first.');return}
  const ts=$('test-style'),style=ts&&STYLES.includes(ts.value)?ts.value:styleNow();
- const parts=(style==='classic'?[{say:text,voice,pad:0}]:plan([text],0,voice,style,false)).map(g=>({say:g.say,voice:g.voice,pad:g.pad===NAT_PARA_PAD?0:g.pad,speed:bake(style,g.mul),mul:g.mul}));
+ const parts=(style==='classic'?[{say:text,voice,pad:0}]:plan([text],0,voice,style,false)).map(g=>({say:g.say,voice:g.voice,pad:g.pad===NAT_PARA_PAD?0:g.pad,speed:bake(style,g.mul),mul:g.mul,pitch:g.pitch}));
  unlockAudio();
  try{
   if(!engineReady){
    setTest('loading','Loading George… (first visit downloads the voice model once; your browser keeps it afterwards)');
    sink=t=>{if(!stale())setTest('loading',t)};
   }else setTest('generating','Generating speech… the page stays responsive, and you can press Stop.');
-  const jobs=parts.map(g=>synth(g.say,g.voice,{stale,pad:g.pad,speed:g.speed,mul:g.mul,onGenerate:()=>{if(!stale()){sink=null;setTest('generating','Generating speech… the page stays responsive, and you can press Stop.')}}}));
+  const jobs=parts.map(g=>synth(g.say,g.voice,{stale,pad:g.pad,speed:g.speed,mul:g.mul,pitch:g.pitch,onGenerate:()=>{if(!stale()){sink=null;setTest('generating','Generating speech… the page stays responsive, and you can press Stop.')}}}));
   let gen=0,aud=0,cached=true;
   for(let i=0;i<jobs.length;i++){
    const res=await jobs[i];
@@ -428,7 +430,7 @@ async function testVoice(raw){
    aud+=res.audioSec;if(!res.cached){cached=false;gen+=res.genSec}
    const info=cached?'cached, so it started instantly':'generated '+aud.toFixed(1)+' s of speech in '+gen.toFixed(1)+' s';
    setTest('playing','Playing — '+info+'.');
-   const finished=await playBlob(res.blob,res.speed);
+   const finished=await playBlob(res.blob,res.speed,res.pitch);
    if(stale()||!finished)return;
    if(i===jobs.length-1)setTest('idle','Finished — '+info+'. Press Play again to hear it from the cache.');
   }
@@ -511,7 +513,7 @@ function plan(paras,p,narr,style,first){
  const max=first?NAT_FIRST_MAX:NAT_MAX,dlg=style==='natural'&&DIALOGUE[narr]?DIALOGUE[narr]:narr,out=[];
  const next=paras[p+1],scene=next!=null&&SCENE.test(next),heading=!/[.!?\u2026"\u201d]$/.test(norm(para))&&norm(para).length<80&&(p===0||SCENE.test(paras[p-1]||''));
  for(const r of dialogueRuns(para,style==='pace'?5:14)){
-  for(const t of chunks(r.t,max)){const say=spoken(t);if(sayable(say))out.push({text:t,say,voice:r.d?dlg:narr,d:r.d,mul:r.d&&style==='pace'?PACE_MUL:1,last:false,pad:0})}
+  for(const t of chunks(r.t,max)){const say=spoken(t);if(sayable(say))out.push({text:t,say,voice:r.d?dlg:narr,d:r.d,mul:r.d&&style==='pace'?PACE_MUL:1,pitch:r.d&&style==='pace'?PACE_PITCH:1,last:false,pad:0})}
  }
  for(let i=0;i<out.length;i++)if(i<out.length-1&&style!=='single'&&out[i].d!==out[i+1].d)out[i].pad=0.12;
  if(out.length){const l=out[out.length-1];l.last=true;l.pad=scene?1.4:heading?1.0:NAT_PARA_PAD}
@@ -532,9 +534,9 @@ async function unpause(s){
  while(s.paused&&!s.cancelled)await new Promise(resolve=>{s.wake=resolve});
  s.wake=null;
 }
-async function playback(blob,s,baked){
+async function playback(blob,s,baked,pitch){
  await unpause(s);if(s.cancelled)return;
- await playBlob(blob,baked);
+ await playBlob(blob,baked,pitch);
 }
 /* Generate the first few passages before Play is pressed, so reading starts at once.
    Only when George is already installed on this device (never starts a big download by surprise). */
@@ -544,7 +546,7 @@ function prefetch(S,count=3){
  if(!S||!S.chapters||!S.chapters.length)return;
  const my=++prefetchToken,it=segments(S);let n=0;
  for(let r=it.next();!r.done&&n<count;r=it.next(),n++){
-  synth(r.value.say,r.value.voice,{stale:()=>my!==prefetchToken||!!session,pad:r.value.pad,speed:bake(styleNow(),r.value.mul),mul:r.value.mul}).catch(()=>{});
+  synth(r.value.say,r.value.voice,{stale:()=>my!==prefetchToken||!!session,pad:r.value.pad,speed:bake(styleNow(),r.value.mul),mul:r.value.mul,pitch:r.value.pitch}).catch(()=>{});
  }
 }
 /* Lock-screen / headset controls and "now playing" info (helps phones keep narrating with the screen off). */
@@ -607,8 +609,8 @@ function toggle({S,update,render}){
     while(pending<MAX_PENDING&&!exhausted&&readySec()<target&&ahead.length<MAX_AHEAD){
      const n=it.next();if(n.done){exhausted=true;break}
      const item={seg:n.value,done:false,sec:0};
-     item.job=synth(n.value.say,n.value.voice,{stale,pad:n.value.pad,speed:bake(s.style,n.value.mul),mul:n.value.mul,onGenerate:()=>{if(!stale())sink=null}});
-     item.job.then(async res=>{item.done=true;item.sec=res.audioSec;item.key=res.key;item.speed=res.speed||1;
+     item.job=synth(n.value.say,n.value.voice,{stale,pad:n.value.pad,speed:bake(s.style,n.value.mul),mul:n.value.mul,pitch:n.value.pitch,onGenerate:()=>{if(!stale())sink=null}});
+     item.job.then(async res=>{item.done=true;item.sec=res.audioSec;item.key=res.key;item.speed=res.speed||1;item.pitch=res.pitch||1;
       if(!res.saved&&window.bookOffline&&window.bookOffline.putTemp&&memSec()>MEM_SEC&&ahead.includes(item)&&!stale()){
        try{await window.bookOffline.putTemp(tmpKey(item),res.blob);item.spilled=true;item.job=null;cacheDrop(tmpKey(item))}catch(_){}
       }
@@ -646,7 +648,7 @@ function toggle({S,update,render}){
     let res;
     if(item.spilled){
      const blob=await within(window.bookOffline.getTemp(tmpKey(item)).catch(()=>null),1500);
-     res=blob?{blob,audioSec:item.sec,cached:true,speed:item.speed||1,key:item.key}:await synth(item.seg.say,item.seg.voice,{stale,pad:item.seg.pad,speed:bake(s.style,item.seg.mul),mul:item.seg.mul});
+     res=blob?{blob,audioSec:item.sec,cached:true,speed:item.speed||1,pitch:item.pitch||1,key:item.key}:await synth(item.seg.say,item.seg.voice,{stale,pad:item.seg.pad,speed:bake(s.style,item.seg.mul),mul:item.seg.mul,pitch:item.seg.pitch});
     }else res=await item.job;
     if(stale())return;
     if(firstItem&&!res.cached&&!res.saved)await holdForHeadStart(res.audioSec);
@@ -662,7 +664,7 @@ function toggle({S,update,render}){
     bufInfo.ready=readySec();renderBuffer();
     mediaInfo(S);
     window.readerTracking?.start?.(g.text,g.p,()=>{const duration=(player.duration||res.audioSec)-(g.pad||0);return duration>0?player.currentTime/duration:0});
-    await playback(res.blob,s,res.speed);
+    await playback(res.blob,s,res.speed,res.pitch);
     /* Once a passage has played, discard its temporary WAV clip from RAM. */
     if(res.key)cacheDrop(res.key);
     if(item.spilled)window.bookOffline.dropTemp(tmpKey(item)).catch(()=>{});
@@ -692,7 +694,7 @@ function showRecommendation(){
   ms.value=preference;ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=preference;showRecommendation()};
  }
  const ss=$('style-select');
- if(ss){ss.value=styleNow();ss.onchange=()=>{store.set('cv-narration',ss.value);const t=$('test-style');if(t)t.value=ss.value;window.bookOffline&&window.bookOffline.refresh&&window.bookOffline.refresh()}}
+ if(ss){ss.value=styleNow();ss.onchange=()=>{store.set('cv-voice-style',ss.value);const t=$('test-style');if(t)t.value=ss.value;window.bookOffline&&window.bookOffline.refresh&&window.bookOffline.refresh()}}
  const tst=$('test-style');if(tst)tst.value=styleNow();
  const bs=$('buffer-select');
 

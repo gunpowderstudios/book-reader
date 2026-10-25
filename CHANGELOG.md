@@ -1,5 +1,11 @@
 # Book Reader — Version history
 
+## v1.12.37 — 25 October 2026
+- **Livelier speech is now a little higher as well as quicker.** Quoted speech is generated about 10% quicker and played back about 7% higher in pitch, in the same voice. There is no change of voice at all in either style.
+
+## v1.12.36 — 25 October 2026
+- **Narration style now has two choices, both with one voice:** “Natural” (default) and “Natural, same voice with livelier speech” (quoted speech a little quicker). The second-voice acting and Classic choices are removed from the menu. Everyone starts on Natural.
+
 ## v1.12.35 — 25 October 2026
 - The “livelier speech” style was too subtle to hear. Quoted speech is now about 18% quicker (was 8%), and even short quotes such as “Yes.” are included.
 
