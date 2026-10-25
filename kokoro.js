@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.44';
+const VERSION='1.12.45';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -510,7 +510,7 @@ function dialogueRuns(para,minLetters=14){ /* splits a paragraph into narration 
 function plan(paras,p,narr,style,first){
  const para=paras[p];
  if(style==='classic')return chunks(para,first?FIRST_CHUNK_MAX:CHUNK_MAX).map((t,k,a)=>({text:t,say:t,voice:narr,last:k===a.length-1,pad:k===a.length-1?PARA_PAD:0}));
- const max=first?NAT_FIRST_MAX:NAT_MAX,dlg=style==='natural'&&DIALOGUE[narr]?DIALOGUE[narr]:narr,out=[];
+ const slowish=mobileDevice()||mode==='standard',max=first?(slowish?FIRST_CHUNK_MAX:NAT_FIRST_MAX):(slowish?CHUNK_MAX:NAT_MAX),dlg=style==='natural'&&DIALOGUE[narr]?DIALOGUE[narr]:narr,out=[];
  const next=paras[p+1],scene=next!=null&&SCENE.test(next),heading=!/[.!?\u2026"\u201d]$/.test(norm(para))&&norm(para).length<80&&(p===0||SCENE.test(paras[p-1]||''));
  for(const r of dialogueRuns(para,style==='pace'?5:14)){
   for(const t of chunks(r.t,max)){const say=spoken(t);if(sayable(say))out.push({text:t,say,voice:r.d?dlg:narr,d:r.d,mul:r.d&&style==='pace'?PACE_MUL:1,pitch:r.d&&style==='pace'?PACE_PITCH:1,last:false,pad:0})}

@@ -4,6 +4,9 @@
 - Added a Free Books navigation tab (desktop and mobile), linking to five public-domain ebook resources with a short explanation of copyright and EPUB loading.
 - Left Claude’s existing playback, narrator, and reader implementation unchanged.
 
+## v1.12.45 — 25 October 2026
+- **Shorter passages on phones, tablets and Low Memory setups** (as before v1.12.29), so older devices wait less before each passage and for the first words. Fast computers keep the longer, smoother passages.
+
 ## v1.12.44 — 25 October 2026
 - **Fixed the play bar flashing while the voice gets a head start (found from your screen recording).** Two messages were fighting over the status line: “Getting ahead so George can read without stopping…” (two lines) and “George is catching up…” (one line), swapping every fraction of a second so the bar kept jumping. The head-start message now has the line to itself.
 - **The play bar also stays one line tall.** Its status line used to wrap onto two lines for long messages (such as “Getting ahead so George can read without stopping…”) and then back to one, making the whole bar resize and flicker. It is now always one line, shortened with “…” if needed.
