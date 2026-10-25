@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+## v1.12.33 — 25 October 2026
+- The free Conan book now always shows its cover in My Library (Continue / Start), like your other books, instead of a plain letter.
+
 ## v1.12.32 — 25 October 2026
 - **The saved progress file is named after the book** (for example “Conan the Barbarian - reading progress.json”) and holds just that book's place, so you can tell your files apart in Dropbox, iCloud or Google Drive. Loading works as before.
 

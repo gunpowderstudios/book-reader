@@ -102,7 +102,8 @@ function when(ts){
 function card(b){
  const c=el('article','book');c.dataset.id=b.id;
  const cover=el('div','cover');
- if(b.cover){const img=el('img');img.src=b.cover;img.alt='';cover.append(img)}
+ const art=b.cover||(/^Conan_Original_Stories/i.test(b.name||'')||/^Conan: Original/i.test(b.title||'')?'books/conan-cover.svg':''); /* the free book ships with its own cover */
+ if(art){const img=el('img');img.src=art;img.alt='';cover.append(img)}
  else cover.append(el('span','ph',(b.title||'?').trim().charAt(0).toUpperCase()||'?'));
  const info=el('div','info');
  info.append(el('h3','',b.title||b.name||'Untitled'));
