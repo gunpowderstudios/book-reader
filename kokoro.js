@@ -42,6 +42,8 @@ const isolated=()=>typeof crossOriginIsolated!=='undefined'&&crossOriginIsolated
 
 /* ───────── Engine state and the download bar ───────── */
 const eng={phase:'idle',loaded:0,total:0,net:0,used:null,sec:0,isolated:false,cores:0,note:'',error:''};
+let awaitingNarration=false;
+function spinner(on){const el=$('voice-spinner');if(el)el.hidden=!on;}
 const modeName=m=>(MODES[m]||MODES.standard).label;
 function describeEngine(){
  if(eng.used==='gpu')return 'on your graphics card';
@@ -49,6 +51,7 @@ function describeEngine(){
  return 'one core';
 }
 function renderEngine(){
+ spinner(awaitingNarration||['library','downloading','starting','voice'].includes(eng.phase));
  const text=$('eng-text'),fill=$('eng-fill'),bar=$('eng-bar'),netEl=$('net-text');
  if(!text&&!netEl)return;
  let pct=0,msg,state=eng.phase;
@@ -323,6 +326,7 @@ function stopMeter(){if(meterTimer){clearInterval(meterTimer);meterTimer=null}bu
 /* ───────── Stop (shared by the Test tab and the book reader) ───────── */
 let serial=0,session=null,testState='idle',prefetchToken=0;
 function stop(){
+ awaitingNarration=false;spinner(false);
  window.readerTracking?.clear?.();
  serial++;
  if(session){session.cancelled=true;if(session.wake)session.wake();session=null}
@@ -336,6 +340,7 @@ function stop(){
 /* ───────── Test a Voice ───────── */
 const testActive=()=>testState==='loading'||testState==='generating'||testState==='playing';
 function setTest(state,msg){
+ spinner(['loading','generating'].includes(state));
  testState=state;
  const btn=$('test-play');if(btn){btn.textContent=state==='idle'||state==='error'?'▶ Play sample':'■ Stop';btn.dataset.state=state}
  const el=$('test-status');if(el){el.textContent=named(msg);el.dataset.state=state}
@@ -430,10 +435,11 @@ function prefetch(S,count=3){
  }
 }
 function toggle({S,update,render}){
+ awaitingNarration=true;spinner(true);
  if(session&&!session.cancelled){
   session.paused=!session.paused;S.playing=!session.paused;
   $('play').textContent=session.paused?'▶ Resume':'Ⅱ Pause';
-  if(session.paused){player.pause();status('Paused — George keeps preparing the next passages')}
+  if(session.paused){awaitingNarration=false;spinner(false);player.pause();status('Paused — George keeps preparing the next passages')}
   else{if(session.wake)session.wake();if(playerURL&&player.paused)player.play().catch(e=>{if(e&&e.name!=='AbortError')status('Playback error: '+e.message)});status('Reading with George')}
   return;
  }
@@ -479,7 +485,7 @@ function toggle({S,update,render}){
     firstItem=false;
     const g=item.seg;
     if(g.ci!==S.index){S.index=g.ci;S.p=g.p;render()}else if(S.p!==g.p){S.p=g.p;update()}
-    status('George is reading…');
+    awaitingNarration=false;spinner(false);status('George is reading…');
     bufInfo.ready=readySec();renderBuffer();
     window.readerTracking?.start?.(g.text,g.p,()=>{const duration=player.duration||res.audioSec;return duration>0?player.currentTime/duration:0});
     await playback(res.blob,s);
