@@ -1,5 +1,10 @@
 # Book Reader — Version history
 
+## v1.12.2 — 25 October 2026
+- Simplified Syncing Playback: export a tiny JSON reading-progress file and import it on another device, using the device's standard file picker and any cloud folder.
+- No registration, API access, hosted database or direct Dropbox/Google/iCloud integration needed; manual transfer only.
+- Saved progress can cover multiple books; loading restores the position of a currently open matching EPUB or the next time it opens.
+
 ## v1.12.1 — 25 October 2026
 - Added a **☁ Syncing Playback** tab explaining planned bring-your-own Google Drive and Dropbox connections, potential iCloud integration, privacy, and how cross-device reading would work.
 - Removed the unconfigured Supabase sign-in panel and stopped loading its client scripts; cloud sync is not active yet. Local position saving remains unchanged.
