@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.12.12 — 25 October 2026
+- Now Playing information panel on the reading page starts collapsed and expands by tapping the heading.
+- Keep the detached mobile playback panel visible outside the collapsed section.
+
 ## v1.12.11 — 25 October 2026
 - Added a Listening Tools tab on desktop and the mobile dropdown.
 - Moved optional Save for Later chapter preparation and Bookmarks & sharing out of Now Reading and into Listening Tools, retaining existing controls and IDs.
