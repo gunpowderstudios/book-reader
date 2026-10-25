@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+## v1.12.28 — 25 October 2026
+- Page title is now "EPUB Reader - Turn your EPUB books into audiobooks with natural-sounding AI voices. Read along, save your place, and pick up where you left off.", with the same sentence as the search-result description.
+
 ## v1.12.27 — 25 October 2026
 Playback stopping/jolting report after v1.12.26. Not reproducible in desktop Chromium with a stand-in voice (gaps between passages stayed around 15 ms), so these are the changes most likely to have caused it on real devices; please confirm on your device.
 - **Graphics chip mode is no longer chosen by Automatic.** It is untested on real hardware, so it is an opt-in "experimental" choice again; Automatic goes back to Fast (computers) or Low Memory.
