@@ -1,5 +1,10 @@
 # Book Reader — Version history
 
+## v1.12.24 — 25 October 2026
+- Removed the redundant collapsible book information module from Now Reading, keeping internal status elements for compatibility.
+- Moved the yellow spoken-word highlighting checkbox to Listening Tools.
+- Kept the mobile playback panel below the reading heading after removal.
+
 ## v1.12.23 — 25 October 2026
 - Added Next passage status and an animated progress strip beside playback controls.
 - Display Preparing while audio generation is pending, Ready when the next clip is generated, and Waiting when inactive. Does not invent a percentage from an AI operation that has no progress reports.
