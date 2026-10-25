@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+## v1.12.21 — 25 October 2026
+- Removed the technical narration generation-speed advice from the collapsible Now Reading information panel.
+
 ## v1.12.20 — 25 October 2026
 - Fixed malformed HTML in Now Reading: the collapsible book summary was incorrectly closed with `</h2>` rather than `</summary>`, breaking the browser's parsed page structure and leaving chapter elements unavailable.
 - Restores valid panel structure for chapter list, chapter dropdown and highlighted reading text.
