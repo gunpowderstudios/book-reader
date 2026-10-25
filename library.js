@@ -129,7 +129,7 @@ function card(b){
 function render(){
  const grid=$('lib-list');if(!grid)return;
  const empty=$('lib-empty');
- grid.replaceChildren(...[...books].sort((a,b)=>(b.lastOpened||0)-(a.lastOpened||0)).map(card));
+ grid.replaceChildren(...[...books].filter(b=>!(/conan/i.test(b.title||'')&&/original published stories/i.test(b.title||'')&&/howard/i.test(b.author||''))).sort((a,b)=>(b.lastOpened||0)-(a.lastOpened||0)).map(card));
  if(empty){
   empty.hidden=books.length>0;
   empty.textContent=available
