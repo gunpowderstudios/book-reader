@@ -1,21 +1,21 @@
-/* Chapter & Verse v1.4.1 — Kokoro narration controller (main thread).
+/* Book Reader — Kokoro narration controller (main thread).
    Speech is generated inside kokoro-worker.js, a Web Worker, so this page never runs the model itself.
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.9.3';
+const VERSION='1.12.25';
 const VOICES={bm_george:'British Male — George',bf_emma:'British Female — Emma',am_eric:'American Male — Eric',af_aoede:'American Female — Aoede'}; /* add more Kokoro voice ids here later; the Test tab picks them up */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
 const narratorName=()=>({bm_george:'George',bf_emma:'Emma',am_eric:'Eric',af_aoede:'Aoede'})[currentVoice()]||'George';
 const named=s=>String(s).replaceAll('George',narratorName());
 const MODES={
- standard:{label:'Standard — lower memory',mb:92},
- fast:{label:'Fast — recommended when supported',mb:326},
- gpu:{label:'GPU — experimental',mb:326}
+ standard:{label:'Low Memory',mb:92},
+ fast:{label:'Fast',mb:326}
 };
 const MAX_TEST_CHARS=300;            /* keeps a sample well inside Kokoro's ~510-token limit */
 const CACHE_MAX_BYTES=(/iPad|iPhone|iPod|Android/i.test(navigator.userAgent)?16:48)*1024*1024; /* temporary speech clips, not voice models */
+const PARA_PAD=0.3;                  /* seconds of quiet added after each paragraph, like an audiobook narrator's breath */
 const MAX_PENDING=2,MAX_AHEAD=400;   /* passages queued in the worker at once / held ahead of playback */
 const INIT_TIMEOUT=300000,GENERATE_TIMEOUT=180000; /* worker silence limits before we give up and restart it */
 const $=id=>document.getElementById(id);
@@ -32,11 +32,12 @@ const store={
 
 /* ───────── Settings ───────── */
 const mobileDevice=()=>/iPad|iPhone|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-const suggestedMode=()=>mobileDevice()?'standard':'fast';
+/* Automatic: Fast only on a capable computer (see cvAutoMode in index.html), and never again after Fast has failed here. */
+const suggestedMode=()=>store.get('cv-auto-fallback','')==='standard'?'standard':(window.cvAutoMode?window.cvAutoMode():(mobileDevice()?'standard':'fast'));
 let preference=store.get('cv-mode-choice',store.get('cv-mode','')||'auto');
 if(!['auto','fast','standard'].includes(preference))preference='auto';
 let mode=preference==='auto'?suggestedMode():preference;
-const bufferTarget=()=>{const m=Number(store.get('cv-buffer','2'));return (m>0&&m<=30?m:2)*60};
+const bufferTarget=()=>{const m=Number(store.get('cv-buffer','2'));return Math.min(m>0&&m<=30?m:2,mobileDevice()?6:30)*60};
 const installed=()=>store.get('cv-ready-'+mode,'')==='1';
 const isolated=()=>typeof crossOriginIsolated!=='undefined'&&crossOriginIsolated===true;
 
@@ -46,7 +47,6 @@ let awaitingNarration=false;
 function spinner(on){const el=$('voice-spinner');if(el)el.hidden=!on;}
 const modeName=m=>(MODES[m]||MODES.standard).label;
 function describeEngine(){
- if(eng.used==='gpu')return 'on your graphics card';
  if(eng.used==='fast')return eng.isolated?(n=>'using '+n+(n===1?' core':' cores'))(Math.min(4,Math.ceil((eng.cores||2)/2))):'one core only (multi-core is not active on this page)';
  return 'one core';
 }
@@ -82,7 +82,7 @@ function renderEngine(){
 function engineReset(note){Object.assign(eng,{phase:'idle',loaded:0,total:0,net:0,used:null,sec:0,error:'',note:note||''});renderEngine()}
 
 /* ───────── Worker client ───────── */
-const FALLBACKS={gpu:'fast',fast:'standard'};
+const FALLBACKS={fast:'standard'};
 let runMode=null;
 let worker=null,readyPromise=null,initWaiter=null,engineReady=false,watchdog=null,nextId=1,sink=null;
 const calls=new Map();
@@ -122,7 +122,7 @@ function onWorkerMessage(w,m){
    engineReady=true;eng.phase='ready';eng.used=m.mode||mode;eng.sec=(m.ms||0)/1000;eng.isolated=!!m.isolated;eng.cores=m.cores||0;
    if(eng.used===mode)eng.note='';
    store.set('cv-ready-'+(m.mode||mode),'1');
-   if(m.mode&&m.mode!==mode){store.set('cv-ready-'+mode,'');mode=m.mode;store.set('cv-mode',mode);const sel=$('mode-select');if(sel)sel.value=mode} /* remember the mode that works on this device */
+   if(m.mode&&m.mode!==mode){store.set('cv-ready-'+mode,'');if(preference==='auto')store.set('cv-auto-fallback',m.mode);mode=m.mode;store.set('cv-mode',mode);const sel=$('mode-select');if(sel)sel.value=mode} /* remember the mode that works on this device */
    renderEngine();
    const iw=initWaiter;initWaiter=null;if(iw)iw.resolve(m.ms);break}
   case 'init-error':{
@@ -175,7 +175,7 @@ function haltAll(){ /* stop playback through the page (so its buttons reset), fa
 }
 function setMode(next){
  if(!['auto','fast','standard'].includes(next))return mode;
- preference=next;store.set('cv-mode-choice',next);
+ preference=next;store.set('cv-mode-choice',next);if(next==='auto')store.set('cv-auto-fallback','');
  const chosen=next==='auto'?suggestedMode():next;
  if(chosen===mode){showRecommendation();return mode}
  mode=chosen;runMode=null;store.set('cv-mode',chosen);
@@ -221,10 +221,21 @@ function cachePut(k,v){
 
 /* ───────── Generation queue ───────── */
 const queue=[];let busy=false;
+const keyOf=(voice,text,pad)=>mode+'|'+voice+'|'+text+(pad?'|pad':'');
+function wavHeader(bytes,hz){
+ const v=new DataView(new ArrayBuffer(44));
+ const tag=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+ tag(0,'RIFF');v.setUint32(4,36+bytes,true);tag(8,'WAVE');tag(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+ v.setUint32(24,hz,true);v.setUint32(28,hz*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);tag(36,'data');v.setUint32(40,bytes,true);
+ return v.buffer;
+}
+async function wavInfo(blob){const v=new DataView(await blob.slice(0,44).arrayBuffer());const hz=v.getUint32(24,true)||24000;return{hz,n:Math.max(0,(blob.size-44)/2)}}
+async function padWav(blob,sec){const {hz,n}=await wavInfo(blob),zeros=new Uint8Array(Math.round(sec*hz)*2);return new Blob([wavHeader(n*2+zeros.length,hz),blob.slice(44),zeros],{type:'audio/wav'})}
+async function savedClip(voice,text){try{return window.bookOffline&&window.bookOffline.get?await window.bookOffline.get(voice,text):null}catch(_){return null}}
 function synth(rawText,voice,opts={}){
- const text=norm(rawText),key=mode+'|'+voice+'|'+text,hit=cacheGet(key);
+ const text=norm(rawText),pad=opts.pad||0,key=keyOf(voice,text,pad),hit=cacheGet(key);
  if(hit)return Promise.resolve({blob:hit.blob,audioSec:hit.audioSec,cached:true});
- return new Promise((resolve,reject)=>{queue.push({key,text,voice,stale:opts.stale||(()=>false),onGenerate:opts.onGenerate,resolve,reject});pump()});
+ return new Promise((resolve,reject)=>{queue.push({key,text,voice,pad,tries:0,called:false,stale:opts.stale||(()=>false),onGenerate:opts.onGenerate,resolve,reject});pump()});
 }
 async function pump(){
  if(busy)return;busy=true;
@@ -235,16 +246,29 @@ async function pump(){
    const hit=cacheGet(job.key);
    if(hit){job.resolve({blob:hit.blob,audioSec:hit.audioSec,cached:true});continue}
    try{
+    /* A chapter prepared in Listening Tools is played from saved audio: no voice engine needed. */
+    const saved=await savedClip(job.voice,job.text);
+    if(saved){
+     const blob=job.pad?await padWav(saved,job.pad):saved,info=await wavInfo(blob),audioSec=info.n/info.hz;
+     cachePut(job.key,{blob,audioSec});job.resolve({blob,audioSec,cached:true,saved:true});renderBuffer();continue;
+    }
     await ready();
     if(job.stale()){job.reject(CANCELLED);continue}
     if(job.onGenerate)job.onGenerate();
+    job.called=true;
     const r=await call({type:'generate',text:job.text,voice:job.voice});
-    const pcm=trimSilence(r.samples),blob=toWav(pcm,r.rate),audioSec=pcm.length/r.rate;
-    noteGen(audioSec,r.ms/1000);
+    let pcm=trimSilence(r.samples);const speechSec=pcm.length/r.rate;
+    if(job.pad){const padded=new Float32Array(pcm.length+Math.round(job.pad*r.rate));padded.set(pcm);pcm=padded}
+    const blob=toWav(pcm,r.rate),audioSec=pcm.length/r.rate;
+    noteGen(speechSec,r.ms/1000);
     cachePut(job.key,{blob,audioSec}); /* cached even if the user pressed Stop meanwhile */
     job.resolve({blob,audioSec,genSec:r.ms/1000,cached:false});
     renderBuffer();
-   }catch(e){job.reject(e)}
+   }catch(e){
+    /* One automatic retry if the voice engine hiccups mid-book (it restarts itself on the next request). */
+    if(e!==CANCELLED&&job.called&&job.tries<1&&!job.stale()){job.tries++;job.called=false;queue.unshift(job);status('George hit a snag — trying that passage again…');continue}
+    job.reject(e);
+   }
   }
  }finally{busy=false}
 }
@@ -315,7 +339,6 @@ function renderBuffer(){
   const h=hint();
   if(h){
    hintEl.hidden=false;hintEl.replaceChildren(document.createTextNode(named(h.text)+' '));
-   if(h.action){const b=document.createElement('button');b.textContent=h.action;b.onclick=()=>{haltAll();setMode(h.to);const sel=$('mode-select');if(sel)sel.value=mode};hintEl.append(b)}
   }else hintEl.hidden=true;
  }
 }
@@ -330,7 +353,8 @@ function stopMeter(){if(meterTimer){clearInterval(meterTimer);meterTimer=null}bu
 let serial=0,session=null,testState='idle',prefetchToken=0;
 function stop(){
  showNextPassage('idle');awaitingNarration=false;spinner(false);
- window.readerTracking?.clear?.();
+ window.readerTracking?.clear?.();window.readerTracking?.reset?.();
+ try{if('mediaSession' in navigator)navigator.mediaSession.playbackState='none'}catch(_){}
  serial++;
  if(session){session.cancelled=true;if(session.wake)session.wake();session=null}
  sink=null;
@@ -434,13 +458,36 @@ function prefetch(S,count=3){
  if(!S||!S.chapters||!S.chapters.length)return;
  const my=++prefetchToken,it=segments(S);let n=0;
  for(let r=it.next();!r.done&&n<count;r=it.next(),n++){
-  synth(r.value.text,currentVoice(),{stale:()=>my!==prefetchToken||!!session}).catch(()=>{});
+  synth(r.value.text,currentVoice(),{stale:()=>my!==prefetchToken||!!session,pad:r.value.last?PARA_PAD:0}).catch(()=>{});
  }
+}
+/* Lock-screen / headset controls and "now playing" info (helps phones keep narrating with the screen off). */
+let mediaWired=false;
+function mediaInfo(S){
+ try{
+  if(!('mediaSession' in navigator)||typeof MediaMetadata==='undefined')return;
+  const ch=S.chapters[S.index];
+  navigator.mediaSession.metadata=new MediaMetadata({title:(ch&&ch.title)||'Book Reader',artist:($('author')&&$('author').textContent)||'',album:($('title')&&$('title').textContent)||'Book Reader'});
+ }catch(_){}
+}
+function mediaControls(S){
+ try{
+  if(!('mediaSession' in navigator))return;
+  navigator.mediaSession.playbackState='playing';mediaInfo(S);
+  if(mediaWired)return;mediaWired=true;
+  const live=()=>session&&!session.cancelled;
+  const act=(name,fn)=>{try{navigator.mediaSession.setActionHandler(name,fn)}catch(_){}};
+  act('play',()=>{if(live()&&session.paused)$('play').click()});
+  act('pause',()=>{if(live()&&!session.paused)$('play').click()});
+  const jump=id=>()=>{const was=live()&&!session.paused;$(id).click();if(was)setTimeout(()=>$('play').click(),60)};
+  act('previoustrack',jump('back'));act('nexttrack',jump('forward'));
+ }catch(_){}
 }
 function toggle({S,update,render}){
  if(session&&!session.cancelled){
   session.paused=!session.paused;S.playing=!session.paused;
   $('play').textContent=session.paused?'▶ Resume':'Ⅱ Pause';
+  try{if('mediaSession' in navigator)navigator.mediaSession.playbackState=session.paused?'paused':'playing'}catch(_){}
   if(session.paused){awaitingNarration=false;spinner(false);player.pause();status('Paused — George keeps preparing the next passages')}
   else{awaitingNarration=true;spinner(true);if(session.wake)session.wake();if(playerURL&&player.paused)player.play().catch(e=>{if(e&&e.name!=='AbortError')status('Playback error: '+e.message)});status('Reading with George')}
   return;
@@ -449,7 +496,7 @@ function toggle({S,update,render}){
  const token=serial,s={cancelled:false,paused:false,wake:null,voice:currentVoice()};session=s;
  const stale=()=>s.cancelled||token!==serial;
  S.playing=true;S.paused=false;$('play').textContent='Ⅱ Pause';
- unlockAudio();startMeter();
+ unlockAudio();startMeter();mediaControls(S);
  (async()=>{
   try{
    if(!engineReady){status('Loading George… (first visit downloads the voice model once)');sink=t=>{if(!stale())status(t)}}
@@ -464,7 +511,7 @@ function toggle({S,update,render}){
     while(pending<MAX_PENDING&&!exhausted&&readySec()<target&&ahead.length<MAX_AHEAD){
      const n=it.next();if(n.done){exhausted=true;break}
      const item={seg:n.value,done:false,sec:0};
-     item.job=synth(n.value.text,s.voice,{stale,onGenerate:()=>{if(!stale())sink=null}});
+     item.job=synth(n.value.text,s.voice,{stale,pad:n.value.last?PARA_PAD:0,onGenerate:()=>{if(!stale())sink=null}});
      item.job.then(res=>{item.done=true;item.sec=res.audioSec;fill();showNextPassage(ahead.length?(ahead[0].done?'ready':'working'):(exhausted?'idle':'working'));bufInfo.ready=readySec();renderBuffer()},()=>{item.done=true});
      ahead.push(item);pending++;
     }
@@ -491,10 +538,11 @@ function toggle({S,update,render}){
     if(g.ci!==S.index){S.index=g.ci;S.p=g.p;render()}else if(S.p!==g.p){S.p=g.p;update()}
     if(awaitingNarration){status('Audio prepared — starting playback…');renderEngine()}
     bufInfo.ready=readySec();renderBuffer();
-    window.readerTracking?.start?.(g.text,g.p,()=>{const duration=player.duration||res.audioSec;return duration>0?player.currentTime/duration:0});
+    mediaInfo(S);
+    window.readerTracking?.start?.(g.text,g.p,()=>{const duration=(player.duration||res.audioSec)-(g.last?PARA_PAD:0);return duration>0?player.currentTime/duration:0});
     await playback(res.blob,s);
     /* Once a passage has played, discard its temporary WAV clip from RAM. */
-    cacheDrop(mode+'|'+s.voice+'|'+norm(g.text));
+    cacheDrop(keyOf(s.voice,norm(g.text),g.last?PARA_PAD:0));
     window.readerTracking?.clear?.();
     if(stale())return;
     if(g.last){S.p=g.p+1;update()}
@@ -521,6 +569,8 @@ function showRecommendation(){
   ms.value=preference;ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=preference;showRecommendation()};
  }
  const bs=$('buffer-select');
+
+ if(bs&&mobileDevice())[...bs.options].forEach(o=>{if(Number(o.value)>6)o.remove()});
  if(bs){bs.value=String(Math.round(bufferTarget()/60));if(bs.value!==String(Math.round(bufferTarget()/60)))bs.value='2';bs.onchange=()=>{store.set('cv-buffer',bs.value);renderBuffer()}}
  renderEngine();renderBuffer();showRecommendation();
 })();

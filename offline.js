@@ -1,80 +1,84 @@
-/* Book Reader v1.5.0 — chapter preparation, persistent per-clip audio, and seamless WAV playback.
-   Browser storage is per device; preparing is not a network audio download. */
+/* Book Reader — optional "prepare a chapter": generate the narration once and keep it on this device.
+   Saved passages are found by what they SAY (a fingerprint of the text plus the narrator), so they can never
+   be played against the wrong text, and pressing Play uses them automatically — with highlighting, bookmarks and
+   chapter-to-chapter reading — instead of asking the voice engine. Storage is per device. */
 (()=>{'use strict';
 const $=id=>document.getElementById(id),app=()=>window.chapterApp,voice=()=>window.chapterKokoro;
-let dbTask,preparing=false,cancel=false,playing=null,url=null;
+let dbTask,preparing=false,cancel=false;
+const STORE='clips',DB_NAME='book-reader-audio-v2';
 function note(s){const e=$('offline-status');if(e)e.textContent=s}
 function narrator(){return voice().currentVoice()}
-function audioKey(id,i){const n=narrator();return id+':'+i+(n==='bm_george'?'':':'+n)}
 function current(){const s=app()?.state;return s?.chapters?.[s.index]?{s,chapter:s.chapters[s.index],id:s.key+':'+s.index}:null}
-function db(){if(!dbTask)dbTask=new Promise((resolve,reject)=>{const r=indexedDB.open('book-reader-audio-v1',1);r.onupgradeneeded=()=>r.result.createObjectStore('clips');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});return dbTask}
-async function entry(key){const d=await db();return new Promise((resolve,reject)=>{const t=d.transaction('clips','readonly'),q=t.objectStore('clips').get(key);q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)})}
-async function save(key,value){const d=await db();return new Promise((resolve,reject)=>{const t=d.transaction('clips','readwrite');t.objectStore('clips').put(value,key);t.oncomplete=resolve;t.onerror=()=>reject(t.error)})}
-function clips(chapter){return chapter.paragraphs.flatMap(p=>voice().splitText(p)).filter(Boolean)}
+function fingerprint(s){ /* two 32-bit hashes plus the length: plenty to tell passages apart */
+ let a=0x811c9dc5,b=0x9e3779b9;
+ for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);a=Math.imul(a^c,16777619);b=Math.imul(b^c,2246822519);b^=b>>>13}
+ return (a>>>0).toString(36)+(b>>>0).toString(36)+'-'+s.length.toString(36);
+}
+const clipKey=(v,text)=>v+'|'+fingerprint(text);
+function db(){
+ if(!dbTask)dbTask=new Promise((resolve,reject)=>{
+  if(!window.indexedDB){reject(new Error('this browser cannot store audio'));return}
+  const r=indexedDB.open(DB_NAME,1);
+  r.onupgradeneeded=()=>r.result.createObjectStore(STORE);
+  r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+ });
+ return dbTask;
+}
+const tx=(mode,work)=>db().then(d=>new Promise((resolve,reject)=>{const t=d.transaction(STORE,mode),res={v:undefined};t.oncomplete=()=>resolve(res.v);t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error);work(t.objectStore(STORE),res)}));
+async function get(v,text){const row=await tx('readonly',(st,res)=>{const q=st.get(clipKey(v,norm(text)));q.onsuccess=()=>{res.v=q.result}});return row&&row.blob&&row.blob.size>44?row.blob:null}
+function put(v,text,blob){return tx('readwrite',st=>{st.put({blob,at:Date.now()},clipKey(v,norm(text)))})}
+const savedKeys=()=>tx('readonly',(st,res)=>{const q=st.getAllKeys();q.onsuccess=()=>{res.v=new Set(q.result)}}).then(x=>x||new Set());
+function norm(s){return String(s||'').replace(/\s+/g,' ').trim()}
+function clips(chapter){return chapter.paragraphs.flatMap(p=>voice().splitText(p)).map(norm).filter(Boolean)}
 function formatMB(n){return (n/1048576).toFixed(1)+' MB'}
-function estimate(){const v=current();if(!v)return null;const words=v.chapter.paragraphs.join(' ').trim().split(/\s+/).filter(Boolean).length;const seconds=words/140*60;const bytes=seconds*24000*2;const mode=voice()?.getMode?.()||'standard';return {words,seconds,bytes,model:mode==='standard'?'~92 MB':'~326 MB'}}
+function estimate(){const v=current();if(!v)return null;const words=v.chapter.paragraphs.join(' ').trim().split(/\s+/).filter(Boolean).length;const seconds=words/140*60;return {words,seconds,bytes:seconds*24000*2}}
 async function refresh(){
- const v=current(),btn=$('offline-prepare'),play=$('offline-play'),cancelBtn=$('offline-cancel');
+ const v=current(),btn=$('offline-prepare'),cancelBtn=$('offline-cancel'),clear=$('offline-clear');
  if(btn)btn.disabled=!v||preparing;
  if(cancelBtn)cancelBtn.hidden=!preparing;
- if(!v){note('Open an EPUB to prepare a chapter.');if(play)play.disabled=true;return}
- const e=estimate(),total=clips(v.chapter).length;
- $('offline-estimate').textContent=v.chapter.title+' · '+e.words.toLocaleString()+' words · ~'+Math.round(e.seconds/60)+' min · ~'+formatMB(e.bytes)+' of local audio storage (WAV). The selected narrator’s '+e.model+' voice model downloads once if not cached.';
- let done=0,actual=0;
- try{for(let i=0;i<total;i++){const c=await entry(audioKey(v.id,i));if(c?.blob){done++;actual+=c.blob.size}}}catch(err){note('Offline storage unavailable: '+err.message);if(play)play.disabled=true;return}
- if(play)play.disabled=done!==total||!total;
- if(!preparing)note(done===total&&total?'Ready: saved audio can play without generating speech. Use Play prepared chapter.':done?'Saved '+done+' of '+total+' passages ('+formatMB(actual)+'). Select Prepare to resume.':'Not prepared yet. The chapter will be generated once and stored on this device.');
+ if(!v){if(!preparing)note('Open an EPUB to prepare a chapter.');return}
+ const e=estimate(),lines=clips(v.chapter),total=lines.length;
+ let keys=new Set;
+ try{keys=await savedKeys()}catch(err){if(!preparing)note('Saving audio is not available here: '+err.message);if(btn)btn.disabled=true;return}
+ const who=narrator();let done=0;for(const t of lines)if(keys.has(clipKey(who,t)))done++;
+ $('offline-estimate').textContent=v.chapter.title+' · '+e.words.toLocaleString()+' words · about '+Math.round(e.seconds/60)+' min · about '+formatMB(e.bytes)+' of storage on this device.';
+ if(clear){clear.hidden=!keys.size;clear.textContent='Delete all saved audio ('+keys.size.toLocaleString()+' passages)'}
+ if(!preparing)note(done===total&&total?'This chapter is prepared. Press Play and it will start straight away, without generating speech.':done?'Saved '+done+' of '+total+' passages. Press Prepare to continue.':'Not prepared yet. Preparing generates the chapter once and keeps it on this device.');
 }
-function wavHeader(bytes,hz){const ab=new ArrayBuffer(44),v=new DataView(ab);const tag=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};tag(0,'RIFF');v.setUint32(4,36+bytes,true);tag(8,'WAVE');tag(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,hz,true);v.setUint32(28,hz*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);tag(36,'data');v.setUint32(40,bytes,true);return ab}
 async function prepare(){
  if(preparing)return;const v=current();if(!v)return;
- app().stop();stopAudio();preparing=true;cancel=false;$('offline-prepare').disabled=true;$('offline-cancel').hidden=false;
- const lines=clips(v.chapter),total=lines.length;let done=0;
+ app().stop();preparing=true;cancel=false;$('offline-prepare').disabled=true;$('offline-cancel').hidden=false;
+ const lines=clips(v.chapter),total=lines.length,who=narrator();let done=0;
  try{
+  const keys=await savedKeys();
   for(let i=0;i<total;i++){
    if(cancel||current()?.id!==v.id)break;
-   const key=audioKey(v.id,i);let stored=await entry(key);
-   if(!stored?.blob){
-    note('Generating passage '+(i+1)+' of '+total+'… Keep this tab open and unlocked.'); 
-    const r=await voice().generateClip(lines[i]);stored={blob:r.blob,at:Date.now()};
-    await save(key,stored);
+   if(!keys.has(clipKey(who,lines[i]))){
+    note('Generating passage '+(i+1)+' of '+total+'… Keep this tab open and unlocked.');
+    const r=await voice().generateClip(lines[i],who);
+    await put(who,lines[i],r.blob);
    }
    done++;$('offline-progress').value=Math.round(done/total*100);
-   note('Prepared '+done+' of '+total+' passages ('+Math.round(done/total*100)+'%). You can stop and resume later.');
+   note('Prepared '+done+' of '+total+' passages ('+Math.round(done/total*100)+'%). You can stop and carry on later.');
   }
   if(cancel)note('Preparation stopped. Progress was saved.');
  }catch(err){note('Preparation stopped: '+err.message+'. Completed passages remain saved.')}
  finally{preparing=false;$('offline-cancel').hidden=true;await refresh()}
 }
-function stopAudio(){if(playing){playing.pause();playing.removeAttribute('src');playing.load();playing=null}if(url){URL.revokeObjectURL(url);url=null};$('offline-play').textContent='▶ Play prepared chapter'}
-async function playPrepared(){
- if(playing){stopAudio();return}
- const v=current();if(!v)return;
- app().stop();note('Opening saved audio…');
- try{
-  const parts=clips(v.chapter),blobs=[];let rate=24000,bytes=0;
-  for(let i=0;i<parts.length;i++){
-   const e=await entry(audioKey(v.id,i));if(!e?.blob)throw Error('Chapter is not fully prepared');
-   const b=e.blob; if(b.size<44)throw Error('Invalid saved audio');
-   const header=new DataView(await b.slice(0,44).arrayBuffer());const hz=header.getUint32(24,true);
-   if(i===0)rate=hz;else if(hz!==rate)throw Error('Audio sample rates differ; regenerate this chapter');
-   blobs.push(b.slice(44));bytes+=b.size-44;
-  }
-  // One WAV blob gives gapless playback; Blob parts are assembled without decoding every clip into RAM.
-  const combined=new Blob([wavHeader(bytes,rate),...blobs],{type:'audio/wav'});
-  url=URL.createObjectURL(combined);playing=new Audio(url);playing.playbackRate=Number($('rate').value)||1;
-  playing.onended=()=>{stopAudio();note('Finished prepared chapter.')};
-  playing.onerror=()=>{stopAudio();note('Saved audio could not play on this device.')};
-  $('offline-play').textContent='■ Stop prepared chapter';await playing.play();note('Playing saved chapter — no AI generation needed.');
- }catch(err){stopAudio();note('Cannot play saved chapter: '+err.message)}
+async function clearAll(){
+ if(preparing)return;
+ if(!confirm('Delete all prepared audio from this device? Your books and reading places are not affected.'))return;
+ try{await tx('readwrite',st=>{st.clear()});note('Saved audio deleted.')}catch(err){note('Could not delete saved audio: '+err.message)}
+ await refresh();
 }
 function setup(){
  $('offline-prepare').onclick=prepare;
  $('offline-cancel').onclick=()=>{cancel=true;note('Stopping after the current passage…')};
- $('offline-play').onclick=playPrepared;
- $('offline-help').textContent='Audio is saved only in this browser on this device. Keep this tab open during preparation. Browsers may clear stored audio; for guaranteed offline listening export an audiobook on your Mac. The webpage itself may still need internet to open.';
+ $('offline-clear').onclick=clearAll;
+ $('offline-help').textContent='Audio is saved only in this browser, on this device, and the browser may clear it if storage runs low. Keep this tab open while preparing.';
+ try{indexedDB.deleteDatabase('book-reader-audio-v1')}catch(_){} /* the earlier, less reliable store */
  refresh();
 }
-window.bookOffline={refresh,stopAudio};
+window.bookOffline={refresh,get:(v,t)=>get(v,t),put};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
 })();

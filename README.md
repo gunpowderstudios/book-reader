@@ -1,41 +1,21 @@
-# Chapter & Verse — EPUB Audiobook Reader
+# Book Reader — EPUB audiobook reader
 
-A free browser-based audiobook reader for DRM-free EPUB files. Runs on GitHub Pages with no build step, account, or server-side book upload.
+A free browser-based reader that turns DRM-free EPUB books into spoken audiobooks using Kokoro AI voices, with yellow word-by-word highlighting. Runs on GitHub Pages with no build step, account or paid service. Your books never leave your device.
+
+Live: https://gunpowderstudios.github.io/book-reader/
 
 ## Use
+1. Open the site and load a book (or open the free Conan book). It is saved in **My Library** on this device with your place.
+2. Press **Play**. The first time, the voice model downloads once (about 92 MB, or 326 MB in Fast mode); the browser keeps it afterwards.
+3. Smooth Listening prepares the next minutes of speech while you listen. Use Pause, the chapter menu, bookmarks and the speed slider as needed.
 
-1. Open the deployed website.
-2. Select **Open EPUB** and choose a DRM-free `.epub` from your device.
-3. Select a voice and reading speed, then press **Play**.
-4. Pause or navigate paragraphs and chapters. Your bookmark is saved locally; reopen the same book on your next visit to restore it.
+## Good to know
+- **Performance settings** default to Automatic: Fast on a capable computer, Low Memory on phones, tablets and older machines. If a mode fails, the reader falls back to the lighter one and remembers it.
+- **Listening Tools** can prepare a whole chapter ahead of time (Play then uses it automatically), save bookmarks and share your place, and save/load a small progress file to move your place between devices.
+- If the voice cannot keep up with speech on a device, short pauses can happen. Preparing the chapter, or making an audiobook with [`audiobook/`](audiobook/), avoids them.
+- Saved books, places and prepared audio are per browser and device. Private browsing blocks saving.
 
-Your EPUB file is processed locally in the browser. ZIP parsing uses JSZip from a public CDN, so an internet connection is needed for that library. Speech uses browser text-to-speech and available system voices. Background or lock-screen playback may not work on all devices.
+## Files
+`index.html` (interface and EPUB reading), `kokoro.js` (playback, read-ahead and memory), `kokoro-worker.js` (voice model, runs off the main thread), `library.js` (My Library), `offline.js` (prepared chapters), `read-along.js` (highlighting), `bookmarks.js`, `coi-sw.js` (enables multi-core for Fast mode on GitHub Pages), `audiobook/` (optional offline audiobook maker).
 
-## Publish
-
-In this GitHub repository, open **Settings → Pages**, select **Deploy from a branch**, choose **main** and **/(root)**, then save. The expected public URL is:
-
-https://gunpowderstudios.github.io/book-reader/
-
-## Limitations
-
-DRM-protected EPUBs aren't supported, and available voices differ by browser and device. The browser may interrupt long passages or playback when the screen is locked. No audiobook MP3 is generated.
-
-## Kokoro AI narration (George)
-
-Press Play to be read to by **George** (Kokoro AI, British male). The first time, your browser downloads the free quantized Kokoro model (roughly 90 MB), then generates speech locally. This may take a while, especially on older devices. An internet connection is needed initially for the model and JS library. Subsequent visits reuse the cached weights.
-
-Open the **Test a Voice** tab to check George without an EPUB: edit the sample text, press Play, and watch the loading, generating and playing states. Repeating the same text plays instantly from memory.
-
-George uses the `bm_george` British voice of Kokoro 82M via `kokoro-js`. All speech generation runs in a Web Worker (`kokoro-worker.js`) on your own device, so the page stays responsive; nothing is sent to a paid speech API. Generation speed depends on your computer. The first visit after upgrading may need a hard refresh.
-
-Files: `index.html` (reader and interface), `kokoro.js` (playback, queue and cache), `kokoro-worker.js` (model and inference).
-
-## My Library, read-ahead and the download bar (v1.4.0)
-- **My Library** saves each EPUB you open in this browser, with your place; open the tab and press Continue. Per device only (not synced). Private browsing blocks it.
-- **Download bar** shows the model download in MB and the real data George has fetched this visit.
-- **Read-ahead** prepares about 6 minutes of speech ahead (adjustable in Voice settings). The meter shows how fast George is working. If it is below 1× speaking speed, try Fast mode (bigger 326 MB download, uses several cores), or make an audiobook with the tool below.
-
-## Audiobook maker (no pauses, plays anywhere)
-
-The browser reader generates speech while you listen, which needs a fast computer. For phones, tablets and long books, use the tool in [`audiobook/`](audiobook/): it turns an EPUB into a finished `.m4b` audiobook read by George, once, on your own computer. See [audiobook/README.md](audiobook/README.md).
+DRM-protected EPUBs are not supported. Voices: Kokoro 82M via `kokoro-js` (voice and library load from public CDNs).

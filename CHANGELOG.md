@@ -1,5 +1,29 @@
 # Book Reader — Version history
 
+## v1.12.25 — 25 October 2026
+Code-review fixes. Tested in real Chromium with a stand-in voice model (29 checks); not tested on real iPhone/iPad Safari or with the real Kokoro model.
+**Playback**
+- A failed passage is retried once automatically instead of ending the session.
+- About 0.3 s of quiet is added after each paragraph, like an audiobook narrator's breath. The yellow highlight accounts for it.
+- Lock-screen and headset controls (Media Session): now-playing title, play/pause, previous/next paragraph. Bedtime mode now also asks the browser to keep the screen on.
+**Saved chapters (Listening Tools) rebuilt**
+- Saved passages are found by what they say (text fingerprint + narrator), so they can never play against the wrong text after a parser or splitting change. Pressing Play uses them automatically, with highlighting, bookmarks, pause and chapter-to-chapter reading, and without loading the voice engine. The separate "Play prepared chapter" button and its whole-chapter in-memory file (about 100 MB for a long chapter) are gone.
+- Added "Delete all saved audio" with a passage count. Audio saved by earlier versions is deleted once to free the space; prepare chapters again if you want them.
+**Highlighting**
+- Fixed: after Stop then Play, the yellow highlight started in the wrong place in the paragraph.
+- Words are timed by length and punctuation instead of evenly.
+**Automatic mode**
+- Fast is chosen only on a computer with 4+ cores and 8 GB+ memory (when the browser reports it) that can run multi-core; otherwise Low Memory. A Fast failure is remembered, so a failing 326 MB load is not retried every visit (choosing Automatic again resets this).
+- Phones and tablets no longer register the helper service worker or reload the page on first visit. Read-ahead is limited to 6 minutes on phones and tablets.
+**Mobile and loading**
+- Fixed: on phones the player vanished on Meet the Narrators and on any tab after rotating or resizing.
+- First-load images cut from 13.7 MB to about 170 KB: the 8 MB candle animation now loads only when Bedtime is pressed, and the logos were resized and compressed. The unused square logo element is gone. The chapter dropdown replaces the duplicate chapter list on phones.
+**EPUB**
+- Chapter headings inside `<header>` and ordinary `<aside>` text are no longer dropped; footnotes and note markers still are. Badly encoded file names no longer stop a book opening, and a missing description file gives a clear message.
+- The free Conan book now appears in My Library once opened, with your place and Continue.
+**Clean-up**
+- Removed unused files (cloud sync, activity log, benchmark, auto-listen, reader-status, `.DS_Store`), the unused GPU mode, the old browser-voice player and a dead update-check script. One version number is used for all script files so updates are never served stale.
+
 ## v1.12.24 — 25 October 2026
 - Removed the redundant collapsible book information module from Now Reading, keeping internal status elements for compatibility.
 - Moved the yellow spoken-word highlighting checkbox to Listening Tools.
