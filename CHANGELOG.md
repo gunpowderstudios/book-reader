@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.12.11 — 25 October 2026
+- Added a Listening Tools tab on desktop and the mobile dropdown.
+- Moved optional Save for Later chapter preparation and Bookmarks & sharing out of Now Reading and into Listening Tools, retaining existing controls and IDs.
+
 ## v1.12.10 — 25 October 2026
 - Loading indicator now tracks the actual browser audio `playing` event instead of vanishing when speech generation completes.
 - Keeps the spinner and preparation status visible between model loading and the first audible passage; cleans up audio event handlers on stop.
