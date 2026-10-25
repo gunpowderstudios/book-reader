@@ -1,6 +1,6 @@
 /* Book Reader v1.6.0 — practical automatic listening advice, no surprise model downloads. */
 (()=>{'use strict';
-const $=id=>document.getElementById(id);
+const $=id=>document.getElementById(id);const narrator=()=>({bm_george:'George',bf_emma:'Emma',am_eric:'Eric',af_aoede:'Aoede'})[$('voice')?.value]||'George';
 let previous='';
 function update(){
  const k=window.chapterKokoro,el=$('listen-advice');if(!el||!k)return;
@@ -12,6 +12,7 @@ function update(){
  else if(speed>=1.35)line='George is generating about '+speed.toFixed(1)+'× real-time speech on this device. Listen Now is recommended.';
  else if(speed>=1)line='George generates about '+speed.toFixed(1)+'× real time. Listen Now should work, but occasional pauses are possible.';
  else line='George generates about '+speed.toFixed(1)+'× real time on this device. For smooth playback, choose Save for Later and prepare the chapter.';
+ line=line.replaceAll('George',narrator());
  if(buffer?.waits>0)line+=' Detected '+buffer.waits+' buffering pause'+(buffer.waits===1?'':'s')+'.';
  if(el.textContent!==line){el.textContent=line;if(previous!==line&&speed){window.bookLog?.('Listening advice: '+line);previous=line}}
 }
