@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+## v1.12.3 — 25 October 2026
+- Both header logo versions (desktop and mobile) now link to the reader home page.
+
 ## v1.12.2 — 25 October 2026
 - Simplified Syncing Playback: export a tiny JSON reading-progress file and import it on another device, using the device's standard file picker and any cloud folder.
 - No registration, API access, hosted database or direct Dropbox/Google/iCloud integration needed; manual transfer only.
