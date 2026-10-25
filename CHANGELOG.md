@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+## v1.12.32 — 25 October 2026
+- **The saved progress file is named after the book** (for example “Conan the Barbarian - reading progress.json”) and holds just that book's place, so you can tell your files apart in Dropbox, iCloud or Google Drive. Loading works as before.
+
 ## v1.12.31 — 25 October 2026
 Simpler layout.
 - **Acting is now on by default** (a second voice reads quoted speech), so the "Again with feeling!" button is gone from the play strip. Change it any time in **Settings → Narration style** (acting, one voice, or Classic). Everyone starts on acting again with this version.
