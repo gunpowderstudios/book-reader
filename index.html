@@ -204,12 +204,15 @@ $('bundle-save').onclick=async()=>{
   if(!epub)throw Error('The original EPUB is not saved in this browser. Please load it again.');
   const name=(rec?.name||'book.epub').replace(/[^a-zA-Z0-9 ._()-]/g,'_').slice(0,110);
   const epubName=name.toLowerCase().endsWith('.epub')?name:name+'.epub';
+  const savedAt=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const stamp=pad(savedAt.getDate())+'-'+pad(savedAt.getMonth()+1)+'-'+savedAt.getFullYear()+' '+pad(savedAt.getHours())+'-'+pad(savedAt.getMinutes());
   const zip=new JSZip();
   zip.file('book.epub',epub);
-  zip.file('reading-progress.json',JSON.stringify({format:'eddi-book-bundle',version:1,bookName:epubName,progress:{index:S.index,p:S.p},createdAt:new Date().toISOString()},null,2));
+  zip.file('reading-progress.json',JSON.stringify({format:'eddi-book-bundle',version:1,bookName:epubName,progress:{index:S.index,p:S.p},createdAt:savedAt.toISOString()},null,2));
   label.textContent='Packaging book and bookmark…';
   const blob=await zip.generateAsync({type:'blob',compression:'STORE'});
-  const filename=epubName.replace(/\.epub$/i,'').slice(0,95)+' - EDDi book and progress.zip';
+  const filename=epubName.replace(/\.epub$/i,'').slice(0,78)+' - '+stamp+' - EDDi.zip';
   if(typeof window.showSaveFilePicker==='function'){
    try{
     const h=await window.showSaveFilePicker({suggestedName:filename,types:[{description:'E.D.D.i. book and progress',accept:{'application/zip':['.zip']}}]});
