@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.39';
+const VERSION='1.12.40';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -60,7 +60,7 @@ const suggestedMode=()=>window.cvAutoMode?window.cvAutoMode():(mobileDevice()?'s
 let preference=store.get('cv-mode-choice','auto');
 if(!PREFS.includes(preference))preference='auto';
 let mode=preference==='auto'?suggestedMode():preference;
-const bufferTarget=()=>{const m=Number(store.get('cv-buffer','2'));return Math.min(m>0&&m<=30?m:2,mobileDevice()?6:30)*60};
+const bufferTarget=()=>(mobileDevice()||mode==='standard'?6:2)*60; /* chosen automatically: a bigger cushion on phones and slower setups, light on fast computers */
 const installed=()=>store.get('cv-ready-'+mode,'')==='1';
 const isolated=()=>typeof crossOriginIsolated!=='undefined'&&crossOriginIsolated===true;
 
@@ -696,10 +696,6 @@ function showRecommendation(){
  const ss=$('style-select'); /* (no menu any more: one voice, natural style) */
  if(ss){ss.value=styleNow();ss.onchange=()=>{store.set('cv-voice-style',ss.value);const t=$('test-style');if(t)t.value=ss.value;window.bookOffline&&window.bookOffline.refresh&&window.bookOffline.refresh()}}
  const tst=$('test-style');if(tst)tst.value=styleNow();
- const bs=$('buffer-select');
-
- if(bs&&mobileDevice())[...bs.options].forEach(o=>{if(Number(o.value)>6)o.remove()});
- if(bs){bs.value=String(Math.round(bufferTarget()/60));if(bs.value!==String(Math.round(bufferTarget()/60)))bs.value='2';bs.onchange=()=>{store.set('cv-buffer',bs.value);renderBuffer()}}
  renderEngine();renderBuffer();showRecommendation();
 })();
 /* Clear the "was loading" flag on a normal page close (a crash never gets here). */

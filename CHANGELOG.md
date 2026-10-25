@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+## v1.12.40 — 25 October 2026
+- **Removed the “Smooth Listening: prepare ahead” menu.** The reader now chooses automatically: 2 minutes ahead on fast computers, 6 minutes on phones, tablets and Low Memory setups. The head start for slower devices works as before.
+
 ## v1.12.39 — 25 October 2026
 - **Removed “Prepare a whole chapter” and “Bookmarks & sharing” from Settings for now.** Settings now has the voice performance choice, read-ahead and the yellow-word highlight.
 
