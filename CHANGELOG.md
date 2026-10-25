@@ -1,5 +1,11 @@
 # E.D.D.i. — Version history
 
+### Meet the Narrators restored — 25 October 2026
+- Restored a narrator preview page, second from the right before Syncing Playback in desktop and mobile navigation.
+- Lists all voices currently supported by the app, plays a short shared story through the existing Kokoro test engine, and lets listeners choose a narrator.
+- Reader and narration engine code left unchanged.
+
+
 ### Book & Progress transfer — 25 October 2026
 - Added an optional single ZIP export containing the current EPUB and its reading position, and a one-step importer that reopens the book at the saved position.
 - Preserved the existing JSON-only progress exchange for readers who prefer small files.
