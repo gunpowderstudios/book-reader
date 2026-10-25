@@ -1,5 +1,10 @@
 # Book Reader — Version history
 
+## v1.12.0 — 25 October 2026
+- Added optional authenticated cloud reading-position sync using Supabase: chapter and paragraph only; EPUB text and files stay on each device.
+- Added email magic-link sign-in, remote position restore, throttled progress uploads, and Row Level Security database setup instructions.
+- Cloud sync is **not active** until an administrator supplies a Supabase project URL and public key in `cloud-sync-config.js`. The UI explains the unconfigured state.
+
 ## v1.11.5 — 25 October 2026
 - Added a plain-English H2 explaining the app's AI audiobook narration, read-along text and saved reading position above the library storage note.
 
