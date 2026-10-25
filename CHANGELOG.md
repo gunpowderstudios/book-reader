@@ -1,5 +1,10 @@
 # Book Reader — Version history
 
+## v1.12.19 — 25 October 2026
+- Build the book chapter list and reading text before switching to Now Reading, rather than relying on tab switching to trigger rendering.
+- Show chapter-rendering failures in the reader and playback status, instead of silently leaving the initial placeholder visible.
+- Verified JavaScript syntax after the change; browser-level verification still needed.
+
 ## v1.12.18 — 25 October 2026
 - Fixed a potential interruption in chapter rendering: draw book heading, text, chapter selector and highlighting before refreshing optional prepared-audio controls.
 - Isolated optional offline-panel errors so they cannot leave the reading text and chapter list blank.
