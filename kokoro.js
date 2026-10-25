@@ -15,7 +15,7 @@ const MODES={
  gpu:{label:'GPU — experimental',mb:326}
 };
 const MAX_TEST_CHARS=300;            /* keeps a sample well inside Kokoro's ~510-token limit */
-const CACHE_MAX_BYTES=96*1024*1024;  /* generated audio kept in memory (LRU) */
+const CACHE_MAX_BYTES=(/iPad|iPhone|iPod|Android/i.test(navigator.userAgent)?16:48)*1024*1024; /* temporary speech clips, not voice models */
 const MAX_PENDING=2,MAX_AHEAD=400;   /* passages queued in the worker at once / held ahead of playback */
 const INIT_TIMEOUT=300000,GENERATE_TIMEOUT=180000; /* worker silence limits before we give up and restart it */
 const $=id=>document.getElementById(id);
@@ -212,6 +212,7 @@ function noteGen(audioSec,genSec){
 }
 const cache=new Map();let cacheBytes=0;
 function cacheGet(k){const v=cache.get(k);if(v){cache.delete(k);cache.set(k,v)}return v}
+function cacheDrop(k){const v=cache.get(k);if(v){cacheBytes-=v.blob.size;cache.delete(k)}}
 function cachePut(k,v){
  const old=cache.get(k);if(old){cacheBytes-=old.blob.size;cache.delete(k)}
  cache.set(k,v);cacheBytes+=v.blob.size;
@@ -490,6 +491,8 @@ function toggle({S,update,render}){
     bufInfo.ready=readySec();renderBuffer();
     window.readerTracking?.start?.(g.text,g.p,()=>{const duration=player.duration||res.audioSec;return duration>0?player.currentTime/duration:0});
     await playback(res.blob,s);
+    /* Once a passage has played, discard its temporary WAV clip from RAM. */
+    cacheDrop(mode+'|'+s.voice+'|'+norm(g.text));
     window.readerTracking?.clear?.();
     if(stale())return;
     if(g.last){S.p=g.p+1;update()}
