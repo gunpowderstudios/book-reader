@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+## v1.11.5 — 25 October 2026
+- Added a plain-English H2 explaining the app's AI audiobook narration, read-along text and saved reading position above the library storage note.
+
 ## v1.11.4 — 25 October 2026
 - Renamed the Book Reader navigation tab to **Now Reading** to make its purpose clearer.
 
