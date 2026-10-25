@@ -1,8 +1,15 @@
 # Book Reader — Version history
 
-## v1.12.30 — 25 October 2026
+## v1.12.31 — 25 October 2026
+Simpler layout.
+- **Acting is now on by default** (a second voice reads quoted speech), so the "Again with feeling!" button is gone from the play strip. Change it any time in **Settings → Narration style** (acting, one voice, or Classic). Everyone starts on acting again with this version.
+- **The right-hand panel is now called Settings** (it was "Performance settings (optional)").
+- **Removed the "Now Reading", "Meet the Narrators" and "Listening Tools" tabs.** Opening a book from My Library still takes you to the text. Choose the narrator with the Voice menu on the play strip. **Listening Tools** (highlighting, preparing a chapter, bookmarks) now sit inside **Settings**, under Listening Tools.
 - **Simpler play strip:** the "Smooth Listening…" line, the ready-ahead bar and "Next passage" are gone. Smooth Listening still works the same; the only message that still appears is the "Start now" offer when a device needs a head start.
-- **“🎭 Again with feeling!” button on the play strip** turns acting on or off: a second voice reads quoted speech. Pressed while reading, it carries on from the start of the current passage. Acting is off by default; the Narration style setting also has it (as “Natural with acting”), plus Classic to go back to the old behaviour.
+- The Settings panel scrolls when its contents are taller than the screen.
+
+## v1.12.30 — 25 October 2026
+- (Replaced in 1.12.31 by a setting.) **“🎭 Again with feeling!” button on the play strip** turned acting on or off: a second voice reads quoted speech. Pressed while reading, it carries on from the start of the current passage. Acting is off by default; the Narration style setting also has it (as “Natural with acting”), plus Classic to go back to the old behaviour.
 - Syncing Playback tab now explains in plain words what the progress (JSON) file is, and that it is a standard, safe, text-only note with no program code.
 - Graphics-chip messages reworded without technical terms.
 

@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.30';
+const VERSION='1.12.31';
 const VOICES={bm_george:'British Male — George',bf_emma:'British Female — Emma',am_eric:'American Male — Eric',af_aoede:'American Female — Aoede'}; /* add more Kokoro voice ids here later; the Test tab picks them up */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -26,10 +26,10 @@ const fmtDur=s=>{s=Math.max(0,Math.round(s));return s>=60?Math.floor(s/60)+'m '+
 const CANCELLED=new Error('Cancelled');
 const status=s=>{const el=$('status');if(el)el.textContent=named(s)};
 const rate=()=>Number($('rate')&&$('rate').value)||1;
-/* Narration style: 'single' (default) = the voice itself speaks faster/slower, longer passages, smoother phrasing and pauses; 'natural' = the same plus acting (a second voice for quoted speech); 'classic' = v1.12.28 behaviour. Older note: 'natural' = the voice itself speaks faster/slower, a second voice for quoted speech, longer chunks and pauses;
-   'single' = the same but one voice throughout; 'classic' = exactly the behaviour of v1.12.28 (browser speed-up, one voice, short chunks). */
+/* Narration style: 'natural' (default) = the voice itself speaks faster/slower, a second voice for quoted speech (acting), longer passages, smoother phrasing and longer pauses;
+   'single' = the same with one voice; 'classic' = exactly the behaviour of v1.12.28 (browser speed-up, one voice, short chunks). */
 const STYLES=['natural','single','classic'];
-const styleNow=()=>{try{const v=localStorage.getItem('cv-style');return STYLES.includes(v)?v:'single'}catch(_){return 'single'}};
+const styleNow=()=>{try{const v=localStorage.getItem('cv-narration');return STYLES.includes(v)?v:'natural'}catch(_){return 'natural'}};
 const DIALOGUE={bm_george:'bm_fable',bf_emma:'bf_isabella',am_eric:'am_michael',af_aoede:'af_bella'}; /* same accent and gender, different character */
 const bake=(style=styleNow())=>style==='classic'?1:Math.round(Math.min(2,Math.max(0.5,rate()))*20)/20; /* speed built into the speech itself */
 const effRate=()=>styleNow()==='classic'?rate():1; /* how much faster than real time the audio must be produced */
@@ -690,23 +690,14 @@ function showRecommendation(){
   ms.replaceChildren(new Option('Automatic (recommended)','auto'),new Option('Graphics chip (experimental) — try on a Mac or PC with a good graphics chip','gpu'),new Option('Fast — for powerful computers','fast'),new Option('Low Memory — for phones and older devices','standard'));
   ms.value=preference;ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=preference;showRecommendation()};
  }
- const ac=$('acting');
- const showActing=()=>{if(ac){const on=styleNow()==='natural';ac.setAttribute('aria-pressed',on?'true':'false');ac.classList.toggle('on',on);ac.title=on?'Acting is on: a second voice reads quoted speech. Press to turn it off.':'Turn on acting: a second voice reads quoted speech.'}};
- if(ac)ac.onclick=()=>{
-  const on=styleNow()!=='natural',playing=session&&!session.cancelled&&!session.paused;
-  store.set('cv-style',on?'natural':'single');const s2=$('style-select');if(s2)s2.value=styleNow();const t=$('test-style');if(t)t.value=styleNow();
-  showActing();window.bookOffline&&window.bookOffline.refresh&&window.bookOffline.refresh();
-  if(playing){stop();setTimeout(()=>$('play').click(),50)} /* carry on from the start of this passage, now with feeling */
-  else status(on?'Acting is on: quoted speech will be read in a second voice.':'Acting is off.');
- };
  const ss=$('style-select');
- if(ss){ss.value=styleNow();ss.onchange=()=>{store.set('cv-style',ss.value);showActing();const t=$('test-style');if(t)t.value=ss.value;window.bookOffline&&window.bookOffline.refresh&&window.bookOffline.refresh()}}
+ if(ss){ss.value=styleNow();ss.onchange=()=>{store.set('cv-narration',ss.value);const t=$('test-style');if(t)t.value=ss.value;window.bookOffline&&window.bookOffline.refresh&&window.bookOffline.refresh()}}
  const tst=$('test-style');if(tst)tst.value=styleNow();
  const bs=$('buffer-select');
 
  if(bs&&mobileDevice())[...bs.options].forEach(o=>{if(Number(o.value)>6)o.remove()});
  if(bs){bs.value=String(Math.round(bufferTarget()/60));if(bs.value!==String(Math.round(bufferTarget()/60)))bs.value='2';bs.onchange=()=>{store.set('cv-buffer',bs.value);renderBuffer()}}
- showActing();renderEngine();renderBuffer();showRecommendation();
+ renderEngine();renderBuffer();showRecommendation();
 })();
 /* Clear the "was loading" flag on a normal page close (a crash never gets here). */
 window.addEventListener('pagehide',()=>store.set('cv-trying',''));

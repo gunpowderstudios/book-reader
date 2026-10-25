@@ -7,12 +7,12 @@ Live: https://gunpowderstudios.github.io/book-reader/
 ## Use
 1. Open the site and load a book (or open the free Conan book). It is saved in **My Library** on this device with your place.
 2. Press **Play**. The first time, the voice model downloads once (about 92 MB, or 326 MB in Fast mode); the browser keeps it afterwards.
-3. Smooth Listening prepares the next minutes of speech while you listen. Use Pause, the chapter menu, bookmarks and the speed slider as needed.
+3. Smooth Listening prepares the next minutes of speech while you listen. Use Pause, the chapter menu, bookmarks (in Settings) and the speed slider as needed.
 
 ## Good to know
 - **Performance settings** default to Automatic: the graphics chip or multi-core Fast on a capable computer, Low Memory on phones, tablets and older machines. If a mode fails, the reader falls back to a lighter one and remembers it.
 - If the voice is slower than speech on your device, the reader waits once at the start ("Getting ahead…", with a Start now button) so it can then read without stopping, instead of pausing repeatedly.
-- **Listening Tools** can prepare a whole chapter ahead of time (Play then uses it automatically), save bookmarks and share your place, and save/load a small progress file to move your place between devices.
+- **Settings → Listening Tools** can prepare a whole chapter ahead of time (Play then uses it automatically), save bookmarks and share your place, and save/load a small progress file to move your place between devices.
 - If the voice cannot keep up with speech on a device, short pauses can happen. Preparing the chapter, or making an audiobook with [`audiobook/`](audiobook/), avoids them.
 - Saved books, places and prepared audio are per browser and device. Private browsing blocks saving.
 
