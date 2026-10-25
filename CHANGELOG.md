@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.12.42 — 25 October 2026
+- **The progress file now says more:** book title and author, chapter name and number, paragraph, percent read, when you last read it and when the file was saved. Loading is unchanged and still works with older files.
+- Removed the “Why I built this” link and note for now.
+
 ## v1.12.41 — 25 October 2026
 - Added a small “Why I built this” link at the end of the copyright note at the bottom of the page, which opens Tim's note about why EPub Reader exists.
 
