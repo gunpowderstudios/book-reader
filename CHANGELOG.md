@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.12.18 — 25 October 2026
+- Fixed a potential interruption in chapter rendering: draw book heading, text, chapter selector and highlighting before refreshing optional prepared-audio controls.
+- Isolated optional offline-panel errors so they cannot leave the reading text and chapter list blank.
+
 ## v1.12.17 — 25 October 2026
 - Replaced the long, technical slow-narration warning with simple guidance for readers.
 - Removed the experimental GPU button from the warning because GPU mode is not currently selectable by the app's performance settings.
