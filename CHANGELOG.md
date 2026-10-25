@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.12.16 — 25 October 2026
+- Simplified the Now Reading collapsible title: display just the book name, without the confusing 'Now Playing' label.
+- Added a chapter selector and a missing-chapter-content recovery check in v1.12.15.
+
 ## v1.12.14 — 25 October 2026
 - Reduced temporary generated audio RAM cache to 16 MB on phones/tablets and 48 MB on desktops.
 - Discard completed speech clips from the in-memory cache as narration progresses. Preserve downloaded voice model, EPUBs and any separately prepared chapters.
