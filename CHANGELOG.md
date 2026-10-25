@@ -1,4 +1,10 @@
-# Book Reader — Version history
+# E.D.D.i. — Version history
+
+### Branding update — 25 October 2026
+- Renamed visible app branding to **E.D.D.i. (Every Day Digital Intelligence)** with the tagline **Your friendly AI reading companion**.
+- Updated page title, header wordmark, credits and README while preserving the existing application logic and version number.
+- GitHub repository URL and existing image asset filenames stay unchanged.
+
 
 - Free Books page: clarified that legally purchased DRM-free EPUBs can also be enjoyed privately, subject to licence and copyright rules.
 
