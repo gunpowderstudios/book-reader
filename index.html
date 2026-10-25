@@ -172,8 +172,20 @@ $('progress-save').onclick=async()=>{
   const iso=ms=>ms?new Date(ms).toISOString():'';
   for(const r of records){r.chapterNumber=r.index+1;if(r.id===S.key)r.chaptersTotal=S.chapters.length;r.paragraph=r.p+1;r.lastRead=iso(r.t)}
   const blob=new Blob([JSON.stringify({format:'epub-reader-positions',version:1,app:'EPub Reader',appVersion:window.chapterKokoro?window.chapterKokoro.version:'',savedAt:new Date().toISOString(),books:records},null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;const safe=title.replace(/[\\/:*?"<>|\u0000-\u001f]+/g,' ').replace(/\s+/g,' ').trim().slice(0,80),fileName=(safe||'EDDi')+' - reading progress.json';link.download=fileName;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),15000);
-  $('progress-status').textContent='Saved “'+fileName+'”. Put it in your Dropbox, iCloud Drive or Google Drive folder.';
+  const safe=title.replace(/[\\/:*?"<>|\u0000-\u001f]+/g,' ').replace(/\s+/g,' ').trim().slice(0,80),fileName=(safe||'EDDi')+' - reading progress.json';
+  if(typeof window.showSaveFilePicker==='function'){
+   try{
+    const handle=await window.showSaveFilePicker({suggestedName:fileName,types:[{description:'Reading progress (JSON)',accept:{'application/json':['.json']}}]});
+    const writable=await handle.createWritable();await writable.write(blob);await writable.close();
+    $('progress-status').textContent='Reading progress saved as “'+handle.name+'”.';
+    return;
+   }catch(e){
+    if(e.name==='AbortError'){$('progress-status').textContent='Save cancelled — your reading place is still stored on this device.';return}
+    console.warn('Save As unavailable, using download:',e);
+   }
+  }
+  const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=fileName;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),15000);
+  $('progress-status').textContent='Downloaded “'+fileName+'”. Choose its location in your browser’s download settings, or move it to Dropbox, iCloud Drive or Google Drive.';
  }catch(e){$('progress-status').textContent='Could not save progress: '+e.message}
 };
 $('progress-file').onchange=async e=>{
