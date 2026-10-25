@@ -1,5 +1,10 @@
 # Book Reader — Version history
 
+## v1.12.1 — 25 October 2026
+- Added a **☁ Syncing Playback** tab explaining planned bring-your-own Google Drive and Dropbox connections, potential iCloud integration, privacy, and how cross-device reading would work.
+- Removed the unconfigured Supabase sign-in panel and stopped loading its client scripts; cloud sync is not active yet. Local position saving remains unchanged.
+- Clarified the current manual Share Place link as an interim option.
+
 ## v1.12.0 — 25 October 2026
 - Added optional authenticated cloud reading-position sync using Supabase: chapter and paragraph only; EPUB text and files stay on each device.
 - Added email magic-link sign-in, remote position restore, throttled progress uploads, and Row Level Security database setup instructions.
