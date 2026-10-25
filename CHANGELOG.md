@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.12.9 — 25 October 2026
+- Added a small animated loading wheel beside the selected narrator in the right-hand status panel, during AI engine startup and initial speech generation.
+- The wheel disappears when narration begins or loading is stopped, and respects reduced-motion settings.
+
 ## v1.12.8 — 25 October 2026
 - On phones, replace the four navigation tabs with one full-width dropdown beginning with My Library.
 - Dropdown and desktop tabs stay in sync when opening a book or switching pages; desktop layout unchanged.
