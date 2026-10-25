@@ -130,7 +130,7 @@ function onWorkerMessage(w,m){
     runMode=next;ready().then(iw.resolve,iw.reject);
     return;
    }
-   failWorker(new Error('George could not load: '+m.message));return}
+   failWorker(new Error('Kokoro could not load: '+m.message));if(/out of memory|memory access|allocation|rangeerror/i.test(m.message))window.dispatchEvent(new CustomEvent('kokoro-memory-failure',{detail:{message:'Kokoro ran out of memory. Try Classic Voice below.'}}));return}
   case 'audio':{const c=calls.get(m.id);if(c){calls.delete(m.id);c.resolve(m)}break}
   case 'error':{const c=calls.get(m.id);if(c){calls.delete(m.id);c.reject(new Error(m.message))}else console.error('Kokoro worker:',m.message);break}
  }
