@@ -36,7 +36,7 @@ const suggestedMode=()=>mobileDevice()?'standard':'fast';
 let preference=store.get('cv-mode-choice',store.get('cv-mode','')||'auto');
 if(!['auto','fast','standard'].includes(preference))preference='auto';
 let mode=preference==='auto'?suggestedMode():preference;
-const bufferTarget=()=>{const m=Number(store.get('cv-buffer','6'));return (m>0&&m<=30?m:6)*60};
+const bufferTarget=()=>{const m=Number(store.get('cv-buffer','2'));return (m>0&&m<=30?m:2)*60};
 const installed=()=>store.get('cv-ready-'+mode,'')==='1';
 const isolated=()=>typeof crossOriginIsolated!=='undefined'&&crossOriginIsolated===true;
 
@@ -304,7 +304,7 @@ function renderBuffer(){
   if(speed)msg+=' · George works at '+speed;
   if(bufInfo.waits)msg+=' · pauses: '+bufInfo.waits+' ('+fmtDur(bufInfo.waitSec)+')';
  }else{
-  msg='Read-ahead starts when you press Play (up to '+Math.round(bufferTarget()/60)+' min)'+(speed?' · last measured: George works at '+speed:'');
+  msg='Smooth Listening is on · preparing up to '+Math.round(bufferTarget()/60)+' min ahead when you press Play'+(speed?' · last measured: George works at '+speed:'');
  }
  if(text)text.textContent=named(msg);
  if(fill)fill.style.width=pct.toFixed(1)+'%';
@@ -517,7 +517,7 @@ function showRecommendation(){
   ms.value=preference;ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=preference;showRecommendation()};
  }
  const bs=$('buffer-select');
- if(bs){bs.value=String(Math.round(bufferTarget()/60));if(bs.value!==String(Math.round(bufferTarget()/60)))bs.value='6';bs.onchange=()=>{store.set('cv-buffer',bs.value);renderBuffer()}}
+ if(bs){bs.value=String(Math.round(bufferTarget()/60));if(bs.value!==String(Math.round(bufferTarget()/60)))bs.value='2';bs.onchange=()=>{store.set('cv-buffer',bs.value);renderBuffer()}}
  renderEngine();renderBuffer();showRecommendation();
 })();
 window.chapterKokoro={toggle,stop,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,recommendMode:suggestedMode,isMobile:mobileDevice,generateClip:(text,id)=>synth(text,VOICES[id]?id:currentVoice()),currentVoice,voices:VOICES,splitText:(text)=>chunks(text),version:VERSION,
