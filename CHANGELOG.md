@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+- Free Books page: clarified that legally purchased DRM-free EPUBs can also be enjoyed privately, subject to licence and copyright rules.
+
+
 ### Free Books page — 25 October 2026
 - Added a Free Books navigation tab (desktop and mobile), linking to five public-domain ebook resources with a short explanation of copyright and EPUB loading.
 - Left Claude’s existing playback, narrator, and reader implementation unchanged.
