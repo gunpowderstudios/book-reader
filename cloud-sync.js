@@ -11,6 +11,7 @@ function saveSession(){try{if(session)localStorage.setItem(storageKey,JSON.strin
 async function request(path,method='GET',body,authorized=true){
  if(!enabled)throw Error('Cloud sync has not been configured.');
  const headers={'apikey':cfg.anonKey,'Content-Type':'application/json'};
+ if(method==='POST'&&path.startsWith('/rest/v1/'))headers.Prefer='resolution=merge-duplicates';
  if(authorized){if(!session?.access_token)throw Error('Not signed in');headers.Authorization='Bearer '+session.access_token}
  const res=await fetch(base+path,{method,headers,body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'});
  if(!res.ok){let err;try{err=await res.json()}catch(_){}throw Error(err?.msg||err?.message||err?.error_description||'Sync request failed ('+res.status+')')}
