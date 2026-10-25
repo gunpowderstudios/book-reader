@@ -1,5 +1,12 @@
 # Book Reader — Version history
 
+## v1.12.44 — 25 October 2026
+- **Fixed the play bar flashing while the voice gets a head start (found from your screen recording).** Two messages were fighting over the status line: “Getting ahead so George can read without stopping…” (two lines) and “George is catching up…” (one line), swapping every fraction of a second so the bar kept jumping. The head-start message now has the line to itself.
+- **The play bar also stays one line tall.** Its status line used to wrap onto two lines for long messages (such as “Getting ahead so George can read without stopping…”) and then back to one, making the whole bar resize and flicker. It is now always one line, shortened with “…” if needed.
+
+## v1.12.43 — 25 October 2026
+- **No more flash at the start on computers using Fast mode.** Fast mode needs the page to reload once to switch on extra processor cores (on a first visit, or after a hard refresh); the page is now kept blank for that moment instead of showing and reloading. If the reload does not happen, the page appears after 4 seconds.
+
 ## v1.12.42 — 25 October 2026
 - **The progress file now says more:** book title and author, chapter name and number, paragraph, percent read, when you last read it and when the file was saved. Loading is unchanged and still works with older files.
 - Removed the “Why I built this” link and note for now.

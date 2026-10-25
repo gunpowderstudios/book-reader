@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.42';
+const VERSION='1.12.44';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -379,7 +379,7 @@ function renderBuffer(){
  }
 }
 function tick(){
- if(bufInfo.waiting&&session&&!session.cancelled)status('George is catching up… '+Math.round((Date.now()-bufInfo.waiting)/1000)+' s');
+ if(bufInfo.waiting&&session&&!session.cancelled&&!session.holding)status('George is catching up… '+Math.round((Date.now()-bufInfo.waiting)/1000)+' s');
  renderBuffer();
 }
 function startMeter(){stopMeter();bufInfo={ready:0,target:bufferTarget(),waiting:0,waits:0,waitSec:0};meterTimer=setInterval(tick,500);renderBuffer()}
@@ -651,6 +651,7 @@ function toggle({S,update,render}){
      res=blob?{blob,audioSec:item.sec,cached:true,speed:item.speed||1,pitch:item.pitch||1,key:item.key}:await synth(item.seg.say,item.seg.voice,{stale,pad:item.seg.pad,speed:bake(s.style,item.seg.mul),mul:item.seg.mul,pitch:item.seg.pitch});
     }else res=await item.job;
     if(stale())return;
+    bufInfo.waiting=0; /* the passage is ready: stop the "catching up" message, it must not compete with the head-start message */
     if(firstItem&&!res.cached&&!res.saved)await holdForHeadStart(res.audioSec);
     if(stale())return;
     if(waitedFrom){
