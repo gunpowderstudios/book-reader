@@ -1,5 +1,10 @@
 # Book Reader — Version history
 
+## v1.11.1 — 25 October 2026
+- Removed the unsatisfactory Classic Voice option from the narrator dropdown and playback controls.
+- Added a polite device compatibility warning when Kokoro reports an out-of-memory load failure, with advice to try a newer device or an available browser update.
+- Does not guess available RAM: mobile browsers, particularly Safari, cannot reliably expose usable memory; actual engine failure is more informative.
+
 ## v1.11.0 — 25 October 2026
 - Added **Classic Voice** using the browser's built-in speech synthesis, avoiding the Kokoro memory requirement on older iPads.
 - When Kokoro reports an out-of-memory loading failure, show a **Use Classic Voice** button to continue from the current reading position. Users may also select Classic Voice directly in the narrator selector.
