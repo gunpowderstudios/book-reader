@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.12.20 — 25 October 2026
+- Fixed malformed HTML in Now Reading: the collapsible book summary was incorrectly closed with `</h2>` rather than `</summary>`, breaking the browser's parsed page structure and leaving chapter elements unavailable.
+- Restores valid panel structure for chapter list, chapter dropdown and highlighted reading text.
+
 ## v1.12.19 — 25 October 2026
 - Build the book chapter list and reading text before switching to Now Reading, rather than relying on tab switching to trigger rendering.
 - Show chapter-rendering failures in the reader and playback status, instead of silently leaving the initial placeholder visible.
