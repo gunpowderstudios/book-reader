@@ -1,5 +1,11 @@
 # E.D.D.i. — Version history
 
+### Book & Progress transfer — 25 October 2026
+- Added an optional single ZIP export containing the current EPUB and its reading position, and a one-step importer that reopens the book at the saved position.
+- Preserved the existing JSON-only progress exchange for readers who prefer small files.
+- Supports browser Save As when available and standard downloads elsewhere; no narration model or audio is bundled.
+
+
 ### Branding update — 25 October 2026
 - Renamed visible app branding to **E.D.D.i. (Every Day Digital Intelligence)** with the tagline **Your friendly AI reading companion**.
 - Updated page title, header wordmark, credits and README while preserving the existing application logic and version number.
