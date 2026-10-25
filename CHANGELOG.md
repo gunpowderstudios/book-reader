@@ -7,6 +7,11 @@
 - Added a Free Books navigation tab (desktop and mobile), linking to five public-domain ebook resources with a short explanation of copyright and EPUB loading.
 - Left Claude’s existing playback, narrator, and reader implementation unchanged.
 
+## v1.12.46 — 25 October 2026
+Long “getting a head start” wait and a Start now button that did nothing (found from your screenshot, MacBook, Emma).
+- **Start now works.** The button was being rebuilt every half second, so clicks often landed on a button that had just been replaced. It is now kept in place.
+- **The wait is no longer overestimated.** (1) The first passage of a voice includes fetching the voice itself, which made the voice look slow; that passage is now ignored when judging speed. (2) The safety margin was set so that a voice only slightly faster than speech still asked for about 1½ minutes of head start; the margin is now much smaller, so a voice that keeps up with speech starts straight away.
+
 ## v1.12.45 — 25 October 2026
 - **Shorter passages on phones, tablets and Low Memory setups** (as before v1.12.29), so older devices wait less before each passage and for the first words. Fast computers keep the longer, smoother passages.
 

@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.45';
+const VERSION='1.12.46';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -291,7 +291,8 @@ async function pump(){
     let pcm=trimSilence(r.samples);const speechSec=pcm.length/r.rate;
     if(job.pad){const padded=new Float32Array(pcm.length+Math.round(job.pad*r.rate));padded.set(pcm);pcm=padded}
     const blob=toWav(pcm,r.rate),audioSec=pcm.length/r.rate;
-    noteGen(speechSec,r.ms/1000);charStat.sec+=speechSec;charStat.chars+=job.text.length;
+    if(!r.cold)noteGen(speechSec,r.ms/1000); /* a voice's first passage includes fetching the voice, so it says nothing about speed */
+    charStat.sec+=speechSec;charStat.chars+=job.text.length;
     cachePut(job.key,{blob,audioSec,speed:job.speed/job.mul,pitch:job.pitch}); /* speed is kept relative to the intended pace so playback can follow the speed slider */ /* cached even if the user pressed Stop meanwhile */
     job.resolve({blob,audioSec,genSec:r.ms/1000,cached:false,speed:job.speed/job.mul,pitch:job.pitch,key:job.key});
     renderBuffer();
@@ -371,8 +372,10 @@ function renderBuffer(){
  if(hintEl){
   const h=hint();
   if(active&&session.holding){
-   hintEl.hidden=false;const b=document.createElement('button');b.textContent='Start now (may pause)';b.onclick=()=>{session.startNow=true};
-   hintEl.replaceChildren(document.createTextNode(named('George is getting a head start so he can read without stopping. ')),b);
+   hintEl.hidden=false;
+   /* keep the same button between refreshes: replacing it every half second made clicks miss */
+   if(!hintEl.querySelector('button[data-start]')){const b=document.createElement('button');b.dataset.start='1';b.textContent='Start now (may pause)';b.onclick=()=>{if(session)session.startNow=true};
+    hintEl.replaceChildren(document.createTextNode(named('George is getting a head start so he can read without stopping. ')),b)}
   }else if(h){
    hintEl.hidden=false;hintEl.replaceChildren(document.createTextNode(named(h.text)+' '));
   }else hintEl.hidden=true;
@@ -595,7 +598,7 @@ function toggle({S,update,render}){
       speech per second and you listen at rate r, the shortfall over the audio still to read (up to ~40 min) is R(1 - s/r). */
    const spc=()=>charStat.chars>200?charStat.sec/charStat.chars:1/14;
    const remaining=(()=>{let chars=0,secCap=2400/spc();for(let ci=S.index;ci<S.chapters.length&&chars<secCap;ci++){const ps=S.chapters[ci].paragraphs;for(let p=ci===S.index?S.p:0;p<ps.length&&chars<secCap;p++)chars+=ps[p].length}return chars*spc()})();
-   const needNow=()=>{if(recent.length<2)return 0;const r=Math.max(0.6,effRate()),sp=lastSpeed/1.15;if(!(sp<r))return 0;return Math.min(mobileDevice()?600:1200,lastSpeed*150,remaining*(1-sp/r))}; /* never ask for more than about 2½ minutes of waiting */
+   const needNow=()=>{if(recent.length<2)return 0;const r=Math.max(0.6,effRate()),sp=lastSpeed/1.05;if(!(sp<r))return 0;return Math.min(mobileDevice()?600:1200,lastSpeed*150,remaining*(1-sp/r))}; /* never ask for more than about 2½ minutes of waiting */
    /* Passages beyond a few minutes are parked in browser storage instead of memory. */
    const MEM_SEC=mobileDevice()?180:360;
    const memSec=()=>{let t=0;for(const i of ahead)if(i.done&&!i.spilled)t+=i.sec;return t};

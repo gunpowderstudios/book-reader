@@ -99,13 +99,13 @@ self.onmessage=ev=>{
   chain=chain.then(async()=>{
    try{
     await load(m.voice,m.mode||'standard');
-    const t0=Date.now();
-    if(!preparedVoices.has(m.voice))say({type:'voice-start',voice:m.voice});
+    const t0=Date.now(),cold=!preparedVoices.has(m.voice);
+    if(cold)say({type:'voice-start',voice:m.voice});
     const out=await tts.generate(m.text,{voice:m.voice,speed:m.speed||1});
     if(!preparedVoices.has(m.voice)){preparedVoices.add(m.voice);say({type:'voice-ready',voice:m.voice})}
     let samples=out.audio;
     if(samples.byteOffset!==0||samples.byteLength!==samples.buffer.byteLength)samples=samples.slice();
-    say({type:'audio',id:m.id,samples,rate:out.sampling_rate,ms:Date.now()-t0},[samples.buffer]);
+    say({type:'audio',id:m.id,samples,rate:out.sampling_rate,ms:Date.now()-t0,cold},[samples.buffer]);
    }catch(e){say({type:'error',id:m.id,message:describe(e)})}
   });
  }
