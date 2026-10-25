@@ -1,5 +1,10 @@
 # Book Reader — Version history
 
+## v1.11.3 — 25 October 2026
+- Removed the redundant large My Library heading while retaining the navigation tab.
+- Bottom Play now reopens and resumes the most recent saved book when no book is loaded; removed the duplicate saved Conan card and the redundant Add EPUB control.
+- Updated the library instructions to refer to the main Load a Book button.
+
 ## v1.11.1 — 25 October 2026
 - Removed the unsatisfactory Classic Voice option from the narrator dropdown and playback controls.
 - Added a polite device compatibility warning when Kokoro reports an out-of-memory load failure, with advice to try a newer device or an available browser update.
