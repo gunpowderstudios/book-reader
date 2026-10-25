@@ -1,6 +1,7 @@
 # Book Reader — Version history
 
 ## v1.12.30 — 25 October 2026
+- **Simpler play strip:** the "Smooth Listening…" line, the ready-ahead bar and "Next passage" are gone. Smooth Listening still works the same; the only message that still appears is the "Start now" offer when a device needs a head start.
 - **“🎭 Again with feeling!” button on the play strip** turns acting on or off: a second voice reads quoted speech. Pressed while reading, it carries on from the start of the current passage. Acting is off by default; the Narration style setting also has it (as “Natural with acting”), plus Classic to go back to the old behaviour.
 - Syncing Playback tab now explains in plain words what the progress (JSON) file is, and that it is a standard, safe, text-only note with no program code.
 - Graphics-chip messages reworded without technical terms.
