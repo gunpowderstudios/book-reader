@@ -286,12 +286,10 @@ function playBlob(blob){ /* resolves true when finished, false if stopped */
 /* ───────── Buffer meter (how far ahead George is, and how fast he works) ───────── */
 let meterTimer=null,bufInfo={ready:0,target:0,waiting:0,waits:0,waitSec:0};
 function hint(){
- const need=Math.max(1,rate()); /* listening at 1.5× needs speech made 1.5× faster than it is spoken */
+ const need=Math.max(1,rate());
  if(recent.length<3||lastSpeed>=need)return null;
- const sp=lastSpeed.toFixed(1)+'×';
- if(mode==='standard')return {text:'On this device George makes speech at '+sp+' speaking speed in Standard mode, so pauses are unavoidable. Fast mode is usually about twice as quick on a Mac or PC.',action:'Try Fast mode',to:'fast'};
- if(mode==='fast')return {text:'Even in Fast mode George makes speech at '+sp+' speaking speed here, so pauses will return once the buffer is used up. A graphics card may be quicker, or make a finished audiobook once and listen with no waiting.',action:'Try GPU mode (experimental)',to:'gpu'};
- return {text:'George makes speech at '+sp+' speaking speed here. Making a finished audiobook once avoids any waiting.',action:null};
+ if(mode==='standard')return {text:'Speech may pause on this device. Try Fast in Performance settings, or prepare a chapter in Listening Tools for smoother listening.',action:null};
+ return {text:'Speech may pause while the next passage is prepared. For uninterrupted listening, prepare the chapter first in Listening Tools.',action:null};
 }
 function renderBuffer(){
  const text=$('buf-text'),fill=$('buf-fill'),bar=$('buf-bar'),hintEl=$('speed-hint');
