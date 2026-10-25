@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.12.38 — 25 October 2026
+- **Narration style removed from Settings.** Everyone gets the natural single-voice narration. Choose the narrator from the Voice menu on the play strip.
+- **All British and American Kokoro voices added to the Voice menu** (28 in total: 8 British, 11 American female, 9 American male), best-rated first within each group. The lower-rated ones (grades D and below on the Kokoro voice page) sound less polished.
+
 ## v1.12.37 — 25 October 2026
 - **Livelier speech is now a little higher as well as quicker.** Quoted speech is generated about 10% quicker and played back about 7% higher in pitch, in the same voice. There is no change of voice at all in either style.
 
