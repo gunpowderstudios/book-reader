@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+## v1.12.41 — 25 October 2026
+- Added a small “Why I built this” link at the end of the copyright note at the bottom of the page, which opens Tim's note about why EPub Reader exists.
+
 ## v1.12.40 — 25 October 2026
 - **Removed the “Smooth Listening: prepare ahead” menu.** The reader now chooses automatically: 2 minutes ahead on fast computers, 6 minutes on phones, tablets and Low Memory setups. The head start for slower devices works as before.
 
