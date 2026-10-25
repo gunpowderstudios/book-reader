@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.12.8 — 25 October 2026
+- On phones, replace the four navigation tabs with one full-width dropdown beginning with My Library.
+- Dropdown and desktop tabs stay in sync when opening a book or switching pages; desktop layout unchanged.
+
 ## v1.12.7 — 25 October 2026
 - Playback description and automatic listening advice now display the selected AI narrator's name (George, Emma, Eric or Aoede) instead of always saying George.
 
