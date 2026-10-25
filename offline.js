@@ -37,7 +37,7 @@ const dropTemp=k=>tx('readwrite',st=>{st.delete(tmpKey(k))});
 const purgeTemp=()=>tx('readwrite',st=>{st.delete(IDBKeyRange.bound('tmp|','tmp|\uffff'))}).catch(()=>{});
 const savedKeys=()=>tx('readonly',(st,res)=>{const q=st.getAllKeys();q.onsuccess=()=>{res.v=new Set(q.result.filter(k=>typeof k==='string'&&!k.startsWith('tmp|')))}}).then(x=>x||new Set());
 function norm(s){return String(s||'').replace(/\s+/g,' ').trim()}
-function clips(chapter){return chapter.paragraphs.flatMap(p=>voice().splitText(p)).map(norm).filter(Boolean)}
+function clips(chapter){return voice().chapterClips(chapter)}
 function formatMB(n){return (n/1048576).toFixed(1)+' MB'}
 function estimate(){const v=current();if(!v)return null;const words=v.chapter.paragraphs.join(' ').trim().split(/\s+/).filter(Boolean).length;const seconds=words/140*60;return {words,seconds,bytes:seconds*24000*2}}
 async function refresh(){
@@ -48,7 +48,7 @@ async function refresh(){
  const e=estimate(),lines=clips(v.chapter),total=lines.length;
  let keys=new Set;
  try{keys=await savedKeys()}catch(err){if(!preparing)note('Saving audio is not available here: '+err.message);if(btn)btn.disabled=true;return}
- const who=narrator();let done=0;for(const t of lines)if(keys.has(clipKey(who,t)))done++;
+ let done=0;for(const c of lines)if(keys.has(clipKey(c.voice,c.text)))done++;
  $('offline-estimate').textContent=v.chapter.title+' · '+e.words.toLocaleString()+' words · about '+Math.round(e.seconds/60)+' min · about '+formatMB(e.bytes)+' of storage on this device.';
  if(clear){clear.hidden=!keys.size;clear.textContent='Delete all saved audio ('+keys.size.toLocaleString()+' passages)'}
  if(!preparing)note(done===total&&total?'This chapter is prepared. Press Play and it will start straight away, without generating speech.':done?'Saved '+done+' of '+total+' passages. Press Prepare to continue.':'Not prepared yet. Preparing generates the chapter once and keeps it on this device.');
@@ -56,15 +56,16 @@ async function refresh(){
 async function prepare(){
  if(preparing)return;const v=current();if(!v)return;
  app().stop();preparing=true;cancel=false;$('offline-prepare').disabled=true;$('offline-cancel').hidden=false;
- const lines=clips(v.chapter),total=lines.length,who=narrator();let done=0;
+ const lines=clips(v.chapter),total=lines.length;let done=0;
  try{
   const keys=await savedKeys();
   for(let i=0;i<total;i++){
    if(cancel||current()?.id!==v.id)break;
-   if(!keys.has(clipKey(who,lines[i]))){
+   const c=lines[i];
+   if(!keys.has(clipKey(c.voice,c.text))){
     note('Generating passage '+(i+1)+' of '+total+'… Keep this tab open and unlocked.');
-    const r=await voice().generateClip(lines[i],who);
-    await put(who,lines[i],r.blob);
+    const r=await voice().generateClip(c.text,c.voice);
+    await put(c.voice,c.text,r.blob);
    }
    done++;$('offline-progress').value=Math.round(done/total*100);
    note('Prepared '+done+' of '+total+' passages ('+Math.round(done/total*100)+'%). You can stop and carry on later.');

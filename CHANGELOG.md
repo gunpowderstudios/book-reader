@@ -1,5 +1,16 @@
 # Book Reader — Version history
 
+## v1.12.29 — 25 October 2026
+Aim: make the narration sound less like a computer. Kokoro has no emotion control, so this improves what it can influence: speed, voice and phrasing. Whether it sounds better is a matter of listening; **Settings → Narration style → Classic (previous version)** restores v1.12.28 behaviour exactly.
+- **Natural style (default).**
+  - **Speed is built into the speech.** Before, the browser sped up finished audio, which sounds robotic above 1×; now the voice itself speaks faster or slower.
+  - **A second voice for quoted speech** (same accent and gender: George→Fable, Emma→Isabella, Eric→Michael, Aoede→Bella). Very short quotes stay with the narrator; unclear quotes stay with the narrator.
+  - **Smoother phrasing.** Dashes become gentle pauses, "..." becomes an ellipsis, footnote numbers like [3] and stray asterisks are not spoken, and passages are longer so the voice has more context.
+  - **Longer pauses** after a paragraph, a chapter heading and at scene breaks ("* * *" lines are a pause, not read out). The page text and yellow highlighting are unchanged.
+- **Narration style setting** (Natural / Natural, one voice / Classic) in Settings, and a style choice on Meet the Narrators with a sample containing speech, so you can compare.
+- Prepared chapters follow the chosen style. Chapters prepared in v1.12.28 are used in Classic and are prepared again in Natural.
+- The old version is also kept as commit 753aab8 (v1.12.28).
+
 ## v1.12.28 — 25 October 2026
 - Page title is now "EPUB Reader - Turn your EPUB books into audiobooks with natural-sounding AI voices. Read along, save your place, and pick up where you left off.", with the same sentence as the search-result description.
 

@@ -1,7 +1,7 @@
 /* Book Reader — Kokoro inference worker.
    Model download, phonemising and ONNX inference all run here, off the page's main thread,
    so the interface stays responsive while George is generating speech.
-   Protocol (main -> worker): {type:'init',voice,mode} · {type:'generate',id,text,voice}
+   Protocol (main -> worker): {type:'init',voice,mode} · {type:'generate',id,text,voice,speed}
    Protocol (worker -> main): stage · progress · net · ready · init-error{mode} · audio · error */
 const KOKORO_URL='https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js';
 const MODEL_ID='onnx-community/Kokoro-82M-v1.0-ONNX';
@@ -101,7 +101,7 @@ self.onmessage=ev=>{
     await load(m.voice,m.mode||'standard');
     const t0=Date.now();
     if(!preparedVoices.has(m.voice))say({type:'voice-start',voice:m.voice});
-    const out=await tts.generate(m.text,{voice:m.voice});
+    const out=await tts.generate(m.text,{voice:m.voice,speed:m.speed||1});
     if(!preparedVoices.has(m.voice)){preparedVoices.add(m.voice);say({type:'voice-ready',voice:m.voice})}
     let samples=out.audio;
     if(samples.byteOffset!==0||samples.byteLength!==samples.buffer.byteLength)samples=samples.slice();
