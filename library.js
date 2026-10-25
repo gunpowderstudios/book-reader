@@ -133,7 +133,7 @@ function render(){
  if(empty){
   empty.hidden=books.length>0;
   empty.textContent=available
-   ?'Your library is empty. Use “Add EPUB” (or “Open EPUB” at the top) and the book is saved here with your place in it.'
+   ?'Your library is empty. Use “Load a Book” at the top and the book will be saved here with your place in it.'
    :'Saving books is not available in this browser mode (private browsing blocks it). You can still open an EPUB and your place is remembered by the browser.';
  }
  renderStorage();
