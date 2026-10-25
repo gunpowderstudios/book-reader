@@ -1,5 +1,8 @@
 # Book Reader — Version history
 
+## v1.11.4 — 25 October 2026
+- Renamed the Book Reader navigation tab to **Now Reading** to make its purpose clearer.
+
 ## v1.11.3 — 25 October 2026
 - Removed the redundant large My Library heading while retaining the navigation tab.
 - Bottom Play now reopens and resumes the most recent saved book when no book is loaded; removed the duplicate saved Conan card and the redundant Add EPUB control.
