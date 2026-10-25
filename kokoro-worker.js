@@ -74,8 +74,8 @@ function load(voice,mode){
   say({type:'stage',stage:'library'});
   lib=await import(KOKORO_URL);
   if(mode==='gpu'){
-   if(!self.navigator||!self.navigator.gpu)throw new Error('WebGPU is not available in this browser');
-   if(!(await self.navigator.gpu.requestAdapter()))throw new Error('no compatible graphics adapter was found');
+   if(!self.navigator||!self.navigator.gpu)throw new Error('this browser cannot use the graphics chip');
+   if(!(await self.navigator.gpu.requestAdapter()))throw new Error('no suitable graphics chip was found');
   }
   /* Threads must be chosen explicitly: Standard is always single-threaded (even on an isolated page, where the
      library would otherwise pick several threads and need far more memory). */
