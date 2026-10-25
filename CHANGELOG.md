@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.12.6 — 25 October 2026
+- On mobile, playback controls are no longer fixed to the bottom of the screen. The full player becomes a standalone panel beneath the active tab’s opening description.
+- Player buttons stack and wrap for narrow phones; desktop retains the existing fixed playback bar.
+
 ## v1.12.5 — 25 October 2026
 - Returned status and performance settings to a persistent right-hand column, visible alongside each tab.
 - On smaller screens, the settings panel stacks below the main content, with controls contained within the viewport.
