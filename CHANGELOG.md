@@ -7,6 +7,9 @@
 - Added a Free Books navigation tab (desktop and mobile), linking to five public-domain ebook resources with a short explanation of copyright and EPUB loading.
 - Left Claude’s existing playback, narrator, and reader implementation unchanged.
 
+## v1.12.47 — 25 October 2026
+- **“📖 Now Reading” tab is back** (after My Library): it shows the book you are playing, with its chapters, the paragraphs and the yellow word highlight, so you can get back to it from any other page.
+
 ## v1.12.46 — 25 October 2026
 Long “getting a head start” wait and a Start now button that did nothing (found from your screenshot, MacBook, Emma).
 - **Start now works.** The button was being rebuilt every half second, so clicks often landed on a button that had just been replaced. It is now kept in place.
