@@ -1,5 +1,9 @@
 # Book Reader — Version history
 
+## v1.12.4 — 25 October 2026
+- Moved voice status and performance settings into a shared panel above all tab content.
+- Reworked layout to prevent the Automatic performance selector overflowing the page on narrow displays.
+
 ## v1.12.3 — 25 October 2026
 - Both header logo versions (desktop and mobile) now link to the reader home page.
 
