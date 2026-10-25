@@ -25,12 +25,14 @@ function db(){
  return dbTask;
 }
 const tx=(mode,work)=>db().then(d=>new Promise((resolve,reject)=>{const t=d.transaction(STORE,mode),res={v:undefined};t.oncomplete=()=>resolve(res.v);t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error);work(t.objectStore(STORE),res)}));
-async function get(v,text){const row=await tx('readonly',(st,res)=>{const q=st.get(clipKey(v,norm(text)));q.onsuccess=()=>{res.v=q.result}});return row&&row.blob&&row.blob.size>44?row.blob:null}
-function put(v,text,blob){return tx('readwrite',st=>{st.put({blob,at:Date.now()},clipKey(v,norm(text)))})}
+/* Audio is stored as plain bytes (not Blob objects), which Safari handles far more reliably in IndexedDB. */
+const toBlob=row=>row&&row.buf&&row.buf.byteLength>44?new Blob([row.buf],{type:'audio/wav'}):(row&&row.blob&&row.blob.size>44?row.blob:null);
+async function get(v,text){const row=await tx('readonly',(st,res)=>{const q=st.get(clipKey(v,norm(text)));q.onsuccess=()=>{res.v=q.result}});return toBlob(row)}
+async function put(v,text,blob){const buf=await blob.arrayBuffer();return tx('readwrite',st=>{st.put({buf,at:Date.now()},clipKey(v,norm(text)))})}
 /* Short-lived storage for passages prepared ahead during normal listening (kept out of memory; removed once played or stopped). */
 const tmpKey=k=>'tmp|'+fingerprint(k);
-const putTemp=(k,blob)=>tx('readwrite',st=>{st.put({blob,at:Date.now()},tmpKey(k))});
-const getTemp=k=>tx('readonly',(st,res)=>{const q=st.get(tmpKey(k));q.onsuccess=()=>{res.v=q.result}}).then(r=>{if(r&&r.blob)return r.blob;throw new Error('missing')});
+const putTemp=async(k,blob)=>{const buf=await blob.arrayBuffer();return tx('readwrite',st=>{st.put({buf,at:Date.now()},tmpKey(k))})};
+const getTemp=k=>tx('readonly',(st,res)=>{const q=st.get(tmpKey(k));q.onsuccess=()=>{res.v=q.result}}).then(r=>{const b=toBlob(r);if(b)return b;throw new Error('missing')});
 const dropTemp=k=>tx('readwrite',st=>{st.delete(tmpKey(k))});
 const purgeTemp=()=>tx('readwrite',st=>{st.delete(IDBKeyRange.bound('tmp|','tmp|\uffff'))}).catch(()=>{});
 const savedKeys=()=>tx('readonly',(st,res)=>{const q=st.getAllKeys();q.onsuccess=()=>{res.v=new Set(q.result.filter(k=>typeof k==='string'&&!k.startsWith('tmp|')))}}).then(x=>x||new Set());

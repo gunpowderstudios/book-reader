@@ -1,5 +1,13 @@
 # Book Reader — Version history
 
+## v1.12.27 — 25 October 2026
+Playback stopping/jolting report after v1.12.26. Not reproducible in desktop Chromium with a stand-in voice (gaps between passages stayed around 15 ms), so these are the changes most likely to have caused it on real devices; please confirm on your device.
+- **Graphics chip mode is no longer chosen by Automatic.** It is untested on real hardware, so it is an opt-in "experimental" choice again; Automatic goes back to Fast (computers) or Low Memory.
+- **The head-start wait is capped at about 2½ minutes.** Before, a slow device could be asked to wait up to 10–20 minutes, which looks like it has stopped. Start now remains available.
+- **The voice engine no longer starts at page open on phones and tablets** (it still starts when a book is opened or Play is pressed), to avoid memory pressure there.
+- **Saved and parked audio is stored as plain data instead of Blob objects** (more reliable in Safari), and a slow or stuck browser database can no longer delay speech: lookups time out after 0.4 s and parked passages after 1.5 s, then the passage is generated instead.
+- The lock-screen "now playing" info is set once per chapter instead of every passage.
+
 ## v1.12.26 — 25 October 2026
 Faster starts and fewer gaps. Tested in real Chromium with a stand-in voice (42 checks across two suites); real speed on your devices, WebGPU on real hardware and iPhone/iPad Safari are not tested here.
 - **Head start instead of repeated pauses.** After the first two passages the reader measures how fast the voice is. If it is slower than your listening speed it works out how much audio must be ready to read the rest without stopping, shows "Getting ahead so George can read without stopping: 1m 05s of 3m 40s ready (about 2m 10s to go)", and starts automatically. A **Start now (may pause)** button skips the wait. In the test (voice at 0.6× speed) reading then had no pauses. A fast voice never waits. Prepared chapters start at once.
