@@ -1,3 +1,7 @@
+## v1.12.74 — 26 October 2026
+- Mobile-only: added a compact live voice-loading ribbon above the fixed bottom player, mirroring the existing Kokoro status/progress without modifying voice processing. It shows loading percentage where available, animates while preparing, and disappears when ready.
+- Improved phone player touch targets, Play button emphasis, safe-area padding and spacing; desktop layout unchanged.
+
 ## v1.12.72 — 26 October 2026
 - Made the desktop bottom playback strip approximately 80% larger with more generous buttons, text, spacing and padding at widths above 900px. Mobile playback layout remains unchanged.
 
