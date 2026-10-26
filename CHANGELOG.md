@@ -1,3 +1,6 @@
+## v1.12.62 — 26 October 2026
+- Returned the playback controls to a compact fixed strip at the bottom on desktop and mobile, moving the existing controls out of the right-hand voice status panel without recreating or altering their playback logic.
+
 ## v1.12.57 — 26 October 2026
 
 - The head-start message now reads "Isabella is getting a head start to read without stopping." (no "he", so it suits every narrator).
