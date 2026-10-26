@@ -1,3 +1,6 @@
+## v1.12.63 — 26 October 2026
+- Centre the E.D.D.i. long logo and 'Your FREE AI Book Reader' slogan as one horizontal group in the black masthead, retaining the Load a Book control on the right and the compact bottom player.
+
 ## v1.12.62 — 26 October 2026
 - Returned the playback controls to a compact fixed strip at the bottom on desktop and mobile, moving the existing controls out of the right-hand voice status panel without recreating or altering their playback logic.
 
