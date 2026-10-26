@@ -717,7 +717,35 @@ function showRecommendation(){
 window.addEventListener('pagehide',()=>store.set('cv-trying',''));
 /* Start the voice engine in the background when the page opens, if it is already installed, so Play is near-instant. */
 setTimeout(()=>{try{if(!mobileDevice()&&installed()&&!worker&&!readyPromise&&!(navigator.connection&&navigator.connection.saveData))ready().catch(()=>{})}catch(_){}},1500);
-window.chapterKokoro={toggle,stop,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,recommendMode:suggestedMode,isMobile:mobileDevice,generateClip:(text,id)=>synth(text,VOICES[id]?id:currentVoice(),{speed:1}),chapterClips:chapterClips,style:styleNow,currentVoice,voices:VOICES,splitText:(text)=>chunks(text),version:VERSION,
+/* Compact skip controls: seek precisely within the current WAV clip.
+   When a 30-second jump crosses a clip boundary, choose the closest
+   paragraph using a reading-duration estimate and restart narration. */
+function skipSeconds(seconds,S,update){
+ if(!S?.chapters?.length)return;
+ const duration=Number.isFinite(player.duration)?player.duration:0;
+ if(playerURL&&duration>0&&Number.isFinite(player.currentTime)){
+  const next=player.currentTime+seconds;
+  if(next>=0&&next<duration-.15){player.currentTime=next;return}
+  seconds=next<0?next:next-duration;
+ }
+ const ps=S.chapters[S.index]?.paragraphs||[];
+ if(!ps.length)return;
+ const paragraphSeconds=t=>Math.max(2,String(t||'').trim().split(/\s+/).length/Math.max(.6,rate())/2.5);
+ let p=Math.max(0,Math.min(ps.length-1,S.p)),remaining=Math.abs(seconds),dir=seconds<0?-1:1;
+ while(remaining>0){
+  const next=p+dir;
+  if(next<0||next>=ps.length)break;
+  p=next;remaining-=paragraphSeconds(ps[p]);
+ }
+ if(p===S.p&&dir<0&&p>0)p--;
+ if(p===S.p&&dir>0&&p<ps.length-1)p++;
+ if(p===S.p)return;
+ const resume=!!session&&!session.cancelled&&!session.paused;
+ stop();S.playing=false;S.paused=false;S.p=p;update();
+ if(resume){const button=$('play');if(button)button.textContent='▶ Play';toggle({S,update,render:window.chapterApp?.render})}
+}
+
+window.chapterKokoro={toggle,stop,skipSeconds,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,recommendMode:suggestedMode,isMobile:mobileDevice,generateClip:(text,id)=>synth(text,VOICES[id]?id:currentVoice(),{speed:1}),chapterClips:chapterClips,style:styleNow,currentVoice,voices:VOICES,splitText:(text)=>chunks(text),version:VERSION,
  refreshNarrator:()=>{renderEngine();renderBuffer()},stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode}),measured:()=>Number(store.get('cv-measured-'+mode,'0'))};
 
 window.eddiPlaybackDiagnostics=()=>({version:VERSION,threads:eng.threads||1,modePreference:preference,actualMode:eng.used||mode,enginePhase:eng.phase,modelStartSeconds:eng.sec||null,firstSpeechSeconds:playbackDiagnostics.firstSpeechMs===null?null:playbackDiagnostics.firstSpeechMs/1000,generationSpeed:Math.round(lastSpeed*10)/10,bufferReadySeconds:Math.round(bufInfo.ready||0),bufferTargetSeconds:Math.round(bufInfo.target||0),bufferWaits:bufInfo.waits||0,bufferWaitSeconds:Math.round(bufInfo.waitSec||0),audioClipsStarted:playbackDiagnostics.clipsPlayed,audioErrors:playbackDiagnostics.audioErrors});
