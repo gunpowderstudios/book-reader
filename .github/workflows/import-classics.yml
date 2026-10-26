@@ -17,7 +17,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import os, time, urllib.request, zipfile
-          books={'1342':'pride-and-prejudice','2701':'moby-dick','1260':'jane-eyre','84':'frankenstein','174':'dorian-gray','1661':'sherlock-holmes','829':'gullivers-travels','345':'dracula'}
+          books={'1342':'pride-and-prejudice','2701':'moby-dick','1260':'jane-eyre','84':'frankenstein','174':'dorian-gray','1661':'sherlock-holmes','829':'gullivers-travels','345':'dracula','36':'war-of-the-worlds'}
           os.makedirs('books/classics',exist_ok=True)
           os.makedirs('images/classics',exist_ok=True)
           for book_id, slug in books.items():
