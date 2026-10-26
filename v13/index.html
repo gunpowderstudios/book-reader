@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#12201b">
+<title>E.D.D.i. v13.0 — Audiobook Lab</title>
+<style>
+:root{color-scheme:dark;font:16px system-ui,Arial,sans-serif;background:#12201b;color:#f2f8ee}body{margin:0}
+header{background:#07110c;border-bottom:1px solid #345640;padding:18px max(20px,calc((100% - 1020px)/2))}
+header a{color:#badaba;text-decoration:none} main{max-width:1020px;margin:32px auto;padding:0 20px}
+h1{font-size:clamp(26px,4vw,42px);margin-bottom:6px}h2{margin-top:0}
+.lead{color:#c0dac8;font-size:18px}.tag{color:#14251a;background:#d1f869;border-radius:9px;font-size:12px;font-weight:800;padding:6px 10px}
+.panel{padding:25px;border-radius:16px;background:#1b3025;border:1px solid #446650;margin-top:22px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+button,.button{background:#d1f869;color:#15251b;padding:11px 15px;border:0;border-radius:9px;font-weight:750;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}input,select{max-width:100%;color:#fff}input[type=file]{display:block;margin:16px 0}
+audio{width:100%;margin:13px 0}small,p.note{color:#bbd0c0}a{color:#d1f869}
+#track-list{display:flex;flex-wrap:wrap;gap:8px;padding:8px 0}#track-list button{background:#365a42;color:#fff}#track-list button[aria-current=true]{background:#d1f869;color:#12201b}
+.status{min-height:1.5em;color:#d1f869}.warn{border-left:3px solid #d1f869;padding-left:15px}
+</style></head>
+<body><header><a href="../">← Original E.D.D.i. reader</a></header><main>
+<span class="tag">SEPARATE TEST PAGE · v13.0</span>
+<h1>E.D.D.i. Audiobook Lab</h1>
+<p class="lead">The experiment: create a book once, then listen without making your device generate AI speech as it plays.</p>
+<p class="note warn">This is an early test page, not the finished audiobook creator. The original E.D.D.i. and its books are unchanged.</p>
+<div class="grid">
+<section class="panel"><h2>1. Audiobook Creator</h2><p>Planned workflow: choose an EPUB, select Lewis or Emma, prepare its narration, then export one <code>.eddi</code> package.</p>
+<label for="voice">First two narrators</label><select id="voice"><option value="bm_lewis">Lewis — British male</option><option value="bf_emma">Emma — British female</option></select>
+<p><button disabled title="Not implemented yet">Create .eddi (coming next)</button></p>
+<small>Creating chapters using the AI engine is the next development stage; this button is intentionally disabled.</small></section>
+<section class="panel"><h2>2. Lightweight Player</h2><p>Test the planned package playback approach. Open a <code>.eddi</code> ZIP package containing a <code>manifest.json</code> and audio tracks.</p>
+<label for="package">Open .eddi file</label><input id="package" type="file" accept=".eddi,.zip,application/zip">
+<p id="status" role="status" class="status">No audiobook loaded.</p>
+<div id="book-info"></div><div id="track-list"></div>
+<audio id="player" controls preload="metadata"></audio>
+<small>Does not load the AI model. Importing packages currently needs the ZIP library online or cached; offline playback is not yet verified.</small></section>
+</div>
+<section class="panel"><h2>What we're proving</h2>
+<p>A completed audiobook can contain book metadata and audio files, and a separate player can open them without running Kokoro or buffering generated speech. Next we'll connect E.D.D.i.'s EPUB parser and audio creator, then test a complete chapter offline.</p>
+<p><a href="https://github.com/gunpowderstudios/book-reader/blob/eddi-v13-experiment/V13-PLAN.md">Read the v13.0 development plan</a></p></section></main>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
+<script>
+(()=>{
+const $=id=>document.getElementById(id),status=$('status'),player=$('player'),list=$('track-list');
+let tracks=[],objects=[],current=-1;
+const clean=()=>{player.pause();player.removeAttribute('src');player.load();objects.forEach(URL.revokeObjectURL);objects=[];tracks=[];list.replaceChildren();current=-1;};
+function play(n){if(n<0||n>=tracks.length)return;current=n;player.src=tracks[n].url;[...list.children].forEach((b,i)=>b.setAttribute('aria-current',String(i===n)));player.play().catch(()=>{});}
+player.addEventListener('ended',()=>{if(current+1<tracks.length)play(current+1)});
+$('package').addEventListener('change',async ev=>{
+clean();const file=ev.target.files[0];if(!file)return;
+status.textContent='Opening package…';
+try{
+if(!window.JSZip)throw Error('ZIP support is not loaded. Connect to the internet for this prototype.');
+const zip=await JSZip.loadAsync(file);const manifestFile=zip.file('manifest.json');if(!manifestFile)throw Error('Missing manifest.json');
+const m=JSON.parse(await manifestFile.async('string'));
+if(m.format!=='eddi-audiobook'||m.formatVersion!==1)throw Error('Unsupported .eddi format or version');
+const entries=Array.isArray(m.chapters)?m.chapters:[];const paths=[];
+for(const ch of entries){
+if(typeof ch.audio==='string')paths.push({name:ch.title||'Chapter',path:ch.audio});
+else if(Array.isArray(ch.segments))for(const item of ch.segments)if(typeof item.audio==='string')paths.push({name:(ch.title||'Chapter')+' · '+(paths.length+1),path:item.audio});
+}
+if(!paths.length)throw Error('No chapter audio referenced in the manifest');
+if(paths.length>1500)throw Error('Too many audio entries for this prototype');
+for(const entry of paths){
+if(entry.path.startsWith('/')||entry.path.includes('..'))throw Error('Unsafe audio path');
+const f=zip.file(entry.path);if(!f)throw Error('Missing audio: '+entry.path);
+const ext=entry.path.split('.').pop().toLowerCase(),type=({mp3:'audio/mpeg',m4a:'audio/mp4',aac:'audio/aac',ogg:'audio/ogg',opus:'audio/ogg',wav:'audio/wav'})[ext]||'application/octet-stream';
+const blob=await f.async('blob');const url=URL.createObjectURL(new Blob([blob],{type}));objects.push(url);tracks.push({name:entry.name,url});
+}
+$('book-info').textContent=(m.title||file.name)+' — '+(m.author||'Unknown author')+' · '+(m.voice||'');
+tracks.forEach((t,i)=>{const b=document.createElement('button');b.textContent=t.name;b.onclick=()=>play(i);list.appendChild(b)});
+status.textContent='Package loaded: '+tracks.length+' audio tracks. Press Play to listen.';play(0);
+}catch(e){clean();status.textContent='Cannot open package: '+e.message;}
+});
+window.addEventListener('pagehide',clean);
+})();
+</script></body></html>
