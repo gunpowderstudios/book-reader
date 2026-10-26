@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#12201b">
-<title>E.D.D.i. Book Capsule — v13.2</title>
+<title>E.D.D.i. Book Capsule — v13.3</title>
 <style>
 :root{color-scheme:dark;font:16px system-ui,Arial,sans-serif;background:#12201b;color:#f2f8ee}body{margin:0}
 header{background:#07110c;border-bottom:1px solid #345640;padding:18px max(20px,calc((100% - 1020px)/2))}
@@ -17,7 +17,7 @@ audio{width:100%;margin:13px 0}small,p.note{color:#bbd0c0}a{color:#d1f869}
 .status{min-height:1.5em;color:#d1f869}.warn{border-left:3px solid #d1f869;padding-left:15px}
 </style></head>
 <body><header><a href="../">← Original E.D.D.i. reader</a></header><main>
-<span class="tag">SEPARATE TEST PAGE · v13.2</span>
+<span class="tag">SEPARATE TEST PAGE · v13.3</span>
 <h1>Book Capsule</h1>
 <p class="lead">No Wi-Fi in space! Prepare your audiobook once, then take it anywhere — even offline.</p>
 <p class="note warn">This is an early test page, not the finished audiobook creator. The original E.D.D.i. and its books are unchanged.</p>
@@ -27,11 +27,11 @@ audio{width:100%;margin:13px 0}small,p.note{color:#bbd0c0}a{color:#d1f869}
 <label for="voice">Narrator</label> <select id="voice"><option value="bm_lewis">Lewis — British male</option><option value="bf_emma">Emma — British female</option></select>
 <p id="selected-book" class="status">Choose a book to begin.</p>
 <p><label for="chapter">Chapter</label> <select id="chapter" disabled></select></p>
-<p><label for="scope">Prepare</label> <select id="scope"><option value="sample">Test Sample (6 clips)</option><option value="chapter">Complete Chapter</option></select></p>
+<p><label for="scope">Prepare</label> <select id="scope"><option value="sample">Test Sample (6 clips)</option><option value="chapter">Complete Chapter</option><option value="book">Complete Book (stress test)</option></select></p>
 <p><label for="track-mode">Playback</label> <select id="track-mode"><option value="continuous">Continuous chapter (smooth)</option><option value="segments">Individual passages</option></select></p><p><button id="create-capsule" disabled>Create Book Capsule</button> <button id="cancel-capsule" disabled>Cancel</button></p>
 <progress id="make-progress" max="100" value="0" style="width:100%;accent-color:#d1f869"></progress>
-<p id="make-status" class="status" role="status" aria-live="polite">Choose a book and chapter. Complete chapters may take significant time and storage.</p>
-<small>Sample makes 6 clips; Complete Chapter prepares every passage in the selected chapter. Finished passages are saved in this browser for resuming after cancellation or refresh. Keep this tab open while generating. Continuous mode joins passages into one smooth chapter track. WAV is still large; ZIP compression helps modestly. Start with a short chapter. Browser storage may be cleared by the device.</small></section>
+<p id="debug-readout" class="status" aria-live="polite">Diagnostics: idle</p><p><button id="debug-download" type="button">Download Debug Report</button></p><p id="make-status" class="status" role="status" aria-live="polite">Choose a book and chapter. Complete chapters may take significant time and storage.</p>
+<small>Sample makes 6 clips; Complete Chapter prepares one chapter; Complete Book stress-tests all chapters. Each passage is saved before moving on. If it stalls, use the debug report. Very long books can exhaust browser memory or storage. Finished passages are saved in this browser for resuming after cancellation or refresh. Keep this tab open while generating. Continuous mode joins passages into one smooth chapter track. WAV is still large; ZIP compression helps modestly. Start with a short chapter. Browser storage may be cleared by the device.</small></section>
 <section class="panel"><h2>2. Open Your Capsule</h2><p>Test the planned package playback approach. Open a <code>.eddi</code> ZIP package containing a <code>manifest.json</code> and audio tracks.</p>
 <label for="package">Open .eddi file</label><input id="package" type="file" accept=".eddi,.zip,application/zip">
 <p id="status" role="status" class="status">No audiobook loaded.</p>
@@ -41,7 +41,7 @@ audio{width:100%;margin:13px 0}small,p.note{color:#bbd0c0}a{color:#d1f869}
 </div>
 <section class="panel"><h2>What we're proving</h2>
 <p>A completed audiobook can contain book metadata and audio files, and a separate player can open them without running Kokoro or buffering generated speech. Next we'll connect E.D.D.i.'s EPUB parser and audio creator, then test a complete chapter offline.</p>
-<p><a href="https://github.com/gunpowderstudios/book-reader/blob/eddi-v13-experiment/V13-PLAN.md">Read the v13.2 development plan</a></p></section></main>
+<p><a href="https://github.com/gunpowderstudios/book-reader/blob/eddi-v13-experiment/V13-PLAN.md">Read the v13.3 development plan</a></p></section></main>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
 <script>
 (()=>{
@@ -80,7 +80,7 @@ window.addEventListener('pagehide',clean);
 })();
 </script>
 <script>
-/* Book Capsule v13.2: complete chapter packaging with resumable IndexedDB narration. */
+/* Book Capsule v13.3: complete chapter packaging with resumable IndexedDB narration. */
 (()=>{
 const $=id=>document.getElementById(id),pick=$('epub'),btn=$('create-capsule'),cancel=$('cancel-capsule'),stat=$('make-status'),progress=$('make-progress'),chapter=$('chapter'),scope=$('scope');
 let source=null,work=null;
@@ -163,9 +163,16 @@ function wav(samples,rate){
  v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,rate,true);v.setUint32(28,rate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);str(36,'data');v.setUint32(40,data.length*2,true);
  for(let i=0;i<data.length;i++){const x=Math.max(-1,Math.min(1,data[i]));v.setInt16(44+i*2,x<0?x*32768:x*32767,true)}return buffer;
 }
-function selected(){const index=Number(chapter.value),ch=source?.chapters[index];if(!ch)return null;
- return {index,ch,passages:scope.value==='sample'?ch.passages.slice(0,6):ch.passages};}
-function update(){const sel=selected();if(sel)$('selected-book').textContent=source.title+' — '+source.author+' · '+sel.ch.passages.length+' total clips ('+sel.passages.length+' selected)';}
+function selected(){if(!source)return null;const index=Number(chapter.value),ch=source.chapters[index];if(!ch)return null;
+ const chapters=scope.value==='book'?source.chapters.map((c,i)=>({index:i,ch:c,passages:c.passages})):
+ [{index,ch,passages:scope.value==='sample'?ch.passages.slice(0,6):ch.passages}];
+ return {index,ch,chapters,passages:chapters.flatMap(x=>x.passages)};
+}
+function update(){const sel=selected();if(sel)$('selected-book').textContent=source.title+' — '+source.author+' · '+sel.passages.length+' selected clips across '+sel.chapters.length+' chapter(s)';chapter.disabled=scope.value==='book'||!source;}
+const debug={version:'13.3',events:[],started:null,book:null,voice:null,complete:0,total:0,current:null,errors:[]};
+const diag=$('debug-readout');
+const log=(kind,info={})=>{const ev={time:new Date().toISOString(),elapsedSeconds:debug.started?Math.round((Date.now()-debug.started)/1000):0,kind,...info};debug.events.push(ev);if(debug.events.length>1000)debug.events.shift();diag.textContent='Diagnostics: '+debug.complete+'/'+debug.total+' clips · '+kind+(info.seconds?' · '+info.seconds+'s':'');};
+$('debug-download').onclick=()=>{const blob=new Blob([JSON.stringify({...debug,userAgent:navigator.userAgent,online:navigator.onLine,deviceMemory:navigator.deviceMemory||null},null,2)],{type:'application/json'});const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='book-capsule-debug-v13.3.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),12000)};
 chapter.onchange=update;scope.onchange=update;
 pick.addEventListener('change',async()=>{
  btn.disabled=true;chapter.disabled=true;source=null;progress.value=0;
@@ -180,7 +187,10 @@ cancel.onclick=()=>{if(work){work.cancelled=true;work.worker?.terminate();work.r
 btn.onclick=async()=>{
  if(!source||work)return;
  const sel=selected();if(!sel)return;
- btn.disabled=true;cancel.disabled=false;chapter.disabled=true;pick.disabled=true;scope.disabled=true;progress.value=0;
+ const voice=$('voice').value;
+ debug.started=Date.now();debug.book=source.title;debug.voice=voice;debug.complete=0;debug.total=sel.passages.length;debug.events=[];debug.errors=[];
+ log('started',{chapterCount:sel.chapters.length,mode:scope.value});
+ btn.disabled=true;cancel.disabled=false;chapter.disabled=true;pick.disabled=true;scope.disabled=true;$('track-mode').disabled=true;progress.value=0;
  const token={cancelled:false,worker:null,reject:null};work=token;
  let id=0;
  function ask(type,data){
@@ -188,69 +198,71 @@ btn.onclick=async()=>{
    token.reject=reject;
    const handler=event=>{
     const m=event.data||{};
-    if(m.type==='stage')stat.textContent='Preparing voice engine: '+m.stage+'…';
+    if(m.type==='stage'){stat.textContent='Voice engine: '+m.stage+'…';log('engine-'+m.stage)}
     if(m.type==='progress'&&m.total)stat.textContent='Downloading AI model: '+Math.round(m.loaded/m.total*100)+'%';
-    if(m.type==='init-error'||m.type==='error'&&(m.id===id||!m.id)){token.worker.removeEventListener('message',handler);reject(Error(m.message||'Speech generation failed'))}
-    if((type==='init'&&m.type==='ready')||(type==='generate'&&m.type==='audio'&&m.id===id)){
-      token.worker.removeEventListener('message',handler);resolve(m)
-    }
+    if(m.type==='init-error'||(m.type==='error'&&(m.id===id||!m.id))){token.worker.removeEventListener('message',handler);reject(Error(m.message||'Speech generation failed'))}
+    if((type==='init'&&m.type==='ready')||(type==='generate'&&m.type==='audio'&&m.id===id)){token.worker.removeEventListener('message',handler);resolve(m)}
    };
+   const watchdog=setTimeout(()=>{token.worker.removeEventListener('message',handler);log('stall-warning',{operation:type,seconds:120});stat.textContent='Warning: no speech response after 2 minutes. Cancel to save progress or continue waiting.';},120000);
    token.worker.addEventListener('message',handler);
+   const oldResolve=resolve,oldReject=reject;
+   resolve=v=>{clearTimeout(watchdog);oldResolve(v)};
+   reject=e=>{clearTimeout(watchdog);oldReject(e)};
+   token.reject=reject;
    token.worker.postMessage(type==='init'?{type:'init',voice:data.voice,mode:'standard'}:{type:'generate',id,text:data.text,voice:data.voice,speed:1});
   });
  }
  try{
   if(!window.JSZip)throw Error('ZIP library unavailable');
-  const voice=$('voice').value,zip=new JSZip(),segments=[],continuousParts=[],total=sel.passages.length;
-  if(!total)throw Error('This chapter has no narration text');
-  if(total>1500)throw Error('This chapter has over 1,500 clips; split into smaller chapters for this prototype.');
-  for(let i=0;i<total;i++){
-   if(token.cancelled)throw Error('Cancelled');
-   const text=sel.passages[i],key=[source.bookId,sel.index,voice,i,text].join('|');
-   let audio=await read(key);
-   if(!audio){
-    if(!token.worker){
-     token.worker=new Worker('../kokoro-worker.js?v=13.1',{type:'module'});
-     stat.textContent='Starting speech model…';await ask('init',{voice});
+  const zip=new JSZip(),chapterMetas=[],fullCount=sel.passages.length;
+  if(!fullCount)throw Error('No readable passages in selected book');
+  if(fullCount>8000)throw Error('Over 8,000 passages: reduce book size for this experimental version');
+  let globalIndex=0;
+  for(const entry of sel.chapters){
+   const segments=[],continuousParts=[];
+   const continuous=$('track-mode').value==='continuous';
+   for(let i=0;i<entry.passages.length;i++){
+    if(token.cancelled)throw Error('Cancelled');
+    const text=entry.passages[i],key=[source.bookId,entry.index,voice,i,text].join('|');
+    const start=performance.now();let audio=await read(key),cached=!!audio;
+    if(!audio){
+     if(!token.worker){token.worker=new Worker('../kokoro-worker.js?v=13.3',{type:'module'});log('engine-init');await ask('init',{voice})}
+     id++;stat.textContent='Chapter '+(entry.index+1)+'/'+source.chapters.length+' · Generating '+(i+1)+'/'+entry.passages.length+' · Total '+(globalIndex+1)+'/'+fullCount;
+     const m=await ask('generate',{voice,text});
+     audio=wav(m.samples,m.rate||24000);
+     await save(key,audio);
     }
-    id++;stat.textContent='Generating passage '+(i+1)+' of '+total+'…';
-    const m=await ask('generate',{voice,text});
-    audio=wav(m.samples,m.rate||24000);
-    await save(key,audio);
-   }else{stat.textContent='Reusing saved passage '+(i+1)+' of '+total+'…'}
-   const name='audio/'+String(sel.index+1).padStart(3,'0')+'/'+String(i+1).padStart(4,'0')+'.wav';
-   if($('track-mode').value==='continuous')continuousParts.push(audio);else zip.file(name,audio);segments.push({audio:name,text});progress.value=Math.round((i+1)/total*85);
-  }
-  const continuous=$('track-mode').value==='continuous';
-  let chapterMeta={title:sel.ch.title,chapterIndex:sel.index,segments};
-  if(continuous){
-   stat.textContent='Joining the chapter into one smooth audio track…';
-   let totalBytes=44,rate=0;
-   for(const part of continuousParts){
-    const view=new DataView(part),r=view.getUint32(24,true);
-    if(rate&&rate!==r)throw Error('Different WAV sample rates');rate=r;
-    totalBytes+=part.byteLength-44;
+    const name='audio/'+String(entry.index+1).padStart(3,'0')+'/'+String(i+1).padStart(4,'0')+'.wav';
+    if(continuous)continuousParts.push(audio);else zip.file(name,audio);
+    segments.push({audio:name,text});globalIndex++;debug.complete=globalIndex;
+    const sec=Math.round((performance.now()-start)/100)/10;
+    log(cached?'cached':'generated',{chapter:entry.index+1,passage:i+1,seconds:sec,bytes:audio.byteLength});
+    progress.value=Math.round(globalIndex/fullCount*85);
    }
-   if(totalBytes>180*1024*1024)throw Error('Chapter exceeds 180 MB continuous-track limit. Choose individual passages.');
-   const merged=new ArrayBuffer(totalBytes),data=new Uint8Array(merged),head=new DataView(merged);
-   data.set(new Uint8Array(continuousParts[0],0,44));
-   head.setUint32(4,totalBytes-8,true);head.setUint32(40,totalBytes-44,true);
-   let offset=44;
-   for(const part of continuousParts){const pcm=new Uint8Array(part,44);data.set(pcm,offset);offset+=pcm.length}
-   const audioPath='audio/'+String(sel.index+1).padStart(3,'0')+'/complete.wav';
-   zip.file(audioPath,merged);
-   chapterMeta={title:sel.ch.title,chapterIndex:sel.index,audio:audioPath};
+   let chapterMeta={title:entry.ch.title,chapterIndex:entry.index,segments};
+   if(continuous&&continuousParts.length){
+    let bytes=44,rate=0;
+    for(const part of continuousParts){const v=new DataView(part),r=v.getUint32(24,true);if(rate&&rate!==r)throw Error('WAV rate mismatch');rate=r;bytes+=part.byteLength-44}
+    if(bytes>180*1024*1024)throw Error('Chapter WAV exceeds 180 MB; use Individual Passages for complete books.');
+    const merged=new ArrayBuffer(bytes),data=new Uint8Array(merged),head=new DataView(merged);
+    data.set(new Uint8Array(continuousParts[0],0,44));head.setUint32(4,bytes-8,true);head.setUint32(40,bytes-44,true);
+    let pos=44;for(const part of continuousParts){const pcm=new Uint8Array(part,44);data.set(pcm,pos);pos+=pcm.length}
+    const name='audio/'+String(entry.index+1).padStart(3,'0')+'/complete.wav';zip.file(name,merged);
+    chapterMeta={title:entry.ch.title,chapterIndex:entry.index,audio:name};
+   }
+   chapterMetas.push(chapterMeta);
+   log('chapter-complete',{chapter:entry.index+1});
   }
   zip.file('book.epub',source.file);
-  zip.file('segments.json',JSON.stringify(segments));
-  zip.file('manifest.json',JSON.stringify({format:'eddi-audiobook',formatVersion:1,title:source.title,author:source.author,voice,audioCodec:'pcm-wav',chapters:[chapterMeta]}));
-  stat.textContent='Packing your capsule…';
-  const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:3}},meta=>{progress.value=85+Math.round(meta.percent*.15)});
+  zip.file('manifest.json',JSON.stringify({format:'eddi-audiobook',formatVersion:1,title:source.title,author:source.author,voice,audioCodec:'pcm-wav',chapters:chapterMetas}));
+  zip.file('debug.json',JSON.stringify(debug,null,2));
+  stat.textContent='Packing capsule — browser memory use may be substantial…';log('packing');
+  const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:2}},meta=>{progress.value=85+Math.round(meta.percent*.15)});
   if(token.cancelled)throw Error('Cancelled');
-  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(source.title.replace(/[^a-z0-9 -]/gi,'').trim()||'Book')+' - chapter '+(sel.index+1)+(scope.value==='sample'?' sample':'')+'.eddi';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
-  progress.value=100;stat.textContent='Capsule created! Open the downloaded .eddi file in the player on the right.';
- }catch(e){stat.textContent='Creation stopped: '+e.message+'. Generated clips remain available to resume.'}
- finally{token.worker?.terminate();if(work===token)work=null;btn.disabled=!source;cancel.disabled=true;chapter.disabled=!source;pick.disabled=false;scope.disabled=false}
-};
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(source.title.replace(/[^a-z0-9 -]/gi,'').trim()||'Book')+(scope.value==='book'?' - full book':' - chapter '+(sel.index+1))+'.eddi';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
+  progress.value=100;log('finished',{bytes:blob.size});stat.textContent='Capsule exported! File size: '+(blob.size/1048576).toFixed(1)+' MB. Download the debug report to review performance.';
+ }catch(e){debug.errors.push(String(e));log('failed',{message:e.message});stat.textContent='Stopped: '+e.message+'. Completed speech remains saved for resume.'}
+ finally{token.worker?.terminate();if(work===token)work=null;btn.disabled=!source;cancel.disabled=true;chapter.disabled=!source&&scope.value!=='book';pick.disabled=false;scope.disabled=false;$('track-mode').disabled=false;update()}
+}
 })();
 </script></body></html>
