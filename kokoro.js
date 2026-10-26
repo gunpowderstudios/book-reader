@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.56';
+const VERSION='1.12.57';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -381,7 +381,7 @@ function renderBuffer(){
    hintEl.hidden=false;
    /* keep the same button between refreshes: replacing it every half second made clicks miss */
    if(!hintEl.querySelector('button[data-start]')){const b=document.createElement('button');b.dataset.start='1';b.textContent='Start now (may pause)';b.onclick=()=>{if(session){session.startNow=true;status('Start requested — George must finish generating the first speech clip before it can play.');b.textContent='Starting when speech is ready…';b.disabled=true}};
-    hintEl.replaceChildren(document.createTextNode(named('George is getting a head start so he can read without stopping. ')),b)}
+    hintEl.replaceChildren(document.createTextNode(named('George is getting a head start to read without stopping. ')),b)}
   }else if(h){
    hintEl.hidden=false;hintEl.replaceChildren(document.createTextNode(named(h.text)+' '));
   }else{hintEl.hidden=true;hintEl.replaceChildren()} /* drop the old Start now button so the next head start gets a fresh one */

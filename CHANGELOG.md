@@ -1,3 +1,7 @@
+## v1.12.57 — 26 October 2026
+
+- The head-start message now reads "Isabella is getting a head start to read without stopping." (no "he", so it suits every narrator).
+
 ## v1.12.56 — 26 October 2026
 
 - Fixed the report wrongly saying "WebAssembly SIMD: No" on every device (the check itself was faulty; it did not affect narration).
