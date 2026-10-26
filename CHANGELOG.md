@@ -1,3 +1,7 @@
+## v1.12.79 — 26 October 2026
+- Removed the stale initial ‘Buffering…’ banner. The fixed player now only shows ‘Waiting for George…’ when the engine reports that narration is actually waiting for the next audio passage; background read-ahead is not presented as a stall.
+- Increased desktop playback strip height and vertical spacing, including the progress slider row. Mobile dimensions and synthesis settings are unchanged.
+
 ## v1.12.78 — 26 October 2026
 - Replaced misleading 'Buffering…' banner: when the engine prepares audio while playback continues, show 'George is reading ahead…'; when playback has genuinely stopped for audio, show 'Waiting for George…'. Uses existing playback and buffer state, with no mode or synthesis algorithm changes.
 
