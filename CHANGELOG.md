@@ -1,3 +1,8 @@
+## v1.12.55 — 26 October 2026
+
+- The full device test now shows a spinning "Test running… X of 30 seconds" notice while it works.
+- Copy Report is greyed out until a report exists, then turns yellow so it is easy to spot.
+
 ## v1.12.54 — 26 October 2026
 
 - **Full device test.** Tick the box in Settings > AI Compatibility Test, press Play, and the page restarts clean. Press Play again and it plays for about 30 seconds, then writes the report ready to copy.
