@@ -1,3 +1,6 @@
+## v1.12.77 — 26 October 2026
+- Show the active EPUB cover above the narrator/voice status controls in the desktop right-hand column, scaled to its full available column width. The sidebar cover stays hidden until a book is opened. Mobile audiobook view is unchanged.
+
 ## v1.12.76 — 26 October 2026
 - Mobile Now Reading defaults to an audiobook-style view with a large EPUB cover, title, author and prominent Play/Pause control. The existing bottom player and voice loading/buffering indicators are retained.
 - Added an optional Show book text button to reveal the traditional reading/chapter view. Desktop retains the existing scrolling/highlighted text view. No Kokoro engine changes.
