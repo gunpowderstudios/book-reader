@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.50';
+const VERSION='1.12.51';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -289,6 +289,7 @@ async function pump(){
     await ready();
     if(job.stale()){job.reject(CANCELLED);continue}
     if(job.onGenerate)job.onGenerate();
+    if(awaitingNarration)status('George is generating the first speech passage…');
     job.called=true;
     const r=await call({type:'generate',text:job.text,voice:job.voice,speed:job.speed});
     let pcm=trimSilence(r.samples);const speechSec=pcm.length/r.rate;
@@ -302,6 +303,7 @@ async function pump(){
    }catch(e){
     /* One automatic retry if the voice engine hiccups mid-book (it restarts itself on the next request). */
     if(e!==CANCELLED&&job.called&&job.tries<1&&!job.stale()){job.tries++;job.called=false;queue.unshift(job);status('George hit a snag — trying that passage again…');continue}
+    if(e!==CANCELLED&&!job.stale())window.dispatchEvent(new CustomEvent('eddi-ai-diagnostic',{detail:{mode:runMode||mode,stage:job.called?'Speech generation':'Model preparation',message:String(e?.message||e)}}));
     job.reject(e);
    }
   }
@@ -377,7 +379,7 @@ function renderBuffer(){
   if(active&&session.holding){
    hintEl.hidden=false;
    /* keep the same button between refreshes: replacing it every half second made clicks miss */
-   if(!hintEl.querySelector('button[data-start]')){const b=document.createElement('button');b.dataset.start='1';b.textContent='Start now (may pause)';b.onclick=()=>{if(session)session.startNow=true};
+   if(!hintEl.querySelector('button[data-start]')){const b=document.createElement('button');b.dataset.start='1';b.textContent='Start now (may pause)';b.onclick=()=>{if(session){session.startNow=true;status('Start requested — George must finish generating the first speech clip before it can play.');b.textContent='Starting when speech is ready…';b.disabled=true}};
     hintEl.replaceChildren(document.createTextNode(named('George is getting a head start so he can read without stopping. ')),b)}
   }else if(h){
    hintEl.hidden=false;hintEl.replaceChildren(document.createTextNode(named(h.text)+' '));
@@ -627,7 +629,8 @@ function toggle({S,update,render}){
     showNextPassage(ahead.length?(ahead[0].done?'ready':'working'):(exhausted?'idle':'working'));
    };
    async function holdForHeadStart(firstSec){
-    while(!stale()&&!s.startNow){
+    const deadline=Date.now()+(mobileDevice()?12000:30000); /* avoid endless head-start waiting on slow phones */
+    while(!stale()&&!s.startNow&&Date.now()<deadline){
      await unpause(s);if(stale())return;
      const need=needNow();s.need=need;fill();
      const have=readySec()+firstSec,known=recent.length>=2;
@@ -650,7 +653,7 @@ function toggle({S,update,render}){
     fill();
     await unpause(s);if(stale())return;
     let waitedFrom=0;
-    if(!item.done&&engineReady){waitedFrom=Date.now();bufInfo.waiting=waitedFrom;status('George is catching up…');renderBuffer()}
+    if(!item.done&&engineReady){waitedFrom=Date.now();bufInfo.waiting=waitedFrom;status('George is generating speech for this passage…');renderBuffer()}
     let res;
     if(item.spilled){
      const blob=await within(window.bookOffline.getTemp(tmpKey(item)).catch(()=>null),1500);
