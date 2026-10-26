@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#12201b">
-<title>E.D.D.i. Book Capsule — v13.0</title>
+<title>E.D.D.i. Book Capsule — v13.1</title>
 <style>
 :root{color-scheme:dark;font:16px system-ui,Arial,sans-serif;background:#12201b;color:#f2f8ee}body{margin:0}
 header{background:#07110c;border-bottom:1px solid #345640;padding:18px max(20px,calc((100% - 1020px)/2))}
@@ -17,7 +17,7 @@ audio{width:100%;margin:13px 0}small,p.note{color:#bbd0c0}a{color:#d1f869}
 .status{min-height:1.5em;color:#d1f869}.warn{border-left:3px solid #d1f869;padding-left:15px}
 </style></head>
 <body><header><a href="../">← Original E.D.D.i. reader</a></header><main>
-<span class="tag">SEPARATE TEST PAGE · v13.0</span>
+<span class="tag">SEPARATE TEST PAGE · v13.1</span>
 <h1>Book Capsule</h1>
 <p class="lead">No Wi-Fi in space! Prepare your audiobook once, then take it anywhere — even offline.</p>
 <p class="note warn">This is an early test page, not the finished audiobook creator. The original E.D.D.i. and its books are unchanged.</p>
@@ -26,10 +26,12 @@ audio{width:100%;margin:13px 0}small,p.note{color:#bbd0c0}a{color:#d1f869}
 <label for="epub">Choose an EPUB</label><input id="epub" type="file" accept=".epub,application/epub+zip">
 <label for="voice">Narrator</label> <select id="voice"><option value="bm_lewis">Lewis — British male</option><option value="bf_emma">Emma — British female</option></select>
 <p id="selected-book" class="status">Choose a book to begin.</p>
-<p><button id="create-capsule" disabled>Create test Book Capsule</button> <button id="cancel-capsule" disabled>Cancel</button></p>
+<p><label for="chapter">Chapter</label> <select id="chapter" disabled></select></p>
+<p><label for="scope">Prepare</label> <select id="scope"><option value="sample">Test Sample (6 clips)</option><option value="chapter">Complete Chapter</option></select></p>
+<p><button id="create-capsule" disabled>Create Book Capsule</button> <button id="cancel-capsule" disabled>Cancel</button></p>
 <progress id="make-progress" max="100" value="0" style="width:100%;accent-color:#d1f869"></progress>
-<p id="make-status" class="status" role="status" aria-live="polite">Ready to prepare a short first-chapter sample.</p>
-<small>This first test generates at most 6 short passages from the first readable chapter (roughly 1–3 minutes). It downloads the AI model when needed. The package uses larger WAV files temporarily, to avoid introducing audio-encoding complications.</small></section>
+<p id="make-status" class="status" role="status" aria-live="polite">Choose a book and chapter. Complete chapters may take significant time and storage.</p>
+<small>Sample makes 6 clips; Complete Chapter prepares every passage in the selected chapter. Finished passages are saved in this browser for resuming after cancellation or refresh. Keep this tab open while generating. WAV audio is large, so start with a short chapter. Browser storage may be cleared by the device.</small></section>
 <section class="panel"><h2>2. Open Your Capsule</h2><p>Test the planned package playback approach. Open a <code>.eddi</code> ZIP package containing a <code>manifest.json</code> and audio tracks.</p>
 <label for="package">Open .eddi file</label><input id="package" type="file" accept=".eddi,.zip,application/zip">
 <p id="status" role="status" class="status">No audiobook loaded.</p>
@@ -39,7 +41,7 @@ audio{width:100%;margin:13px 0}small,p.note{color:#bbd0c0}a{color:#d1f869}
 </div>
 <section class="panel"><h2>What we're proving</h2>
 <p>A completed audiobook can contain book metadata and audio files, and a separate player can open them without running Kokoro or buffering generated speech. Next we'll connect E.D.D.i.'s EPUB parser and audio creator, then test a complete chapter offline.</p>
-<p><a href="https://github.com/gunpowderstudios/book-reader/blob/eddi-v13-experiment/V13-PLAN.md">Read the v13.0 development plan</a></p></section></main>
+<p><a href="https://github.com/gunpowderstudios/book-reader/blob/eddi-v13-experiment/V13-PLAN.md">Read the v13.1 development plan</a></p></section></main>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
 <script>
 (()=>{
@@ -78,15 +80,35 @@ window.addEventListener('pagehide',clean);
 })();
 </script>
 <script>
-/* Book Capsule v13.0: self-contained short-chapter packer. No writes to original E.D.D.i. data. */
+/* Book Capsule v13.1: complete chapter packaging with resumable IndexedDB narration. */
 (()=>{
-const $=id=>document.getElementById(id),pick=$('epub'),btn=$('create-capsule'),cancel=$('cancel-capsule'),stat=$('make-status'),progress=$('make-progress');
+const $=id=>document.getElementById(id),pick=$('epub'),btn=$('create-capsule'),cancel=$('cancel-capsule'),stat=$('make-status'),progress=$('make-progress'),chapter=$('chapter'),scope=$('scope');
 let source=null,work=null;
 const normalize=t=>String(t||'').replace(/\s+/g,' ').trim();
 function el(n,name){return [...(n?.getElementsByTagName('*')||[])].find(x=>x.localName===name)}
 function els(n,name){return [...(n?.getElementsByTagName('*')||[])].filter(x=>x.localName===name)}
 const attr=(n,k)=>n?.getAttribute(k)||'';
 function combine(base,href){const arr=base.split('/').slice(0,-1);for(const part of href.split('#')[0].split('/')){if(part==='..')arr.pop();else if(part&&part!=='.')arr.push(part)}return arr.join('/')}
+function pieces(paragraphs){
+ const out=[];
+ for(const paragraph of paragraphs){
+  for(const sentence of paragraph.match(/[^.!?]+[.!?]*\s*/g)||[paragraph]){
+   const words=normalize(sentence).split(/\s+/).filter(Boolean);
+   for(let i=0;i<words.length;i+=36){
+    const phrase=words.slice(i,i+36).join(' ');
+    if(phrase.length>210){
+     const partial=phrase.split(/\s+/);let str='';
+     for(const word of partial){
+      if(str&&str.length+word.length+1>190){out.push(str);str=''}
+      str+=(str?' ':'')+word;
+     }
+     if(str)out.push(str);
+    }else if(phrase)out.push(phrase);
+   }
+  }
+ }
+ return out;
+}
 async function parse(file){
  if(!window.JSZip)throw Error('EPUB ZIP library did not load.');
  const zip=await JSZip.loadAsync(file),container=zip.file('META-INF/container.xml');
@@ -96,53 +118,70 @@ async function parse(file){
  if(!opfEntry)throw Error('Invalid EPUB package');
  const opf=new DOMParser().parseFromString(await opfEntry.async('string'),'application/xml'),items=new Map;
  for(const e of els(el(opf,'manifest'),'item'))items.set(attr(e,'id'),{href:attr(e,'href'),type:attr(e,'media-type')});
- let selected=null;
+ const chapters=[];
  for(const ref of els(el(opf,'spine'),'itemref')){
-  const item=items.get(attr(ref,'idref'));
-  if(!item||!(/html/.test(item.type)))continue;
+  const item=items.get(attr(ref,'idref'));if(!item||!(/html/.test(item.type)))continue;
   const entry=zip.file(combine(opfPath,item.href));if(!entry)continue;
   const doc=new DOMParser().parseFromString(await entry.async('string'),'text/html');
   doc.querySelectorAll('script,style,nav,footer,svg').forEach(x=>x.remove());
-  let blocks=[...doc.body.querySelectorAll('p,li,blockquote')].filter(x=>!x.parentElement.closest('p,li,blockquote')).map(x=>normalize(x.textContent)).filter(x=>x.length>40);
+  let blocks=[...doc.body.querySelectorAll('p,li,blockquote')].filter(x=>!x.parentElement.closest('p,li,blockquote')).map(x=>normalize(x.textContent)).filter(Boolean);
   if(!blocks.length){const text=normalize(doc.body.textContent);if(text.length>60)blocks=[text]}
-  if(blocks.some(x=>x.length>100)){selected=blocks;break}
+  const passages=pieces(blocks);
+  if(passages.length)chapters.push({title:blocks[0].length<85?blocks[0]:'Chapter '+(chapters.length+1),passages});
  }
- if(!selected)throw Error('No suitable readable chapter found.');
+ if(!chapters.length)throw Error('No readable chapters found.');
  const metadata=el(opf,'metadata');
  const title=normalize(el(metadata,'title')?.textContent)||file.name.replace(/\.epub$/i,'');
  const author=normalize(el(metadata,'creator')?.textContent)||'Unknown author';
- const passages=[];
- for(const paragraph of selected){
-  for(const sentence of paragraph.match(/[^.!?]+[.!?]*\s*/g)||[paragraph]){
-   const value=normalize(sentence);if(!value)continue;
-   const words=value.split(/\s+/);
-   for(let i=0;i<words.length;i+=36){let v=words.slice(i,i+36).join(' ');if(v.length>210){for(let j=0;j<v.length;j+=190)passages.push(v.slice(j,j+190))}else passages.push(v)}
-   if(passages.length>=6)break;
-  }
-  if(passages.length>=6)break;
- }
- return {title,author,passages:passages.slice(0,6)};
+ const hash=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());
+ const bookId=Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');
+ return {title,author,chapters,bookId};
 }
+const DB='eddi-capsule-v13-audio',STORE='clips';
+let dbPromise;
+function db(){
+ if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{
+  const req=indexedDB.open(DB,1);
+  req.onupgradeneeded=()=>req.result.createObjectStore(STORE);
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+ });
+ return dbPromise;
+}
+async function read(key){const d=await db();return new Promise((resolve,reject)=>{
+ const tx=d.transaction(STORE,'readonly'),q=tx.objectStore(STORE).get(key);
+ q.onsuccess=()=>resolve(q.result||null);q.onerror=()=>reject(q.error);
+})}
+async function save(key,buf){const d=await db();return new Promise((resolve,reject)=>{
+ const tx=d.transaction(STORE,'readwrite');tx.objectStore(STORE).put(buf,key);
+ tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+})}
 function wav(samples,rate){
  const data=samples instanceof Float32Array?samples:new Float32Array(samples);
  const buffer=new ArrayBuffer(44+data.length*2),v=new DataView(buffer);
  const str=(p,s)=>{for(let i=0;i<s.length;i++)v.setUint8(p+i,s.charCodeAt(i))};
  str(0,'RIFF');v.setUint32(4,buffer.byteLength-8,true);str(8,'WAVE');str(12,'fmt ');
  v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,rate,true);v.setUint32(28,rate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);str(36,'data');v.setUint32(40,data.length*2,true);
- for(let i=0;i<data.length;i++){const x=Math.max(-1,Math.min(1,data[i]));v.setInt16(44+i*2,x<0?x*32768:x*32767,true)}
- return buffer;
+ for(let i=0;i<data.length;i++){const x=Math.max(-1,Math.min(1,data[i]));v.setInt16(44+i*2,x<0?x*32768:x*32767,true)}return buffer;
 }
+function selected(){const index=Number(chapter.value),ch=source?.chapters[index];if(!ch)return null;
+ return {index,ch,passages:scope.value==='sample'?ch.passages.slice(0,6):ch.passages};}
+function update(){const sel=selected();if(sel)$('selected-book').textContent=source.title+' — '+source.author+' · '+sel.ch.passages.length+' total clips ('+sel.passages.length+' selected)';}
+chapter.onchange=update;scope.onchange=update;
 pick.addEventListener('change',async()=>{
- btn.disabled=true;source=null;
+ btn.disabled=true;chapter.disabled=true;source=null;progress.value=0;
  const file=pick.files?.[0];if(!file)return;
- try{stat.textContent='Reading EPUB…';source={file,...await parse(file)};$('selected-book').textContent=source.title+' — '+source.author+' · '+source.passages.length+' short audio clips';stat.textContent='Ready to generate sample.';btn.disabled=false}
- catch(e){stat.textContent=e.message;$('selected-book').textContent='Could not read book'}
+ try{
+  stat.textContent='Reading EPUB…';source={file,...await parse(file)};
+  chapter.replaceChildren(...source.chapters.map((ch,i)=>new Option((i+1)+'. '+ch.title.slice(0,65)+' ('+ch.passages.length+' clips)',String(i))));
+  chapter.disabled=false;chapter.value='0';update();stat.textContent='Choose a chapter and press Create.';btn.disabled=false;
+ }catch(e){stat.textContent=e.message;$('selected-book').textContent='Could not read book'}
 });
-cancel.onclick=()=>{if(work){work.cancelled=true;work.worker.terminate();work.reject?.(Error('Cancelled'));stat.textContent='Cancelled. No package exported.';btn.disabled=false;cancel.disabled=true;work=null}};
+cancel.onclick=()=>{if(work){work.cancelled=true;work.worker?.terminate();work.reject?.(Error('Cancelled'));stat.textContent='Stopped. Completed audio clips are saved; run again to resume.';cancel.disabled=true;}};
 btn.onclick=async()=>{
  if(!source||work)return;
- btn.disabled=true;cancel.disabled=false;progress.value=0;
- const token={cancelled:false,worker:new Worker('../kokoro-worker.js?v=13.0',{type:'module'}),reject:null};work=token;
+ const sel=selected();if(!sel)return;
+ btn.disabled=true;cancel.disabled=false;chapter.disabled=true;pick.disabled=true;scope.disabled=true;progress.value=0;
+ const token={cancelled:false,worker:null,reject:null};work=token;
  let id=0;
  function ask(type,data){
   return new Promise((resolve,reject)=>{
@@ -162,25 +201,36 @@ btn.onclick=async()=>{
  }
  try{
   if(!window.JSZip)throw Error('ZIP library unavailable');
-  const voice=$('voice').value;stat.textContent='Starting speech model…';await ask('init',{voice});
-  const zip=new JSZip(),segments=[];
-  for(const text of source.passages){
+  const voice=$('voice').value,zip=new JSZip(),segments=[],total=sel.passages.length;
+  if(!total)throw Error('This chapter has no narration text');
+  if(total>1500)throw Error('This chapter has over 1,500 clips; split into smaller chapters for this prototype.');
+  for(let i=0;i<total;i++){
    if(token.cancelled)throw Error('Cancelled');
-   id++;stat.textContent='Generating passage '+id+' of '+source.passages.length+'…';
-   const m=await ask('generate',{voice,text});const name='audio/001/'+String(id).padStart(3,'0')+'.wav';
-   zip.file(name,wav(m.samples,m.rate||24000));segments.push({audio:name,text});
-   progress.value=Math.round(id/source.passages.length*85);
+   const text=sel.passages[i],key=[source.bookId,sel.index,voice,i,text].join('|');
+   let audio=await read(key);
+   if(!audio){
+    if(!token.worker){
+     token.worker=new Worker('../kokoro-worker.js?v=13.1',{type:'module'});
+     stat.textContent='Starting speech model…';await ask('init',{voice});
+    }
+    id++;stat.textContent='Generating passage '+(i+1)+' of '+total+'…';
+    const m=await ask('generate',{voice,text});
+    audio=wav(m.samples,m.rate||24000);
+    await save(key,audio);
+   }else{stat.textContent='Reusing saved passage '+(i+1)+' of '+total+'…'}
+   const name='audio/'+String(sel.index+1).padStart(3,'0')+'/'+String(i+1).padStart(4,'0')+'.wav';
+   zip.file(name,audio);segments.push({audio:name,text});progress.value=Math.round((i+1)/total*85);
   }
   zip.file('book.epub',source.file);
-  zip.file('segments.json',JSON.stringify(segments,null,2));
-  zip.file('manifest.json',JSON.stringify({format:'eddi-audiobook',formatVersion:1,title:source.title,author:source.author,voice,audioCodec:'pcm-wav',chapters:[{title:'First chapter — sample',segments}]},null,2));
+  zip.file('segments.json',JSON.stringify(segments));
+  zip.file('manifest.json',JSON.stringify({format:'eddi-audiobook',formatVersion:1,title:source.title,author:source.author,voice,audioCodec:'pcm-wav',chapters:[{title:sel.ch.title,chapterIndex:sel.index,segments}]}));
   stat.textContent='Packing your capsule…';
   const blob=await zip.generateAsync({type:'blob',compression:'STORE'},meta=>{progress.value=85+Math.round(meta.percent*.15)});
   if(token.cancelled)throw Error('Cancelled');
-  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(source.title.replace(/[^a-z0-9 -]/gi,'').trim()||'Book')+' - sample.eddi';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(source.title.replace(/[^a-z0-9 -]/gi,'').trim()||'Book')+' - chapter '+(sel.index+1)+(scope.value==='sample'?' sample':'')+'.eddi';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
   progress.value=100;stat.textContent='Capsule created! Open the downloaded .eddi file in the player on the right.';
- }catch(e){stat.textContent='Could not create capsule: '+e.message}
- finally{token.worker.terminate();if(work===token)work=null;btn.disabled=!source;cancel.disabled=true}
+ }catch(e){stat.textContent='Creation stopped: '+e.message+'. Generated clips remain available to resume.'}
+ finally{token.worker?.terminate();if(work===token)work=null;btn.disabled=!source;cancel.disabled=true;chapter.disabled=!source;pick.disabled=false;scope.disabled=false}
 };
 })();
 </script></body></html>
