@@ -1,3 +1,7 @@
+## v1.12.85 — 26 October 2026
+
+- Removed the experimental capsule test page (capsule.html) and its bundled files. It is parked while a different approach is tried. The main reader is unchanged.
+
 ## v1.12.84 — 26 October 2026
 
 - New experimental page, capsule.html (separate from the main reader, which is unchanged). It makes a "capsule": one .eddi file holding a book chapter and its finished narration by Lewis or Emma, compressed to a small size. A second part of the page plays any capsule with no voice engine and no internet, so it should run smoothly on phones and older tablets. Made with the same voice engine the reader uses; compression uses the browser's built-in Opus encoder (computers), and playback uses a bundled decoder (vendor/opus-decoder.min.js, MIT) that works in any browser. JSZip is also bundled (vendor/jszip.min.js).
