@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#12201b">
-<title>E.D.D.i. Book Capsule — v13.3</title>
+<title>E.D.D.i. Book Capsule — v13.4</title>
 <style>
 :root{color-scheme:dark;font:16px system-ui,Arial,sans-serif;background:#12201b;color:#f2f8ee}body{margin:0}
 header{background:#07110c;border-bottom:1px solid #345640;padding:18px max(20px,calc((100% - 1020px)/2))}
@@ -17,7 +17,7 @@ audio{width:100%;margin:13px 0}small,p.note{color:#bbd0c0}a{color:#d1f869}
 .status{min-height:1.5em;color:#d1f869}.warn{border-left:3px solid #d1f869;padding-left:15px}
 </style></head>
 <body><header><a href="../">← Original E.D.D.i. reader</a></header><main>
-<span class="tag">SEPARATE TEST PAGE · v13.3</span>
+<span class="tag">SEPARATE TEST PAGE · v13.4</span>
 <h1>Book Capsule</h1>
 <p class="lead">No Wi-Fi in space! Prepare your audiobook once, then take it anywhere — even offline.</p>
 <p class="note warn">This is an early test page, not the finished audiobook creator. The original E.D.D.i. and its books are unchanged.</p>
@@ -30,7 +30,7 @@ audio{width:100%;margin:13px 0}small,p.note{color:#bbd0c0}a{color:#d1f869}
 <p><label for="scope">Prepare</label> <select id="scope"><option value="sample">Test Sample (6 clips)</option><option value="chapter">Complete Chapter</option><option value="book">Complete Book (stress test)</option></select></p>
 <p><label for="track-mode">Playback</label> <select id="track-mode"><option value="continuous">Continuous chapter (smooth)</option><option value="segments">Individual passages</option></select></p><p><button id="create-capsule" disabled>Create Book Capsule</button> <button id="cancel-capsule" disabled>Cancel</button></p>
 <progress id="make-progress" max="100" value="0" style="width:100%;accent-color:#d1f869"></progress>
-<p id="debug-readout" class="status" aria-live="polite">Diagnostics: idle</p><p><button id="debug-download" type="button">Download Debug Report</button></p><p id="make-status" class="status" role="status" aria-live="polite">Choose a book and chapter. Complete chapters may take significant time and storage.</p>
+<p id="debug-readout" class="status" aria-live="polite">Diagnostics: idle</p><p><button id="benchmark" type="button" disabled>Run 15-passage speed test</button> <button id="benchmark-stop" type="button" disabled>Stop test</button></p><p><button id="debug-download" type="button">Download Debug Report</button></p><p id="bench-summary" class="status">Speed test measures fresh speech generation without building an audiobook.</p><p id="make-status" class="status" role="status" aria-live="polite">Choose a book and chapter. Complete chapters may take significant time and storage.</p>
 <small>Sample makes 6 clips; Complete Chapter prepares one chapter; Complete Book stress-tests all chapters. Each passage is saved before moving on. If it stalls, use the debug report. Very long books can exhaust browser memory or storage. Finished passages are saved in this browser for resuming after cancellation or refresh. Keep this tab open while generating. Continuous mode joins passages into one smooth chapter track. WAV is still large; ZIP compression helps modestly. Start with a short chapter. Browser storage may be cleared by the device.</small></section>
 <section class="panel"><h2>2. Open Your Capsule</h2><p>Test the planned package playback approach. Open a <code>.eddi</code> ZIP package containing a <code>manifest.json</code> and audio tracks.</p>
 <label for="package">Open .eddi file</label><input id="package" type="file" accept=".eddi,.zip,application/zip">
@@ -41,7 +41,7 @@ audio{width:100%;margin:13px 0}small,p.note{color:#bbd0c0}a{color:#d1f869}
 </div>
 <section class="panel"><h2>What we're proving</h2>
 <p>A completed audiobook can contain book metadata and audio files, and a separate player can open them without running Kokoro or buffering generated speech. Next we'll connect E.D.D.i.'s EPUB parser and audio creator, then test a complete chapter offline.</p>
-<p><a href="https://github.com/gunpowderstudios/book-reader/blob/eddi-v13-experiment/V13-PLAN.md">Read the v13.3 development plan</a></p></section></main>
+<p><a href="https://github.com/gunpowderstudios/book-reader/blob/eddi-v13-experiment/V13-PLAN.md">Read the v13.4 development plan</a></p></section></main>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
 <script>
 (()=>{
@@ -80,7 +80,7 @@ window.addEventListener('pagehide',clean);
 })();
 </script>
 <script>
-/* Book Capsule v13.3: complete chapter packaging with resumable IndexedDB narration. */
+/* Book Capsule v13.4: complete chapter packaging with resumable IndexedDB narration. */
 (()=>{
 const $=id=>document.getElementById(id),pick=$('epub'),btn=$('create-capsule'),cancel=$('cancel-capsule'),stat=$('make-status'),progress=$('make-progress'),chapter=$('chapter'),scope=$('scope');
 let source=null,work=null;
@@ -169,20 +169,70 @@ function selected(){if(!source)return null;const index=Number(chapter.value),ch=
  return {index,ch,chapters,passages:chapters.flatMap(x=>x.passages)};
 }
 function update(){const sel=selected();if(sel)$('selected-book').textContent=source.title+' — '+source.author+' · '+sel.passages.length+' selected clips across '+sel.chapters.length+' chapter(s)';chapter.disabled=scope.value==='book'||!source;}
-const debug={version:'13.3',events:[],started:null,book:null,voice:null,complete:0,total:0,current:null,errors:[]};
-const diag=$('debug-readout');
+const debug={version:'13.4',events:[],started:null,book:null,voice:null,complete:0,total:0,current:null,errors:[]};
+const diag=$('debug-readout'),benchmark=$('benchmark'),benchStop=$('benchmark-stop');let benchJob=null;
 const log=(kind,info={})=>{const ev={time:new Date().toISOString(),elapsedSeconds:debug.started?Math.round((Date.now()-debug.started)/1000):0,kind,...info};debug.events.push(ev);if(debug.events.length>1000)debug.events.shift();diag.textContent='Diagnostics: '+debug.complete+'/'+debug.total+' clips · '+kind+(info.seconds?' · '+info.seconds+'s':'');};
-$('debug-download').onclick=()=>{const blob=new Blob([JSON.stringify({...debug,userAgent:navigator.userAgent,online:navigator.onLine,deviceMemory:navigator.deviceMemory||null},null,2)],{type:'application/json'});const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='book-capsule-debug-v13.3.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),12000)};
+$('debug-download').onclick=()=>{const blob=new Blob([JSON.stringify({...debug,userAgent:navigator.userAgent,online:navigator.onLine,deviceMemory:navigator.deviceMemory||null},null,2)],{type:'application/json'});const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='book-capsule-debug-v13.4.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),12000)};
 chapter.onchange=update;scope.onchange=update;
 pick.addEventListener('change',async()=>{
- btn.disabled=true;chapter.disabled=true;source=null;progress.value=0;
+ btn.disabled=true;benchmark.disabled=true;chapter.disabled=true;source=null;progress.value=0;
  const file=pick.files?.[0];if(!file)return;
  try{
   stat.textContent='Reading EPUB…';source={file,...await parse(file)};
   chapter.replaceChildren(...source.chapters.map((ch,i)=>new Option((i+1)+'. '+ch.title.slice(0,65)+' ('+ch.passages.length+' clips)',String(i))));
-  chapter.disabled=false;chapter.value='0';update();stat.textContent='Choose a chapter and press Create.';btn.disabled=false;
+  chapter.disabled=false;chapter.value='0';update();stat.textContent='Choose a chapter and press Create.';btn.disabled=false;benchmark.disabled=false;
  }catch(e){stat.textContent=e.message;$('selected-book').textContent='Could not read book'}
 });
+
+/* v13.4 dedicated benchmark: forces fresh generation; does not write audio cache or a capsule. */
+benchmark.onclick=async()=>{
+ if(benchJob||work||!source)return;
+ const index=Number(chapter.value),entry=source.chapters[index];if(!entry)return;
+ const voice=$('voice').value,texts=entry.passages.slice(0,15);
+ const task={cancelled:false,worker:null,pendingReject:null};benchJob=task;
+ benchmark.disabled=true;benchStop.disabled=false;btn.disabled=true;pick.disabled=true;chapter.disabled=true;scope.disabled=true;
+ const summary=$('bench-summary');
+ debug.started=Date.now();debug.book=source.title;debug.voice=voice;debug.complete=0;debug.total=texts.length;debug.events=[];debug.errors=[];debug.benchmark=true;
+ log('benchmark-start',{chapter:index+1,passages:texts.length});
+ let seq=0;
+ const call=(type,request)=>{
+  return new Promise((resolve,reject)=>{
+   const id=++seq;let timeoutId;
+   const done=(err,value)=>{clearTimeout(timeoutId);task.worker.removeEventListener('message',handler);task.pendingReject=null;err?reject(err):resolve(value)};
+   const handler=ev=>{
+    const m=ev.data||{};
+    if(m.type==='progress'&&m.total)summary.textContent='Loading model: '+Math.round(m.loaded/m.total*100)+'%';
+    if(m.type==='stage')summary.textContent='Engine: '+m.stage;
+    if(m.type==='init-error'||(m.type==='error'&&(type==='init'||m.id===id)))return done(Error(m.message||'Speech engine error'));
+    if(type==='init'&&m.type==='ready')return done(null,m);
+    if(type==='generate'&&m.type==='audio'&&m.id===id)return done(null,m);
+   };
+   task.pendingReject=err=>done(err);
+   task.worker.addEventListener('message',handler);
+   timeoutId=setTimeout(()=>{log('benchmark-stalled',{operation:type,passage:debug.complete+1,seconds:120});done(Error('No speech response for 120 seconds; test stopped'))},120000);
+   task.worker.postMessage(type==='init'?{type:'init',voice,mode:'standard'}:{type:'generate',id,text:request,voice,speed:1});
+  });
+ };
+ try{
+  task.worker=new Worker('../kokoro-worker.js?v=13.4',{type:'module'});
+  const initStarted=performance.now(),ready=await call('init');
+  log('benchmark-engine-ready',{seconds:Math.round((performance.now()-initStarted)/100)/10,mode:ready.mode,threads:ready.threads});
+  let speechSeconds=0,computeSeconds=0,words=0;
+  for(let i=0;i<texts.length;i++){
+   if(task.cancelled)break;
+   const text=texts[i],wordCount=text.split(/\s+/).filter(Boolean).length,start=performance.now();
+   debug.current={chapter:index+1,passage:i+1,words:wordCount,chars:text.length};
+   summary.textContent='Generating passage '+(i+1)+'/'+texts.length+' ('+wordCount+' words)';
+   const out=await call('generate',text),seconds=(performance.now()-start)/1000,audioSeconds=out.samples.length/(out.rate||24000);
+   words+=wordCount;computeSeconds+=seconds;speechSeconds+=audioSeconds;debug.complete=i+1;
+   log('benchmark-passage',{chapter:index+1,passage:i+1,seconds:+seconds.toFixed(2),audioSeconds:+audioSeconds.toFixed(2),words:wordCount,characters:text.length,realtimeRatio:+(audioSeconds/seconds).toFixed(2),workerMs:out.ms||null});
+   summary.textContent=(i+1)+'/'+texts.length+' · '+(speechSeconds/computeSeconds).toFixed(2)+'× real-time · '+Math.round(computeSeconds)+'s processing';
+  }
+  if(!task.cancelled){log('benchmark-finished',{speechSeconds:+speechSeconds.toFixed(1),computeSeconds:+computeSeconds.toFixed(1),totalWords:words,realtimeRatio:+(speechSeconds/computeSeconds).toFixed(2)});summary.textContent='Finished: '+(speechSeconds/computeSeconds).toFixed(2)+'× real-time · '+words+' words · download the debug report.'}
+ }catch(e){debug.errors.push(String(e));log('benchmark-error',{message:e.message});summary.textContent='Test stopped: '+e.message+' · download debug report.'}
+ finally{task.worker?.terminate();benchJob=null;benchStop.disabled=true;benchmark.disabled=!source;btn.disabled=!source;pick.disabled=false;scope.disabled=false;update()}
+};
+benchStop.onclick=()=>{if(!benchJob)return;const task=benchJob;task.cancelled=true;task.pendingReject?.(Error('Stopped by user'));task.worker?.terminate();log('benchmark-stopped');$('bench-summary').textContent='Stopped — download the diagnostic report.'};
 cancel.onclick=()=>{if(work){work.cancelled=true;work.worker?.terminate();work.reject?.(Error('Cancelled'));stat.textContent='Stopped. Completed audio clips are saved; run again to resume.';cancel.disabled=true;}};
 btn.onclick=async()=>{
  if(!source||work)return;
