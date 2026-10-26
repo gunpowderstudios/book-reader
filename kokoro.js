@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.52';
+const VERSION='1.12.53';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -43,14 +43,14 @@ const store={
 /* ───────── Settings ───────── */
 const mobileDevice=()=>/iPad|iPhone|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const RANK=['gpu','fast','standard'];
-const below=m=>RANK[Math.min(RANK.length-1,RANK.indexOf(m)+1)];
+const below=m=>RANK.includes(m)?RANK[Math.min(RANK.length-1,RANK.indexOf(m)+1)]:'standard'; /* anything not on the ladder (the experimental model) falls back to the lightest normal mode */
 const PREFS=['auto','gpu','fast','standard','compact'];
 /* If the page died while a heavier mode was loading (a phone running out of memory kills the tab without any message),
    remember that and let Automatic choose something lighter from now on. */
 let startupNote='';
 {
  const t=store.get('cv-trying','');
- if(t&&t!=='standard'&&RANK.includes(t)){
+ if(t&&t!=='standard'&&(RANK.includes(t)||t==='compact')){
   store.set('cv-trying','');store.set('cv-auto-fallback',below(t));
   if(store.get('cv-mode-choice','')===t)store.set('cv-mode-choice','auto');
   startupNote='the last start with '+(MODES[t]||{}).label+' stopped the page, so a lighter option is being used';
@@ -385,7 +385,7 @@ function renderBuffer(){
     hintEl.replaceChildren(document.createTextNode(named('George is getting a head start so he can read without stopping. ')),b)}
   }else if(h){
    hintEl.hidden=false;hintEl.replaceChildren(document.createTextNode(named(h.text)+' '));
-  }else hintEl.hidden=true;
+  }else{hintEl.hidden=true;hintEl.replaceChildren()} /* drop the old Start now button so the next head start gets a fresh one */
  }
 }
 function tick(){
@@ -593,6 +593,7 @@ function toggle({S,update,render}){
  }
  stop();awaitingNarration=true;spinner(true);renderEngine();prefetchToken++;
  const token=serial,s={cancelled:false,paused:false,wake:null,voice:currentVoice(),style:styleNow(),need:0,holding:false,startNow:false};session=s;
+ playbackDiagnostics.startedAt=performance.now();playbackDiagnostics.firstSpeechMs=null; /* first-speech time counts from pressing Play, not from page load */
  const stale=()=>s.cancelled||token!==serial;
  S.playing=true;S.paused=false;$('play').textContent='Ⅱ Pause';
  unlockAudio();startMeter();mediaControls(S);

@@ -1,3 +1,10 @@
+## v1.12.53 — 26 October 2026
+Review fixes after v1.12.52 (no change to the voice engine, Automatic settings or laptop playback behaviour).
+- The visible version number said v1.12.51 while the code was v1.12.52; the script links used a mix of version numbers. All now agree.
+- **First-speech time is now measured from pressing Play.** On a laptop the engine starts when the page opens, so the old figure included the time before Play was pressed (it could read tens of seconds when it was really about one).
+- **The Start now button is fresh for every head start.** After one use it was left disabled and reappeared stuck for the next one.
+- **If the page crashed while loading the experimental smaller model, it now returns to Automatic** instead of trying the same model again on the next visit (it was not covered by the crash guard).
+
 ## v1.12.52 — 26 October 2026
 - Expanded AI Compatibility Test with read-only playback metrics: selected vs actual engine mode, model startup time, first audible speech latency, generation speed, buffered seconds, buffer interruptions, clips played, and audio errors.
 - All figures are added to Copy Report. The test does not alter device voice preferences or trigger model loading on its own; press Play before collecting a report.
