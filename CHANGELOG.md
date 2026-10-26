@@ -1,3 +1,6 @@
+## v1.12.78 — 26 October 2026
+- Replaced misleading 'Buffering…' banner: when the engine prepares audio while playback continues, show 'George is reading ahead…'; when playback has genuinely stopped for audio, show 'Waiting for George…'. Uses existing playback and buffer state, with no mode or synthesis algorithm changes.
+
 ## v1.12.77 — 26 October 2026
 - Show the active EPUB cover above the narrator/voice status controls in the desktop right-hand column, scaled to its full available column width. The sidebar cover stays hidden until a book is opened. Mobile audiobook view is unchanged.
 
