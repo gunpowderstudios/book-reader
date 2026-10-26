@@ -1,3 +1,6 @@
+## v1.12.64 — 26 October 2026
+- On mobile, display the long E.D.D.i. logo full width, the 'Your FREE AI Book Reader' slogan beneath it, and a centred Load a Book button below. Desktop masthead and bottom playback controls are unchanged.
+
 ## v1.12.63 — 26 October 2026
 - Centre the E.D.D.i. long logo and 'Your FREE AI Book Reader' slogan as one horizontal group in the black masthead, retaining the Load a Book control on the right and the compact bottom player.
 
