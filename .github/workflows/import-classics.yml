@@ -1,0 +1,62 @@
+name: Import public-domain classics
+on:
+  push:
+    paths:
+      - '.github/workflows/import-classics.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Download and validate free EPUBs and covers
+        run: |
+          python3 - <<'PY'
+          import os, time, urllib.request, zipfile
+          books={'1342':'pride-and-prejudice','2701':'moby-dick','1260':'jane-eyre','84':'frankenstein','174':'dorian-gray','1661':'sherlock-holmes','829':'gullivers-travels'}
+          os.makedirs('books/classics',exist_ok=True)
+          os.makedirs('images/classics',exist_ok=True)
+          for book_id, slug in books.items():
+              path=f'books/classics/{slug}.epub'
+              options=[
+                  f'https://www.gutenberg.org/ebooks/{book_id}.epub3.images',
+                  f'https://www.gutenberg.org/cache/epub/{book_id}/pg{book_id}-images-3.epub',
+                  f'https://www.gutenberg.org/cache/epub/{book_id}/pg{book_id}-images.epub'
+              ]
+              for url in options:
+                  try:
+                      req=urllib.request.Request(url,headers={'User-Agent':'EddiReader/1.0 (public-domain EPUB library)'})
+                      with urllib.request.urlopen(req,timeout=35) as res: data=res.read()
+                      with open(path,'wb') as f:f.write(data)
+                      with zipfile.ZipFile(path) as z:
+                          assert z.read('mimetype').strip()==b'application/epub+zip'
+                      print(slug, len(data),'bytes',url)
+                      break
+                  except Exception as e:
+                      print('Attempt failed',slug,url,str(e))
+                      if os.path.exists(path):os.remove(path)
+              else:
+                  raise RuntimeError('Could not obtain valid EPUB for '+slug)
+              cover=f'images/classics/{slug}.jpg'
+              try:
+                  url=f'https://www.gutenberg.org/cache/epub/{book_id}/pg{book_id}.cover.medium.jpg'
+                  req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'})
+                  with urllib.request.urlopen(req,timeout=25) as res: data=res.read()
+                  if data[:3]!=b'\xff\xd8\xff':raise RuntimeError('not a JPEG')
+                  with open(cover,'wb') as f:f.write(data)
+              except Exception as e:
+                  print('No Gutenberg cover for',slug,str(e))
+          PY
+      - name: Commit bundled books
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add books/classics images/classics
+          if ! git diff --cached --quiet; then
+            git commit -m "Bundle seven public-domain classics with EPUBs and covers"
+            git push
+          fi
