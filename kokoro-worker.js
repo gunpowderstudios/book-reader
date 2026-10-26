@@ -65,7 +65,8 @@ async function build(mode,voice){
  return model;
 }
 
-function load(voice,mode){
+let threadsUsed=1;
+function load(voice,mode,extra){
  /* Tries exactly the requested mode. A failed attempt can leave WebAssembly memory held by this worker, so any
     fallback to a lighter mode is done by the page in a brand-new worker (see init-error.next). */
  if(!loading)loading=(async()=>{
@@ -82,10 +83,15 @@ function load(voice,mode){
   try{
    const cores=(self.navigator&&self.navigator.hardwareConcurrency)||2;
    const wasm=lib.env&&lib.env.backends&&lib.env.backends.onnx&&lib.env.backends.onnx.wasm;
-   if(wasm)wasm.numThreads=mode==='fast'&&self.crossOriginIsolated===true?Math.max(1,Math.min(4,Math.ceil(cores/2))):1;
+   threadsUsed=1;
+   if(self.crossOriginIsolated===true){
+    if(mode==='fast')threadsUsed=Math.max(1,Math.min(4,Math.ceil(cores/2)));
+    else if(mode==='standard'&&extra)threadsUsed=Math.max(2,Math.min(4,cores-1)); /* opt-in test: the small model on several cores */
+   }
+   if(wasm)wasm.numThreads=threadsUsed;
   }catch(_){}
   tts=await build(mode,voice);
-  return {ms:Date.now()-t0,mode,isolated:self.crossOriginIsolated===true,cores:(self.navigator&&self.navigator.hardwareConcurrency)||0};
+  return {ms:Date.now()-t0,mode,threads:threadsUsed,isolated:self.crossOriginIsolated===true,cores:(self.navigator&&self.navigator.hardwareConcurrency)||0};
  })().catch(e=>{loading=null;throw e});
  return loading;
 }
@@ -93,7 +99,7 @@ function load(voice,mode){
 self.onmessage=ev=>{
  const m=ev.data||{};
  if(m.type==='init'){
-  load(m.voice,m.mode||'standard').then(info=>{postNet(true);say({type:'ready',...info})},e=>say({type:'init-error',message:describe(e),mode:m.mode||'standard'}));
+  load(m.voice,m.mode||'standard',!!m.extraCores).then(info=>{postNet(true);say({type:'ready',...info})},e=>say({type:'init-error',message:describe(e),mode:m.mode||'standard'}));
  }else if(m.type==='generate'){
   /* One generation at a time; requests simply wait their turn. */
   chain=chain.then(async()=>{

@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.57';
+const VERSION='1.12.65';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -48,6 +48,7 @@ const PREFS=['auto','gpu','fast','standard'];
    remember that and let Automatic choose something lighter from now on. */
 let startupNote='';
 {
+ if(store.get('cv-cores-trying','')==='1'){store.set('cv-cores-trying','');store.set('cv-lowmem-cores','0');store.set('cv-cores-reverted','1')}
  const t=store.get('cv-trying','');
  if(t&&t!=='standard'&&RANK.includes(t)){
   store.set('cv-trying','');store.set('cv-auto-fallback',below(t));
@@ -62,6 +63,7 @@ if(!PREFS.includes(preference))preference='auto';
 let mode=preference==='auto'?suggestedMode():preference;
 const bufferTarget=()=>(mobileDevice()||mode==='standard'?6:2)*60; /* chosen automatically: a bigger cushion on phones and slower setups, light on fast computers */
 const installed=()=>store.get('cv-ready-'+mode,'')==='1';
+const coresWanted=()=>store.get('cv-lowmem-cores','')==='1';
 const isolated=()=>typeof crossOriginIsolated!=='undefined'&&crossOriginIsolated===true;
 
 /* ───────── Engine state and the download bar ───────── */
@@ -72,7 +74,7 @@ const modeName=m=>(MODES[m]||MODES.standard).label;
 function describeEngine(){
  if(eng.used==='gpu')return 'on your graphics chip';
  if(eng.used==='fast')return eng.isolated?(n=>'using '+n+(n===1?' core':' cores'))(Math.min(4,Math.ceil((eng.cores||2)/2))):'one core only (multi-core is not active on this page)';
- return 'one core';
+ return eng.threads>1?'using '+eng.threads+' cores':(coresWanted()&&!eng.isolated?'one core (extra cores need a page that is isolated, which this browser did not allow)':'one core');
 }
 function renderEngine(){
  spinner(awaitingNarration||['library','downloading','starting','voice'].includes(eng.phase));
@@ -146,10 +148,10 @@ function onWorkerMessage(w,m){
   case 'voice-start':if(m.voice===currentVoice()){eng.phase='voice';renderEngine();status('Preparing '+narratorName()+'’s voice…')}break;
   case 'voice-ready':if(m.voice===currentVoice()){eng.phase='ready';renderEngine()}break;
   case 'ready':{
-   engineReady=true;eng.phase='ready';eng.used=m.mode||mode;eng.sec=(m.ms||0)/1000;eng.isolated=!!m.isolated;eng.cores=m.cores||0;
+   engineReady=true;eng.phase='ready';eng.used=m.mode||mode;eng.sec=(m.ms||0)/1000;eng.isolated=!!m.isolated;eng.cores=m.cores||0;eng.threads=m.threads||1;
    if(eng.used===mode)eng.note='';
    store.set('cv-ready-'+(m.mode||mode),'1');
-   store.set('cv-trying','');
+   store.set('cv-trying','');store.set('cv-cores-trying','');
    if(failedModes.length&&preference==='auto')store.set('cv-auto-fallback',below(RANK[Math.max(...failedModes.map(x=>RANK.indexOf(x)))]));
    if(m.mode&&m.mode!==mode){store.set('cv-ready-'+mode,'');mode=m.mode;const sel=$('mode-select');if(sel)sel.value=mode} /* remember the mode that works on this device */
    renderEngine();
@@ -157,7 +159,7 @@ function onWorkerMessage(w,m){
   case 'init-error':{
    window.dispatchEvent(new CustomEvent('eddi-ai-diagnostic',{detail:{mode:m.mode||runMode||mode,stage:'Model initialisation',message:String(m.message||'Unknown error')}}));
    const from=m.mode||runMode||mode,next=nextLighter(from);
-   store.set('cv-trying','');if(!failedModes.includes(from))failedModes.push(from);
+   store.set('cv-trying','');store.set('cv-cores-trying','');if(!failedModes.includes(from))failedModes.push(from);
    if(next&&initWaiter){ /* lighter mode in a fresh worker (a failed load can leave memory held) */
     const iw=initWaiter;initWaiter=null;
     failWorker(new Error('retry'),true);
@@ -192,7 +194,8 @@ function ready(){
  }
  renderEngine();
 if((runMode||mode)!=='standard')store.set('cv-trying',runMode||mode);
- readyPromise=new Promise((resolve,reject)=>{initWaiter={resolve,reject};w.postMessage({type:'init',voice:currentVoice(),mode:runMode||mode})});
+else if(coresWanted())store.set('cv-cores-trying','1');
+ readyPromise=new Promise((resolve,reject)=>{initWaiter={resolve,reject};w.postMessage({type:'init',voice:currentVoice(),mode:runMode||mode,extraCores:coresWanted()})});
  readyPromise.catch(()=>{});
  armWatchdog();
  return readyPromise;
@@ -717,5 +720,5 @@ setTimeout(()=>{try{if(!mobileDevice()&&installed()&&!worker&&!readyPromise&&!(n
 window.chapterKokoro={toggle,stop,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,recommendMode:suggestedMode,isMobile:mobileDevice,generateClip:(text,id)=>synth(text,VOICES[id]?id:currentVoice(),{speed:1}),chapterClips:chapterClips,style:styleNow,currentVoice,voices:VOICES,splitText:(text)=>chunks(text),version:VERSION,
  refreshNarrator:()=>{renderEngine();renderBuffer()},stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode}),measured:()=>Number(store.get('cv-measured-'+mode,'0'))};
 
-window.eddiPlaybackDiagnostics=()=>({version:VERSION,modePreference:preference,actualMode:eng.used||mode,enginePhase:eng.phase,modelStartSeconds:eng.sec||null,firstSpeechSeconds:playbackDiagnostics.firstSpeechMs===null?null:playbackDiagnostics.firstSpeechMs/1000,generationSpeed:Math.round(lastSpeed*10)/10,bufferReadySeconds:Math.round(bufInfo.ready||0),bufferTargetSeconds:Math.round(bufInfo.target||0),bufferWaits:bufInfo.waits||0,bufferWaitSeconds:Math.round(bufInfo.waitSec||0),audioClipsStarted:playbackDiagnostics.clipsPlayed,audioErrors:playbackDiagnostics.audioErrors});
+window.eddiPlaybackDiagnostics=()=>({version:VERSION,threads:eng.threads||1,modePreference:preference,actualMode:eng.used||mode,enginePhase:eng.phase,modelStartSeconds:eng.sec||null,firstSpeechSeconds:playbackDiagnostics.firstSpeechMs===null?null:playbackDiagnostics.firstSpeechMs/1000,generationSpeed:Math.round(lastSpeed*10)/10,bufferReadySeconds:Math.round(bufInfo.ready||0),bufferTargetSeconds:Math.round(bufInfo.target||0),bufferWaits:bufInfo.waits||0,bufferWaitSeconds:Math.round(bufInfo.waitSec||0),audioClipsStarted:playbackDiagnostics.clipsPlayed,audioErrors:playbackDiagnostics.audioErrors});
 })();

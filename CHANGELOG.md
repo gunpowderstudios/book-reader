@@ -1,3 +1,9 @@
+## v1.12.65 — 26 October 2026
+
+- New opt-in test in Settings: "Low Memory: use extra processor cores". Phones and older computers normally run Low Memory on one core, which measured only 0.3–0.4× real time on an iPhone 13 and an older PC. With this ticked, the same small voice file runs on several cores (using up to 3 on a 4-core device). It is off by default and Automatic is unchanged.
+- If a start with extra cores stops the page, the setting switches itself off and says so.
+- The report now shows the setting and how many cores were really used.
+
 ## v1.12.64 — 26 October 2026
 - On mobile, display the long E.D.D.i. logo full width, the 'Your FREE AI Book Reader' slogan beneath it, and a centred Load a Book button below. Desktop masthead and bottom playback controls are unchanged.
 
