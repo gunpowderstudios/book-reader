@@ -417,6 +417,8 @@ const testActive=()=>testState==='loading'||testState==='generating'||testState=
 function setTest(state,msg){
  spinner(['loading','generating'].includes(state));
  testState=state;
+ const progress=$('test-loading-track');
+ if(progress){const busy=state==='loading'||state==='generating';progress.hidden=!busy;progress.setAttribute('aria-valuetext',state==='loading'?'Loading voice model':'Generating voice sample');}
  const btn=$('test-play');if(btn){btn.textContent=state==='idle'||state==='error'?'▶ Play sample':'■ Stop';btn.dataset.state=state}
  const el=$('test-status');if(el){el.textContent=named(msg);el.dataset.state=state}
  status(msg);
