@@ -1,3 +1,6 @@
+## v1.12.70 — 26 October 2026
+- Added large #D1F869 green homepage headline 'E.D.D.i is ready to read you a book!' immediately above 'Your FREE AI Book Reader that works right in your browser!'.
+
 ## v1.12.69 — 26 October 2026
 - Removed the specially featured Conan free-book panel from the front page.
 - Added Conan: Original Published Stories as a standard cover/card on the Free Books page, with the same Open in E.D.D.i. button and shared loading logic as the other books. Its included EPUB and cover remain in the repository.
