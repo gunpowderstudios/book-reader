@@ -188,7 +188,15 @@ $('ai-check-run').onclick=()=>{
  'Device memory (if reported): '+(navigator.deviceMemory||'Not provided')+' GB',
  'Note: This checks browser features, not available RAM.',
  'Narration selected: '+($('mode-select')?.selectedOptions?.[0]?.textContent||'Automatic'),
- 'Actual model-loading errors:'
+ 'Playback measurements (after trying Play):'
+ ];
+ const metrics=window.eddiPlaybackDiagnostics?.();
+ if(metrics){
+  const measured=(n,unit)=>n==null?'Not measured yet':n+' '+unit;
+  data.push('App/engine version: '+metrics.version,'Mode preference: '+metrics.modePreference,'Actual running mode: '+metrics.actualMode,'AI engine state: '+metrics.enginePhase,'AI model startup: '+measured(metrics.modelStartSeconds,'seconds'),'First speech after engine start request: '+measured(metrics.firstSpeechSeconds,'seconds'),'Generation speed: '+(metrics.generationSpeed?metrics.generationSpeed+'× real-time':'Not measured yet'),'Speech buffered ahead: '+metrics.bufferReadySeconds+' / '+metrics.bufferTargetSeconds+' seconds','Buffer underruns: '+metrics.bufferWaits+' (total '+metrics.bufferWaitSeconds+' seconds)','Audio clips played: '+metrics.audioClipsStarted,'Audio playback errors: '+metrics.audioErrors);
+ }else data.push('Playback data not yet available. Reload the page if necessary.');
+ data.push('Actual model-loading errors:');
+ /*  end measurements */
  ];
  if(aiErrors.length)for(const e of aiErrors)data.push('• '+e.stage+' ('+e.mode+'): '+e.message);
  else data.push('None recorded yet. Press Play, then check again if it fails.');
@@ -340,4 +348,4 @@ $('progress-file').onchange=async e=>{
 function boot(){showTab('library');let lib=window.chapterLibrary;if(!lib)return Promise.resolve();return lib.ready.then(()=>{if(!S.chapters.length){showTab('library');const recent=lib.books.slice().sort((a,b)=>(b.lastOpened||0)-(a.lastOpened||0))[0];if(recent){$('now').textContent='Ready to continue: '+(recent.title||recent.name||'your book');$('status').textContent='Press Play to continue where you left off';$('play').textContent='▶ Continue'}}})}
 window.chapterApp={openFile,openFromLibrary,addFiles,stop,say,showTab,boot,render,state:S};$('open-free-conan').onclick=async()=>{const button=$('open-free-conan');button.disabled=true;button.textContent='Loading included book…';try{const response=await fetch('books/Conan_Original_Stories.epub');if(!response.ok)throw Error('Book download failed ('+response.status+')');const blob=await response.blob();await openFile(new File([blob],'Conan_Original_Stories.epub',{type:'application/epub+zip'}));}catch(e){say('Could not load free book: '+e.message)}finally{button.disabled=false;button.textContent='▶ Open free book'}};document.addEventListener('DOMContentLoaded',boot);window.addEventListener('resize',()=>{const active=['library','book','sync','free'].find(x=>$('tab-'+x).classList.contains('selected'))||(S.chapters.length&&!$('book-main').hidden?'book':'library');placeMobilePlayer(active)});
 })();
-</script><script defer src="kokoro.js?v=1.12.51"></script><script defer src="library.js?v=1.12.47"></script><script defer src="offline.js?v=1.12.47"></script><script defer src="read-along.js?v=1.12.47"></script></html>
+</script><script defer src="kokoro.js?v=1.12.52"></script><script defer src="library.js?v=1.12.47"></script><script defer src="offline.js?v=1.12.47"></script><script defer src="read-along.js?v=1.12.47"></script></html>
