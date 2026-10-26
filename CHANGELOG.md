@@ -1,3 +1,6 @@
+## v1.12.68 — 26 October 2026
+- Temporarily hide the AI Compatibility Test panel from the settings UI. Its test and Copy Report code remain intact for easy restoration; narration and playback are unchanged.
+
 ## v1.12.67 — 26 October 2026
 - Add Back 30s and Forward 30s buttons to the compact bottom playback bar. Seeks accurately within the current audio clip; when a skip crosses generated passage boundaries, jumps by estimated reading duration and resumes if already playing. No AI model or performance settings changed.
 
