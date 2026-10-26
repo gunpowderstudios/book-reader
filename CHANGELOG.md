@@ -1,3 +1,6 @@
+## v1.12.67 — 26 October 2026
+- Add Back 30s and Forward 30s buttons to the compact bottom playback bar. Seeks accurately within the current audio clip; when a skip crosses generated passage boundaries, jumps by estimated reading duration and resumes if already playing. No AI model or performance settings changed.
+
 ## v1.12.66 — 26 October 2026
 
 - Slow devices are now told so. If the voice is measured as slower than it plays (for example an iPhone 13 or an older PC), a box appears saying so and offering "Prepare this chapter". It generates the chapter once, keeps it on the device, and Play then starts straight away with no pauses. It shows about how long preparing takes on this device.
