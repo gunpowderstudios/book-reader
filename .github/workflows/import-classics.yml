@@ -17,11 +17,14 @@ jobs:
         run: |
           python3 - <<'PY'
           import os, time, urllib.request, zipfile
-          books={'1342':'pride-and-prejudice','2701':'moby-dick','1260':'jane-eyre','84':'frankenstein','174':'dorian-gray','1661':'sherlock-holmes','829':'gullivers-travels'}
+          books={'1342':'pride-and-prejudice','2701':'moby-dick','1260':'jane-eyre','84':'frankenstein','174':'dorian-gray','1661':'sherlock-holmes','829':'gullivers-travels','345':'dracula'}
           os.makedirs('books/classics',exist_ok=True)
           os.makedirs('images/classics',exist_ok=True)
           for book_id, slug in books.items():
               path=f'books/classics/{slug}.epub'
+              if os.path.exists(path) and zipfile.is_zipfile(path):
+                  print('Already bundled:',slug)
+                  continue
               options=[
                   f'https://www.gutenberg.org/ebooks/{book_id}.epub3.images',
                   f'https://www.gutenberg.org/cache/epub/{book_id}/pg{book_id}-images-3.epub',
