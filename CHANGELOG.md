@@ -1,3 +1,16 @@
+## v1.12.83 — 26 October 2026
+
+- Fixed: the "George is getting a head start… Start now" message was sitting in the right-hand panel, where the larger player bar (v1.12.72–80) now covers it on shorter windows, so Start now could not be clicked. It now appears inside the player bar itself, always in view. No change to how the head start works.
+- The engine version shown in the Test report now matches the page version.
+
+## v1.12.82 — 26 October 2026
+
+- Offline pilot (ChatGPT): the service worker now saves the app's own files (page, scripts, logos, JSZip) so the app itself can open without a connection, while still adding the headers that Fast mode needs. It does not yet save the voice engine or voices. (Entry written afterwards; the original release did not include one.)
+
+## v1.12.81 — 26 October 2026
+
+- Hid the persistent green waiting status and added more desktop playback spacing (ChatGPT). (Entry written afterwards.)
+
 ## v1.12.80 — 26 October 2026
 - Removed the green ‘Waiting for George…’ playback banner entirely, including its observer/DOM insertion. Loading progress and ordinary voice status remain available elsewhere.
 - Enlarged the desktop fixed playback strip by approximately one third, increasing vertical separation between status text, buttons, and progress controls. Mobile playback sizing unchanged.

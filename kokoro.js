@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.66';
+const VERSION='1.12.83';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -714,6 +714,8 @@ function showRecommendation(){
  renderEngine();renderBuffer();showRecommendation();
 })();
 /* Clear the "was loading" flag on a normal page close (a crash never gets here). */
+/* The head-start message and its Start now button live in the player bar itself. In the side panel they ended up behind the bar on shorter windows and could not be clicked. */
+try{const bar=document.getElementById('playback-panel'),hint=document.getElementById('speed-hint');if(bar&&hint&&!bar.contains(hint)){hint.style.cssText='text-align:center;margin:6px 12px 0;font-size:14px';bar.insertBefore(hint,bar.firstChild)}}catch(_){}
 window.addEventListener('pagehide',()=>store.set('cv-trying',''));
 /* Start the voice engine in the background when the page opens, if it is already installed, so Play is near-instant. */
 setTimeout(()=>{try{if(!mobileDevice()&&installed()&&!worker&&!readyPromise&&!(navigator.connection&&navigator.connection.saveData))ready().catch(()=>{})}catch(_){}},1500);
