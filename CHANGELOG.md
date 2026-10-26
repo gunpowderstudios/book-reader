@@ -1,3 +1,7 @@
+## v1.12.75 — 26 October 2026
+- Display a live ‘Buffering…’ message directly above the fixed playback controls on both desktop and mobile when the existing narration buffer reports it is empty; hide it again when audio is ready.
+- Temporarily hide the Bedtime button without deleting its underlying code.
+
 ## v1.12.74 — 26 October 2026
 - Mobile-only: added a compact live voice-loading ribbon above the fixed bottom player, mirroring the existing Kokoro status/progress without modifying voice processing. It shows loading percentage where available, animates while preparing, and disappears when ready.
 - Improved phone player touch targets, Play button emphasis, safe-area padding and spacing; desktop layout unchanged.
