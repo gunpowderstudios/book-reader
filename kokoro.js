@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.48';
+const VERSION='1.12.49';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -11,6 +11,7 @@ const narratorName=()=>(VOICES[currentVoice()]||'— George').split('— ')[1];
 const named=s=>String(s).replaceAll('George',narratorName());
 const MODES={
  standard:{label:'Low Memory',mb:92},
+ compact:{label:'Experimental Smaller Kokoro',mb:86},
  fast:{label:'Fast',mb:326},
  gpu:{label:'Graphics chip (experimental)',mb:326}
 };
@@ -43,7 +44,7 @@ const store={
 const mobileDevice=()=>/iPad|iPhone|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const RANK=['gpu','fast','standard'];
 const below=m=>RANK[Math.min(RANK.length-1,RANK.indexOf(m)+1)];
-const PREFS=['auto','gpu','fast','standard'];
+const PREFS=['auto','gpu','fast','standard','compact'];
 /* If the page died while a heavier mode was loading (a phone running out of memory kills the tab without any message),
    remember that and let Automatic choose something lighter from now on. */
 let startupNote='';
@@ -696,7 +697,7 @@ function showRecommendation(){
  if(ta&&count){const update=()=>{count.textContent=ta.value.length+' / '+MAX_TEST_CHARS};ta.addEventListener('input',update);update()}
  const ms=$('mode-select');
  if(ms){
-  ms.replaceChildren(new Option('Automatic (recommended)','auto'),new Option('Graphics chip (experimental) — try on a Mac or PC with a good graphics chip','gpu'),new Option('Fast — for powerful computers','fast'),new Option('Low Memory — for phones and older devices','standard'));
+  ms.replaceChildren(new Option('Automatic (recommended)','auto'),new Option('Graphics chip (experimental) — try on a Mac or PC with a good graphics chip','gpu'),new Option('Fast — for powerful computers','fast'),new Option('Low Memory — for phones and older devices','standard'),new Option('Experimental Smaller Kokoro (86 MB) — try on older iPads','compact'));
   ms.value=preference;ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=preference;showRecommendation()};
  }
  const ss=$('style-select'); /* (no menu any more: one voice, natural style) */
