@@ -309,7 +309,7 @@ header>.upload{position:absolute!important;right:18px!important;top:50%!importan
  footer#playback-panel:focus-within,
  footer#playback-panel.dock-pinned{transform:translateY(0)!important}
  #eddi-dock-toggle{
-   display:block!important;position:absolute;bottom:calc(100% - 42px);left:50%;
+   display:block!important;position:absolute;bottom:0;left:50%;
    transform:translateX(-50%);height:42px;min-width:180px;
    border:1px solid #6b9478;border-bottom:0;border-radius:12px 12px 0 0;
    padding:8px 18px;background:#254c35;color:#e6f7e9;
@@ -726,5 +726,13 @@ window.chapterApp={openFile,openFromLibrary,addFiles,stop,say,showTab,boot,rende
  const spinner=$('voice-spinner');if(spinner)observer.observe(spinner,{attributes:true,attributeFilter:['hidden']});
  sync();
 });document.addEventListener('DOMContentLoaded',boot);window.addEventListener('resize',()=>{const active=['library','book','sync','free'].find(x=>$('tab-'+x).classList.contains('selected'))||(S.chapters.length&&!$('book-main').hidden?'book':'library');placeMobilePlayer(active)});
+})();
+</script><script>
+/* v1.12.86 desktop dock pin control; hovering/focusing also opens. */
+(()=>{const dock=document.getElementById('playback-panel'),handle=document.getElementById('eddi-dock-toggle');if(!dock||!handle)return;
+ const sync=()=>{const open=dock.classList.contains('dock-pinned');handle.setAttribute('aria-expanded',String(open));handle.textContent=open?'🎧 Player ▼':'🎧 Player ▲'};
+ handle.addEventListener('click',()=>{dock.classList.toggle('dock-pinned');sync()});
+ dock.addEventListener('keydown',e=>{if(e.key==='Escape'){dock.classList.remove('dock-pinned');sync();handle.focus()}});
+ sync();
 })();
 </script><script defer src="kokoro.js?v=1.12.85"></script><script defer src="library.js?v=1.12.71"></script><script defer src="offline.js?v=1.12.66"></script><script defer src="read-along.js?v=1.12.47"></script></html>
