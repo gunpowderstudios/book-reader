@@ -1,3 +1,6 @@
+## v1.12.72 — 26 October 2026
+- Made the desktop bottom playback strip approximately 80% larger with more generous buttons, text, spacing and padding at widths above 900px. Mobile playback layout remains unchanged.
+
 ## v1.12.71 — 26 October 2026
 - Replaced the empty-library placeholder on the home page with an illustrated new-visitor welcome card featuring the Dracula cover and a prominent bright-green (#D1F869) “Load your first book” link to the Free Books page.
 - The welcome card automatically disappears when books exist in the local library, preserving the library availability message when storage is restricted.
