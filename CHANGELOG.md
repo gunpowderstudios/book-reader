@@ -1,3 +1,7 @@
+## v1.12.80 — 26 October 2026
+- Removed the green ‘Waiting for George…’ playback banner entirely, including its observer/DOM insertion. Loading progress and ordinary voice status remain available elsewhere.
+- Enlarged the desktop fixed playback strip by approximately one third, increasing vertical separation between status text, buttons, and progress controls. Mobile playback sizing unchanged.
+
 ## v1.12.79 — 26 October 2026
 - Removed the stale initial ‘Buffering…’ banner. The fixed player now only shows ‘Waiting for George…’ when the engine reports that narration is actually waiting for the next audio passage; background read-ahead is not presented as a stall.
 - Increased desktop playback strip height and vertical spacing, including the progress slider row. Mobile dimensions and synthesis settings are unchanged.
