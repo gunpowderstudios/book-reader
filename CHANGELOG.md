@@ -1,3 +1,8 @@
+## v1.12.56 — 26 October 2026
+
+- Fixed the report wrongly saying "WebAssembly SIMD: No" on every device (the check itself was faulty; it did not affect narration).
+- The report now says "None. No errors were recorded." when a voice played without problems.
+
 ## v1.12.55 — 26 October 2026
 
 - The full device test now shows a spinning "Test running… X of 30 seconds" notice while it works.
