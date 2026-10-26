@@ -133,9 +133,12 @@ function render(){
  grid.replaceChildren(...[...books].sort((a,b)=>(b.lastOpened||0)-(a.lastOpened||0)).map(card));
  if(empty){
   empty.hidden=books.length>0;
-  empty.textContent=available
-   ?'Your library is empty. Use “Load a Book” at the top and the book will be saved here with your place in it.'
-   :'Saving books is not available in this browser mode (private browsing blocks it). You can still open an EPUB and your place is remembered by the browser.';
+  // Keep the designed welcome card and its Free Books link in place.
+  // Only change the empty-library fallback note when browser storage is unavailable.
+  const note=empty.querySelector('.first-book-note');
+  if(note)note.textContent=available
+   ?'Explore the Free Books collection, including Dracula.'
+   :'You can still open a free EPUB, but this browser may not save books between visits.';
  }
  renderStorage();
 }
