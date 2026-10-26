@@ -1,5 +1,12 @@
 # E.D.D.i. — Version history
 
+## v1.12.51 — 26 October 2026
+- Cap the initial playback head-start wait (12 seconds on phones, 30 seconds elsewhere) so buffering cannot keep narration waiting indefinitely.
+- Make **Start now** acknowledge the tap and explain when first-pass speech generation is still pending.
+- Include speech-generation and model-preparation failures in the AI Compatibility Report, with clearer first-passage progress text.
+- Refresh the `kokoro.js` script URL to ensure devices load the updated controller without stale browser cache.
+
+
 ## v1.12.50 — 26 October 2026
 - Updated branding to use the uploaded `eddi-reader-logo-long.png` in the header and `eddi-reader-logo-square.png` as the browser favicon and Apple home-screen icon.
 - Added **Copy Report** beside AI Compatibility Test, with clipboard support and a fallback for older iPad browsers.
