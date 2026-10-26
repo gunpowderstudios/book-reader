@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#12201b">
-<title>E.D.D.i. v13.0 — Audiobook Lab</title>
+<title>E.D.D.i. Book Capsule — v13.0</title>
 <style>
 :root{color-scheme:dark;font:16px system-ui,Arial,sans-serif;background:#12201b;color:#f2f8ee}body{margin:0}
 header{background:#07110c;border-bottom:1px solid #345640;padding:18px max(20px,calc((100% - 1020px)/2))}
@@ -18,15 +18,15 @@ audio{width:100%;margin:13px 0}small,p.note{color:#bbd0c0}a{color:#d1f869}
 </style></head>
 <body><header><a href="../">← Original E.D.D.i. reader</a></header><main>
 <span class="tag">SEPARATE TEST PAGE · v13.0</span>
-<h1>E.D.D.i. Audiobook Lab</h1>
-<p class="lead">The experiment: create a book once, then listen without making your device generate AI speech as it plays.</p>
+<h1>Book Capsule</h1>
+<p class="lead">No Wi-Fi in space! Prepare your audiobook once, then take it anywhere — even offline.</p>
 <p class="note warn">This is an early test page, not the finished audiobook creator. The original E.D.D.i. and its books are unchanged.</p>
 <div class="grid">
-<section class="panel"><h2>1. Audiobook Creator</h2><p>Planned workflow: choose an EPUB, select Lewis or Emma, prepare its narration, then export one <code>.eddi</code> package.</p>
+<section class="panel"><h2>1. Pack Your Capsule</h2><p>Planned workflow: choose an EPUB, select Lewis or Emma, prepare its narration, then export one <code>.eddi</code> package.</p>
 <label for="voice">First two narrators</label><select id="voice"><option value="bm_lewis">Lewis — British male</option><option value="bf_emma">Emma — British female</option></select>
-<p><button disabled title="Not implemented yet">Create .eddi (coming next)</button></p>
+<p><button disabled title="Not implemented yet">Create Book Capsule (coming next)</button></p>
 <small>Creating chapters using the AI engine is the next development stage; this button is intentionally disabled.</small></section>
-<section class="panel"><h2>2. Lightweight Player</h2><p>Test the planned package playback approach. Open a <code>.eddi</code> ZIP package containing a <code>manifest.json</code> and audio tracks.</p>
+<section class="panel"><h2>2. Open Your Capsule</h2><p>Test the planned package playback approach. Open a <code>.eddi</code> ZIP package containing a <code>manifest.json</code> and audio tracks.</p>
 <label for="package">Open .eddi file</label><input id="package" type="file" accept=".eddi,.zip,application/zip">
 <p id="status" role="status" class="status">No audiobook loaded.</p>
 <div id="book-info"></div><div id="track-list"></div>
