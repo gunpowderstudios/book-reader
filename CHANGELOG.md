@@ -1,3 +1,11 @@
+## v1.12.54 — 26 October 2026
+
+- **Full device test.** Tick the box in Settings > AI Compatibility Test, press Play, and the page restarts clean. Press Play again and it plays for about 30 seconds, then writes the report ready to copy.
+- If the page crashes during the test (for example an iPad running out of memory), the next visit shows a report saying how far it got and the last thing it was doing.
+- The report now also lists CPU cores, screen size, touch points, what Automatic would choose and any saved safety fallback.
+- The AI Compatibility Test moved to the bottom of Settings.
+- Removed the Experimental Smaller Kokoro option (it could not load).
+
 ## v1.12.53 — 26 October 2026
 Review fixes after v1.12.52 (no change to the voice engine, Automatic settings or laptop playback behaviour).
 - The visible version number said v1.12.51 while the code was v1.12.52; the script links used a mix of version numbers. All now agree.
