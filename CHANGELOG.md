@@ -1,3 +1,8 @@
+## v1.12.66 — 26 October 2026
+
+- Slow devices are now told so. If the voice is measured as slower than it plays (for example an iPhone 13 or an older PC), a box appears saying so and offering "Prepare this chapter". It generates the chapter once, keeps it on the device, and Play then starts straight away with no pauses. It shows about how long preparing takes on this device.
+- The box is remembered for that device and disappears if the voice is later measured as fast enough. Fast computers never see it.
+
 ## v1.12.65 — 26 October 2026
 
 - New opt-in test in Settings: "Low Memory: use extra processor cores". Phones and older computers normally run Low Memory on one core, which measured only 0.3–0.4× real time on an iPhone 13 and an older PC. With this ticked, the same small voice file runs on several cores (using up to 3 on a 4-core device). It is off by default and Automatic is unchanged.

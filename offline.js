@@ -50,7 +50,7 @@ async function refresh(){
  let keys=new Set;
  try{keys=await savedKeys()}catch(err){if(!preparing)note('Saving audio is not available here: '+err.message);if(btn)btn.disabled=true;return}
  let done=0;for(const c of lines)if(keys.has(clipKey(c.voice,c.text)))done++;
- $('offline-estimate').textContent=v.chapter.title+' · '+e.words.toLocaleString()+' words · about '+Math.round(e.seconds/60)+' min · about '+formatMB(e.bytes)+' of storage on this device.';
+ $('offline-estimate').textContent=v.chapter.title+' · '+e.words.toLocaleString()+' words · about '+Math.round(e.seconds/60)+' min · about '+formatMB(e.bytes)+' of storage on this device.'+(()=>{let sp=0;try{sp=Number(localStorage.getItem('cv-slow-speed'))||0}catch(_){}return sp?' Preparing takes about '+Math.max(1,Math.ceil(e.seconds/sp/60))+' min here.':''})();
  if(clear){clear.hidden=!keys.size;clear.textContent='Delete all saved audio ('+keys.size.toLocaleString()+' passages)'}
  if(!preparing)note(done===total&&total?'This chapter is prepared. Press Play and it will start straight away, without generating speech.':done?'Saved '+done+' of '+total+' passages. Press Prepare to continue.':'Not prepared yet. Preparing generates the chapter once and keeps it on this device.');
 }
