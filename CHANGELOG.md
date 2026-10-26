@@ -1,3 +1,7 @@
+## v1.12.84 — 26 October 2026
+
+- New experimental page, capsule.html (separate from the main reader, which is unchanged). It makes a "capsule": one .eddi file holding a book chapter and its finished narration by Lewis or Emma, compressed to a small size. A second part of the page plays any capsule with no voice engine and no internet, so it should run smoothly on phones and older tablets. Made with the same voice engine the reader uses; compression uses the browser's built-in Opus encoder (computers), and playback uses a bundled decoder (vendor/opus-decoder.min.js, MIT) that works in any browser. JSZip is also bundled (vendor/jszip.min.js).
+
 ## v1.12.83 — 26 October 2026
 
 - Fixed: the "George is getting a head start… Start now" message was sitting in the right-hand panel, where the larger player bar (v1.12.72–80) now covers it on shorter windows, so Start now could not be clicked. It now appears inside the player bar itself, always in view. No change to how the head start works.

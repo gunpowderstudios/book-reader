@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>E.D.D.i. Capsule Test</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#12201b;color:#ecf5ec;font:16px/1.45 system-ui,sans-serif}
+header{background:#000;padding:14px 16px}header h1{margin:0;font-size:20px}header small{color:#a9c4b0}
+main{max-width:860px;margin:0 auto;padding:16px 16px 60px}
+section{background:#1c2c25;border:1px solid #415a49;border-radius:14px;padding:16px;margin:16px 0}
+h2{margin:0 0 6px;font-size:18px}p{margin:6px 0}small,.note{color:#a9c4b0}
+label{display:block;margin:10px 0 4px;font-weight:600}select,button,input[type=file]{font:inherit;color:#ecf5ec;background:#2f4a3b;border:1px solid #629776;border-radius:9px;padding:9px 12px;max-width:100%}
+select{width:100%}button{cursor:pointer}button.main{background:#D1F869;color:#16210f;border-color:#D1F869;font-weight:700}button:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
+progress{width:100%;height:14px}
+#log{white-space:pre-wrap;font:12px/1.5 ui-monospace,Menlo,monospace;color:#c1d7c6;max-height:180px;overflow:auto;background:#0e1a15;border-radius:8px;padding:8px;margin-top:10px}
+.ok{color:#D1F869}.bad{color:#ffb4a8}
+#result{display:none;border:1px solid #D1F869;border-radius:10px;padding:12px;margin-top:12px}
+#text{max-height:46vh;overflow:auto;background:#0e1a15;border-radius:10px;padding:8px 12px;margin-top:10px}
+#text p{padding:4px 6px;border-radius:6px;margin:2px 0}#text p.now{background:#3a5a46;color:#fff}
+.bar{display:flex;align-items:center;gap:10px}.bar input{flex:1}
+</style></head>
+<body>
+<header><h1>E.D.D.i. Capsule Test</h1><small>Experimental. Separate from the main reader. v1.12.84</small></header>
+<main>
+<section><h2>What this is</h2>
+<p>A capsule is one file (.eddi) holding a book and its finished narration. Make it once on a computer that can keep up, then play it on any device, online or offline, with no voice engine needed.</p>
+<p id="support" class="note"></p></section>
+
+<section id="make"><h2>1. Make a capsule (use a computer, such as your Mac)</h2>
+<label for="book">Book</label><select id="book"></select>
+<div class="row"><button id="load">Load this book</button><span id="loadnote" class="note"></span></div>
+<label for="chapter">Chapter</label><select id="chapter" disabled></select>
+<label for="narrator">Narrator</label><select id="narrator"><option value="bm_lewis">British Male — Lewis</option><option value="bf_emma">British Female — Emma</option></select>
+<label for="length">How much to narrate</label><select id="length"><option value="2">About 2 minutes (quick test)</option><option value="6" selected>About 6 minutes</option><option value="0">The whole chapter</option></select>
+<label for="quality">Size</label><select id="quality"><option value="24000">Small (recommended)</option><option value="16000">Smaller</option><option value="32000">Better quality</option><option value="0">No compression (for comparison)</option></select>
+<label for="engine">Voice engine</label><select id="engine"><option value="standard">Standard (works everywhere, downloads about 92 MB once)</option><option value="fast">Fast (needs a recent computer)</option></select>
+<div class="row"><button id="make" class="main" disabled>Make capsule</button><button id="stop" disabled>Stop and keep what is done</button></div>
+<progress id="prog" value="0" max="100" hidden></progress>
+<p id="status" class="note"></p>
+<div id="result"><p><strong id="rtitle"></strong></p><p id="rinfo"></p><div class="row"><a id="dl" download><button class="main" type="button">Save the .eddi file</button></a><button id="playnow" type="button">Play it here</button></div></div>
+<div id="log"></div></section>
+
+<section id="play"><h2>2. Play a capsule (any device)</h2>
+<p>Choose a .eddi file. Once it has opened you can switch on aeroplane mode: nothing else is needed.</p>
+<input id="file" type="file">
+<div id="info" class="note"></div>
+<div id="player" hidden>
+ <label for="pchapter">Chapter</label><select id="pchapter"></select>
+ <div class="row"><button id="prev" title="Previous passage">⏮</button><button id="pp" class="main">▶ Play</button><button id="next" title="Next passage">⏭</button>
+ <label style="display:inline;margin:0">Speed <span id="spv">1.0×</span> <input id="speed" type="range" min=".7" max="1.6" step=".1" value="1"></label></div>
+ <div class="bar"><small id="pos">0:00</small><input id="seek" type="range" min="0" max="1" step="1" value="0"><small id="dur">0:00</small></div>
+ <div id="text"></div>
+</div></section>
+</main>
+<audio id="audio" preload="auto"></audio>
+
+<script src="vendor/jszip.min.js"></script>
+<script src="vendor/opus-decoder.min.js" charset="UTF-8"></script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const BOOKS=[
+ ['books/classics/jekyll-and-hyde.epub','Strange Case of Dr Jekyll and Mr Hyde'],
+ ['books/classics/a-christmas-carol.epub','A Christmas Carol'],
+ ['books/classics/alice-in-wonderland.epub','Alice in Wonderland'],
+ ['books/classics/sherlock-holmes.epub','The Adventures of Sherlock Holmes'],
+ ['books/classics/dracula.epub','Dracula']
+];
+$('book').replaceChildren(...BOOKS.map(([p,t])=>new Option(t,p)));
+const NAMES={bm_lewis:'Lewis',bf_emma:'Emma'};
+const RATE=24000,MAGIC='EDDICAP1';
+const log=m=>{const l=$('log');l.textContent+=m+'\n';l.scrollTop=l.scrollHeight};
+const mmss=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const mb=n=>(n/1048576).toFixed(1)+' MB';
+
+/* ───────── what this browser can do ───────── */
+const canEncode=typeof AudioEncoder!=='undefined'&&typeof AudioData!=='undefined';
+(async()=>{
+ let msg='';
+ if(canEncode){try{const r=await AudioEncoder.isConfigSupported({codec:'opus',sampleRate:RATE,numberOfChannels:1,bitrate:24000});window.__opusOK=!!r.supported}catch(_){window.__opusOK=false}}
+ msg=window.__opusOK?'<span class="ok">This browser can make compressed capsules.</span>':'<span class="bad">This browser cannot compress audio for a new capsule (try Chrome on a computer). It can still play capsules.</span>';
+ msg+=' '+(window.crossOriginIsolated?'Fast voice engine available.':'Standard voice engine only on this page.');
+ $('support').innerHTML=msg;
+ if(!window.crossOriginIsolated){$('engine').value='standard';$('engine').options[1].disabled=true}
+ else $('engine').value='fast';
+ if(!window.__opusOK)$('quality').value='0';
+})();
+
+/* ───────── read an EPUB from the repo ───────── */
+let epub=null;
+async function readEpub(buf){
+ const zip=await JSZip.loadAsync(buf);
+ const cont=await zip.file('META-INF/container.xml').async('string');
+ const opfPath=/full-path="([^"]+)"/.exec(cont)[1];
+ const dir=opfPath.includes('/')?opfPath.slice(0,opfPath.lastIndexOf('/')+1):'';
+ const opf=new DOMParser().parseFromString(await zip.file(opfPath).async('string'),'application/xml');
+ const items={};for(const it of opf.querySelectorAll('manifest > item'))items[it.getAttribute('id')]={href:it.getAttribute('href'),type:it.getAttribute('media-type'),props:it.getAttribute('properties')||''};
+ const title=(opf.getElementsByTagNameNS('*','title')[0]||{}).textContent||'Untitled';
+ const author=(opf.getElementsByTagNameNS('*','creator')[0]||{}).textContent||'';
+ const chapters=[];
+ for(const ref of opf.querySelectorAll('spine > itemref')){
+  const it=items[ref.getAttribute('idref')];if(!it||!/html/.test(it.type))continue;
+  const f=zip.file(decodeURIComponent(dir+it.href));if(!f)continue;
+  const doc=new DOMParser().parseFromString(await f.async('string'),'text/html');
+  const paras=[...doc.body.querySelectorAll('h1,h2,h3,p')].map(e=>e.textContent.replace(/\s+/g,' ').trim()).filter(Boolean);
+  const words=paras.join(' ').split(/\s+/).length;
+  if(words<150)continue;
+  const head=doc.body.querySelector('h1,h2,h3');
+  chapters.push({title:(head?head.textContent.replace(/\s+/g,' ').trim():'Part '+(chapters.length+1)).slice(0,80),paras,words});
+ }
+ let cover=null;
+ const cid=Object.keys(items).find(k=>/cover-image/.test(items[k].props))||Object.keys(items).find(k=>/^cover/i.test(k)&&/image/.test(items[k].type));
+ if(cid){const f=zip.file(decodeURIComponent(dir+items[cid].href));if(f)cover={type:items[cid].type,bytes:await f.async('uint8array')}}
+ return {title:title.trim(),author:author.trim(),chapters,cover};
+}
+$('load').onclick=async()=>{
+ $('load').disabled=true;$('loadnote').textContent='Loading…';
+ try{
+  const r=await fetch($('book').value);if(!r.ok)throw new Error('could not fetch the book ('+r.status+')');
+  epub=await readEpub(await r.arrayBuffer());
+  $('chapter').replaceChildren(...epub.chapters.map((c,i)=>new Option(c.title+' — '+c.words.toLocaleString()+' words, about '+Math.round(c.words/140)+' min',i)));
+  $('chapter').disabled=false;$('make').disabled=false;
+  $('loadnote').textContent=epub.title+' loaded: '+epub.chapters.length+' chapters.';
+ }catch(e){$('loadnote').textContent='Problem: '+e.message}
+ $('load').disabled=false;
+};
+
+/* ───────── split text into short passages the voice can speak ───────── */
+function passages(paras,maxMinutes){
+ const out=[];let words=0;const limit=maxMinutes?maxMinutes*140:Infinity;
+ for(const p of paras){
+  if(words>=limit)break;
+  const raw=p.split(/(?<=[.!?…]["”’)]?)\s+/),sentences=[];
+  for(const piece of raw){ /* do not split after Mr. Mrs. Dr. St. or an initial */
+   if(sentences.length&&/(\b(Mr|Mrs|Ms|Dr|St|Prof|Sr|Jr|Mt|Capt|Col|Gen|Lt|Rev|Hon|vs|etc)\.|\b[A-Z]\.)$/.test(sentences[sentences.length-1]))sentences[sentences.length-1]+=' '+piece;
+   else sentences.push(piece);
+  }
+  let cur='';
+  for(const s of sentences){
+   if(cur&&(cur+' '+s).length>260){out.push(cur);cur=s}else cur=cur?cur+' '+s:s;
+  }
+  if(cur)out.push(cur);
+  words+=p.split(/\s+/).length;
+ }
+ return out;
+}
+
+/* ───────── the voice engine (the same worker the reader uses) ───────── */
+let worker=null,pending=new Map(),nextId=1;
+function startEngine(mode,voice,onProgress){
+ return new Promise((resolve,reject)=>{
+  worker=new Worker('kokoro-worker.js',{type:'module'});
+  worker.onmessage=ev=>{
+   const m=ev.data||{};
+   if(m.type==='ready')resolve(m);
+   else if(m.type==='init-error')reject(new Error(m.message));
+   else if(m.type==='progress')onProgress&&onProgress(m);
+   else if(m.type==='audio'){const p=pending.get(m.id);if(p){pending.delete(m.id);p.res(m)}}
+   else if(m.type==='error'){const p=pending.get(m.id);if(p){pending.delete(m.id);p.rej(new Error(m.message))}else if(m.id===0)log('Engine error: '+m.message)}
+  };
+  worker.onerror=e=>reject(new Error('The voice engine could not start'+(e.message?': '+e.message:'')));
+  worker.postMessage({type:'init',voice,mode});
+ });
+}
+const speak=(text,voice)=>new Promise((res,rej)=>{const id=nextId++;pending.set(id,{res,rej});worker.postMessage({type:'generate',id,text,voice,speed:1})});
+
+/* ───────── compress one passage ───────── */
+async function opusPackets(samples,bitrate){
+ const packets=[];let failure=null;
+ const enc=new AudioEncoder({output:c=>{const b=new Uint8Array(c.byteLength);c.copyTo(b);packets.push(b)},error:e=>{failure=e}});
+ enc.configure({codec:'opus',sampleRate:RATE,numberOfChannels:1,bitrate});
+ for(let off=0;off<samples.length;off+=RATE){
+  const part=samples.subarray(off,Math.min(off+RATE,samples.length));
+  const ad=new AudioData({format:'f32-planar',sampleRate:RATE,numberOfFrames:part.length,numberOfChannels:1,timestamp:Math.round(off/RATE*1e6),data:part});
+  enc.encode(ad);ad.close();
+ }
+ await enc.flush();enc.close();
+ if(failure)throw failure;
+ return packets;
+}
+function framePackets(packets){ /* [2-byte length][packet] ... */
+ let n=0;for(const p of packets)n+=2+p.length;
+ const out=new Uint8Array(n);let o=0;
+ for(const p of packets){out[o]=p.length&255;out[o+1]=p.length>>8;out.set(p,o+2);o+=2+p.length}
+ return out;
+}
+function pcm16(samples){const o=new Int16Array(samples.length);for(let i=0;i<samples.length;i++){const v=Math.max(-1,Math.min(1,samples[i]));o[i]=v<0?v*32768:v*32767}return new Uint8Array(o.buffer)}
+
+/* ───────── make the capsule ───────── */
+let stopRequested=false,lastCapsule=null;
+$('stop').onclick=()=>{stopRequested=true;$('stop').disabled=true;$('status').textContent='Stopping after this passage…'};
+$('make').onclick=async()=>{
+ if(!epub)return;
+ stopRequested=false;$('result').style.display='none';$('log').textContent='';
+ const voice=$('narrator').value,ch=epub.chapters[+$('chapter').value],bitrate=+$('quality').value,mode=$('engine').value;
+ const list=passages(ch.paras,+$('length').value);
+ if(!list.length){$('status').textContent='Nothing to narrate in that chapter.';return}
+ const compress=bitrate>0;
+ if(compress&&!window.__opusOK){$('status').textContent='This browser cannot compress. Choose "No compression".';return}
+ $('make').disabled=true;$('stop').disabled=false;$('prog').hidden=false;$('prog').value=0;
+ log('Narrator: '+NAMES[voice]+' · '+list.length+' passages · '+(compress?'compressed at '+bitrate/1000+' kbps':'not compressed')+' · engine: '+mode);
+ try{
+  $('status').textContent='Starting the voice engine (the first time this downloads the voice, which can take a minute)…';
+  const t0=performance.now();
+  await startEngine(mode,voice,m=>{if(m.total)$('status').textContent='Downloading the voice… '+Math.round(m.loaded/m.total*100)+'%'});
+  log('Engine ready in '+((performance.now()-t0)/1000).toFixed(1)+' s');
+  const clips=[],blobs=[];let audioSec=0,bytes=0,rawBytes=0,genMs=0;
+  for(let i=0;i<list.length;i++){
+   if(stopRequested)break;
+   const r=await speak(list[i],voice);
+   const samples=r.samples;if(r.rate!==RATE)throw new Error('Unexpected sample rate '+r.rate);
+   const data=compress?framePackets(await opusPackets(samples,bitrate)):pcm16(samples);
+   clips.push({t:list[i],l:data.length,n:samples.length});blobs.push(data);
+   audioSec+=samples.length/RATE;bytes+=data.length;rawBytes+=samples.length*2;genMs+=r.ms;
+   $('prog').value=(i+1)/list.length*100;
+   $('status').textContent='Passage '+(i+1)+' of '+list.length+' · '+mmss(audioSec)+' of narration · '+mb(bytes)+' so far · voice speed '+(audioSec/(genMs/1000)).toFixed(1)+'× real time';
+  }
+  worker.terminate();worker=null;
+  if(!clips.length)throw new Error('No passages were made.');
+  /* lay out the file: header, JSON list, then the data */
+  let off=0;for(const c of clips){c.o=off;off+=c.l}
+  const manifest={format:'eddi-capsule',version:1,title:epub.title,author:epub.author,
+   narrator:{id:voice,name:NAMES[voice]},engine:{name:'Kokoro-82M',mode},codec:compress?'opus':'pcm16',sampleRate:RATE,bitrate:compress?bitrate:null,
+   createdAt:new Date().toISOString(),chapters:[{title:ch.title,clips}],stats:{audioSeconds:Math.round(audioSec),dataBytes:bytes}};
+  if(epub.cover){manifest.cover={type:epub.cover.type,o:off,l:epub.cover.bytes.length};blobs.push(epub.cover.bytes)}
+  const mj=new TextEncoder().encode(JSON.stringify(manifest));
+  const head=new Uint8Array(12+mj.length);head.set(new TextEncoder().encode(MAGIC),0);new DataView(head.buffer).setUint32(8,mj.length,true);head.set(mj,12);
+  const file=new Blob([head,...blobs],{type:'application/octet-stream'});
+  lastCapsule=file;
+  const name=(epub.title.replace(/[^\w]+/g,'-').slice(0,40)+'-'+NAMES[voice]+'.eddi').replace(/^-+/,'');
+  $('dl').href=URL.createObjectURL(file);$('dl').download=name;
+  $('rtitle').textContent=name;
+  const perHour=bytes/(audioSec/3600);
+  $('rinfo').innerHTML='<b>'+mb(file.size)+'</b> for '+mmss(audioSec)+' of narration'+(compress?' (uncompressed it would be '+mb(rawBytes)+'). ':'. ')+'That works out at about <b>'+mb(perHour)+' per hour</b> of listening, so a 10-hour book would be roughly <b>'+mb(perHour*10)+'</b>.';
+  $('result').style.display='block';
+  $('status').textContent='Done.'+(stopRequested?' (Stopped early, as you asked.)':'');
+  log('Capsule: '+mb(file.size)+' · '+mmss(audioSec)+' · '+(compress?'opus '+bitrate/1000+' kbps':'uncompressed')+' · '+mb(perHour)+'/hour');
+ }catch(e){
+  $('status').innerHTML='<span class="bad">Problem: '+e.message+'</span>';log('Problem: '+e.message);
+  if(worker){worker.terminate();worker=null}
+ }
+ $('make').disabled=false;$('stop').disabled=true;
+};
+$('playnow').onclick=()=>{if(lastCapsule)openCapsule(lastCapsule);location.hash='play';$('play').scrollIntoView()};
+
+/* ───────── play a capsule (no voice engine involved) ───────── */
+let cap=null,decoder=null,cur={ch:0,i:0},clipUrl=new Map(),audio=$('audio'),wasPlaying=false;
+$('file').onchange=()=>{if($('file').files[0])openCapsule($('file').files[0])};
+async function openCapsule(file){
+ try{
+  const head=new Uint8Array(await file.slice(0,12).arrayBuffer());
+  if(new TextDecoder().decode(head.subarray(0,8))!==MAGIC)throw new Error('This does not look like an E.D.D.i. capsule.');
+  const M=new DataView(head.buffer).getUint32(8,true);
+  const manifest=JSON.parse(await file.slice(12,12+M).text());
+  cap={file,m:manifest,base:12+M};
+  if(manifest.codec==='opus'){
+   if(!window['opus-decoder'])throw new Error('The decoder did not load.');
+   decoder=new window['opus-decoder'].OpusDecoder({sampleRate:manifest.sampleRate,channels:1});await decoder.ready;
+  }
+  stopAudio();clipUrl.forEach(u=>URL.revokeObjectURL(u));clipUrl.clear();
+  $('info').textContent=manifest.title+' — narrated by '+manifest.narrator.name+' · '+mmss(manifest.stats.audioSeconds)+' · '+mb(file.size)+' · '+(manifest.codec==='opus'?'compressed':'uncompressed');
+  $('pchapter').replaceChildren(...manifest.chapters.map((c,i)=>new Option(c.title,i)));
+  $('player').hidden=false;
+  if(manifest.cover&&'mediaSession' in navigator){
+   const cb=await file.slice(cap.base+manifest.cover.o,cap.base+manifest.cover.o+manifest.cover.l).arrayBuffer();
+   cap.coverUrl=URL.createObjectURL(new Blob([cb],{type:manifest.cover.type}));
+  }
+  showChapter(0,0);
+ }catch(e){$('info').innerHTML='<span class="bad">Could not open it: '+e.message+'</span>'}
+}
+function showChapter(ch,i){
+ cur={ch,i};const c=cap.m.chapters[ch];
+ $('text').replaceChildren(...c.clips.map((x,k)=>{const p=document.createElement('p');p.textContent=x.t;p.onclick=()=>{playClip(k)};return p}));
+ $('pchapter').value=ch;
+ let tot=0;cap.starts=c.clips.map(x=>{const s=tot;tot+=x.n/cap.m.sampleRate;return s});cap.total=tot;
+ $('seek').max=c.clips.length-1;$('dur').textContent=mmss(tot);
+ mark();
+}
+function mark(){
+ const ps=$('text').children;for(const p of ps)p.classList.remove('now');
+ const p=ps[cur.i];if(p){p.classList.add('now');const box=$('text');box.scrollTop=Math.max(0,p.offsetTop-box.offsetTop-40)}
+ $('seek').value=cur.i;$('pos').textContent=mmss(cap.starts?cap.starts[cur.i]:0);
+}
+async function pcmFor(ch,i){
+ const c=cap.m.chapters[ch].clips[i],a=cap.base+(ch?0:0)+c.o;
+ const bytes=new Uint8Array(await cap.file.slice(a,a+c.l).arrayBuffer());
+ if(cap.m.codec==='pcm16'){const s=new Int16Array(bytes.buffer,bytes.byteOffset,bytes.length/2),f=new Float32Array(s.length);for(let k=0;k<s.length;k++)f[k]=s[k]/32768;return f}
+ const parts=[];let n=0;decoder.reset&&await decoder.reset();
+ for(let o=0;o+2<=bytes.length;){const len=bytes[o]|bytes[o+1]<<8;const d=decoder.decodeFrame(bytes.subarray(o+2,o+2+len));parts.push(d.channelData[0]);n+=d.samplesDecoded;o+=2+len}
+ const out=new Float32Array(n);let p=0;for(const x of parts){out.set(x,p);p+=x.length}
+ return out.subarray(0,Math.min(n,c.n+480)); /* trim the encoder padding */
+}
+function wav(f,rate){
+ const b=new ArrayBuffer(44+f.length*2),v=new DataView(b),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+ w(0,'RIFF');v.setUint32(4,36+f.length*2,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,rate,true);v.setUint32(28,rate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,f.length*2,true);
+ for(let i=0;i<f.length;i++){const s=Math.max(-1,Math.min(1,f[i]));v.setInt16(44+i*2,s<0?s*32768:s*32767,true)}
+ return new Blob([b],{type:'audio/wav'});
+}
+const keyOf=(ch,i)=>ch+':'+i;
+async function urlFor(ch,i){
+ const k=keyOf(ch,i);if(clipUrl.has(k))return clipUrl.get(k);
+ const u=URL.createObjectURL(wav(await pcmFor(ch,i),cap.m.sampleRate));clipUrl.set(k,u);return u;
+}
+function trim(){ /* keep only a few decoded passages in memory */
+ for(const [k,u] of clipUrl){const [c,i]=k.split(':').map(Number);if(c!==cur.ch||i<cur.i-1||i>cur.i+3){URL.revokeObjectURL(u);clipUrl.delete(k)}}
+}
+async function playClip(i){
+ const ch=cur.ch,clips=cap.m.chapters[ch].clips;
+ if(i<0)i=0;
+ if(i>=clips.length){stopAudio();$('pp').textContent='▶ Play';wasPlaying=false;return}
+ cur.i=i;mark();
+ audio.src=await urlFor(ch,i);audio.playbackRate=+$('speed').value;audio.preservesPitch=true;
+ try{await audio.play();wasPlaying=true;$('pp').textContent='⏸ Pause'}catch(e){$('pp').textContent='▶ Play';wasPlaying=false}
+ if('mediaSession' in navigator){navigator.mediaSession.metadata=new MediaMetadata({title:cap.m.chapters[ch].title,artist:cap.m.narrator.name,album:cap.m.title,artwork:cap.coverUrl?[{src:cap.coverUrl,sizes:'512x512',type:cap.m.cover.type}]:[]})}
+ trim();
+ for(let k=1;k<=2&&i+k<clips.length;k++)urlFor(ch,i+k).catch(()=>{}); /* decode ahead: quick, no voice engine */
+}
+function stopAudio(){audio.pause();audio.removeAttribute('src');audio.load()}
+audio.onended=()=>playClip(cur.i+1);
+$('pp').onclick=()=>{
+ if(!cap)return;
+ if(!audio.src||audio.ended||!wasPlaying&&!audio.src){playClip(cur.i);return}
+ if(audio.paused){audio.play();$('pp').textContent='⏸ Pause';wasPlaying=true}else{audio.pause();$('pp').textContent='▶ Play';wasPlaying=false}
+};
+$('prev').onclick=()=>cap&&playClip(cur.i-1);$('next').onclick=()=>cap&&playClip(cur.i+1);
+$('seek').oninput=()=>{if(cap){cur.i=+$('seek').value;mark()}};
+$('seek').onchange=()=>{if(cap)playClip(+$('seek').value)};
+$('pchapter').onchange=()=>{stopAudio();showChapter(+$('pchapter').value,0);$('pp').textContent='▶ Play';wasPlaying=false};
+$('speed').oninput=()=>{$('spv').textContent=(+$('speed').value).toFixed(1)+'×';audio.playbackRate=+$('speed').value};
+if('mediaSession' in navigator){
+ navigator.mediaSession.setActionHandler('play',()=>$('pp').click());navigator.mediaSession.setActionHandler('pause',()=>$('pp').click());
+ navigator.mediaSession.setActionHandler('nexttrack',()=>$('next').click());navigator.mediaSession.setActionHandler('previoustrack',()=>$('prev').click());
+}
+window.__capsule={passages,readEpub,openCapsule,state:()=>({cur,wasPlaying,paused:audio.paused,t:audio.currentTime,src:!!audio.src,total:cap&&cap.total})};
+</script>
+</body></html>
