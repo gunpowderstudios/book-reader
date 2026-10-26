@@ -99,23 +99,35 @@ header{background:#000!important}
 <h3>Already bought an ebook?</h3>
 <p><strong>Your books, your choice.</strong> EPub Reader isn't just for free classics. You can also listen to legally purchased <strong>DRM-free EPUB</strong> books, including modern titles that are still under copyright, for your own personal use where permitted by the book's licence and applicable law.</p>
 <p>Books you open here are kept in your browser on your device, not uploaded to a public library or shared with other readers. Some ebooks have digital rights management (DRM), which this app cannot unlock. Please respect copyright and the terms under which you obtained your books.</p>
+<style>
+/* Compact featured classics, scoped to the Free Books page */
+#free-books-panel .eddi-picks{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:12px;margin:12px 0 20px}
+#free-books-panel .eddi-pick{min-width:0;padding:10px;border:1px solid var(--line,#444);border-radius:10px;text-align:center}
+#free-books-panel .eddi-pick a{display:block;text-decoration:none}
+#free-books-panel .eddi-pick img{width:100%;height:160px;object-fit:contain;display:block;margin:0 auto 9px;border-radius:4px}
+#free-books-panel .eddi-pick strong{display:block;font-size:14px;line-height:1.25}
+#free-books-panel .eddi-pick small{display:block;margin-top:4px;line-height:1.3}
+#free-books-panel .eddi-source-links{display:flex;flex-wrap:wrap;gap:5px 16px;margin:7px 0 18px;padding:0;list-style:none}
+#free-books-panel .eddi-source-links li{margin:0}
+@media(max-width:420px){#free-books-panel .eddi-picks{grid-template-columns:repeat(2,minmax(0,1fr))}#free-books-panel .eddi-pick img{height:140px}}
+</style>
 <h3>📖 E.D.D.i’s Choice</h3>
-<p>Not sure where to start? Here are five timeless classics hand-picked by E.D.D.i. Each link opens a free book page where you can download an EPUB to read or listen to here.</p>
-<div class="grid">
-<article><h3><a href="https://www.gutenberg.org/ebooks/1342" target="_blank" rel="noopener noreferrer">Pride and Prejudice</a></h3><p><strong>Jane Austen</strong> — Wit, romance and wonderfully sharp observations of society.</p></article>
-<article><h3><a href="https://www.gutenberg.org/ebooks/2701" target="_blank" rel="noopener noreferrer">Moby-Dick</a></h3><p><strong>Herman Melville</strong> — An unforgettable voyage of obsession and adventure.</p></article>
-<article><h3><a href="https://www.gutenberg.org/ebooks/84" target="_blank" rel="noopener noreferrer">Frankenstein</a></h3><p><strong>Mary Shelley</strong> — The chilling, thought-provoking original science-fiction classic.</p></article>
-<article><h3><a href="https://www.gutenberg.org/ebooks/174" target="_blank" rel="noopener noreferrer">The Picture of Dorian Gray</a></h3><p><strong>Oscar Wilde</strong> — A deliciously dark tale of beauty, vanity and secrets.</p></article>
-<article><h3><a href="https://www.gutenberg.org/ebooks/1661" target="_blank" rel="noopener noreferrer">The Adventures of Sherlock Holmes</a></h3><p><strong>Arthur Conan Doyle</strong> — Twelve brilliant mysteries with the world’s most famous detective.</p></article>
+<p>Five classic reads to get you started. Tap a cover to get your free EPUB.</p>
+<div class="eddi-picks">
+<div class="eddi-pick"><a href="https://www.gutenberg.org/ebooks/1342" target="_blank" rel="noopener noreferrer"><img src="https://www.gutenberg.org/cache/epub/1342/pg1342.cover.medium.jpg" alt="Cover of Pride and Prejudice" loading="lazy" onerror="this.style.display='none'"><strong>Pride and Prejudice</strong></a><small>Jane Austen</small></div>
+<div class="eddi-pick"><a href="https://www.gutenberg.org/ebooks/2701" target="_blank" rel="noopener noreferrer"><img src="https://www.gutenberg.org/cache/epub/2701/pg2701.cover.medium.jpg" alt="Cover of Moby-Dick" loading="lazy" onerror="this.style.display='none'"><strong>Moby-Dick</strong></a><small>Herman Melville</small></div>
+<div class="eddi-pick"><a href="https://www.gutenberg.org/ebooks/84" target="_blank" rel="noopener noreferrer"><img src="https://www.gutenberg.org/cache/epub/84/pg84.cover.medium.jpg" alt="Cover of Frankenstein" loading="lazy" onerror="this.style.display='none'"><strong>Frankenstein</strong></a><small>Mary Shelley</small></div>
+<div class="eddi-pick"><a href="https://www.gutenberg.org/ebooks/174" target="_blank" rel="noopener noreferrer"><img src="https://www.gutenberg.org/cache/epub/174/pg174.cover.medium.jpg" alt="Cover of The Picture of Dorian Gray" loading="lazy" onerror="this.style.display='none'"><strong>The Picture of Dorian Gray</strong></a><small>Oscar Wilde</small></div>
+<div class="eddi-pick"><a href="https://www.gutenberg.org/ebooks/1661" target="_blank" rel="noopener noreferrer"><img src="https://www.gutenberg.org/cache/epub/1661/pg1661.cover.medium.jpg" alt="Cover of The Adventures of Sherlock Holmes" loading="lazy" onerror="this.style.display='none'"><strong>The Adventures of Sherlock Holmes</strong></a><small>Arthur Conan Doyle</small></div>
 </div>
-<h3>Find your next book</h3>
-<div class="grid">
-<article><h3><a href="https://standardebooks.org/" target="_blank" rel="noopener noreferrer">Standard Ebooks</a></h3><p>Beautifully prepared classics with carefully formatted EPUB editions.</p></article>
-<article><h3><a href="https://www.gutenberg.org/" target="_blank" rel="noopener noreferrer">Project Gutenberg</a></h3><p>A huge collection of classic literature, with free EPUB downloads.</p></article>
-<article><h3><a href="https://www.globalgreyebooks.com/" target="_blank" rel="noopener noreferrer">Global Grey</a></h3><p>Classic fiction, folklore, history and hard-to-find older books.</p></article>
-<article><h3><a href="https://publicdomain.co.uk/" target="_blank" rel="noopener noreferrer">Public Domain UK</a></h3><p>A resource for exploring books in the public domain, especially for UK readers. Check each book’s download options.</p></article>
-<article><h3><a href="https://www.fadedpage.com/" target="_blank" rel="noopener noreferrer">Faded Page</a></h3><p>Carefully prepared classics and lesser-known works. Its copyright checks follow Canadian rules, so check your local laws.</p></article>
-</div>
+<h3>More free book sources</h3>
+<ul class="eddi-source-links">
+<li><a href="https://standardebooks.org/" target="_blank" rel="noopener noreferrer">Standard Ebooks</a></li>
+<li><a href="https://www.gutenberg.org/" target="_blank" rel="noopener noreferrer">Project Gutenberg</a></li>
+<li><a href="https://www.globalgreyebooks.com/" target="_blank" rel="noopener noreferrer">Global Grey</a></li>
+<li><a href="https://publicdomain.co.uk/" target="_blank" rel="noopener noreferrer">Public Domain UK</a></li>
+<li><a href="https://www.fadedpage.com/" target="_blank" rel="noopener noreferrer">Faded Page</a></li>
+</ul>
 <h3>How to read a free book</h3>
 <p>Choose a book, download its <strong>EPUB</strong> file, return to <strong>My Library</strong> and select <strong>Load a Book</strong>. Then enjoy it with one of our AI narrators.</p>
 </section><section id="library-panel"><h2>Turn your EPUB books into audiobooks with natural-sounding AI voices. Read along, save your place, and pick up where you left off.</h2><p><small>Your books are saved in this browser on this device only, with your place in each one. They are not shared between your Mac, iPhone and iPad.</small></p><div id="featured-conan" class="book" style="margin:16px 0;align-items:flex-start"><img src="books/conan-cover.svg" alt="Conan book cover" style="width:104px;max-width:27%;border-radius:7px"><div class="info"><strong style="color:#ffdc55">FREE BOOK INCLUDED</strong><h3>Conan: Original Published Stories</h3><p class="by"><a href="https://en.wikipedia.org/wiki/Robert_E._Howard" target="_blank" rel="noopener noreferrer">Robert E. Howard</a> · Complete 17-story EPUB</p><p><small>Original stories are public domain in the UK from 1 January 2007 (Howard died in 1936). Copyright status may differ elsewhere. This free edition is supplied for personal reading; not offered for resale. Public-domain texts are not subject to a new restriction on commercial use.</small></p><div class="acts"><button id="open-free-conan" class="go">▶ Open free book</button></div></div></div><div id="lib-list" class="grid"></div><p id="lib-empty">Your library is empty.</p><p><small id="lib-storage"></small></p></section><section id="narrators-panel" hidden style="max-width:850px;margin:22px auto 210px;padding:22px;background:#1c2c25;border:1px solid #415a49;border-radius:14px">
