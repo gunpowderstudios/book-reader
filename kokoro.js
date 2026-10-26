@@ -368,7 +368,7 @@ function renderBuffer(){
  if(active){
   const t=bufInfo.target||bufferTarget();
   pct=Math.min(100,bufInfo.ready/t*100);
-  if(bufInfo.waiting){state='empty';msg='Waiting for George — nothing buffered yet'}
+  if(bufInfo.waiting){state='empty';msg='George is reading ahead — preparing the next passage'}
   else{state=bufInfo.ready<20?'low':'ok';msg='Ready ahead: '+fmtDur(bufInfo.ready)+' of '+fmtDur(t)}
   if(speed)msg+=' · George works at '+speed;
   if(bufInfo.waits)msg+=' · pauses: '+bufInfo.waits+' ('+fmtDur(bufInfo.waitSec)+')';
@@ -377,7 +377,7 @@ function renderBuffer(){
  }
  if(text)text.textContent=named(msg);
  if(fill)fill.style.width=pct.toFixed(1)+'%';
- if(bar){bar.dataset.state=state;bar.setAttribute('aria-valuenow',String(Math.round(pct)))}
+ if(bar){bar.dataset.state=state;bar.dataset.playbackWaiting=String(!!(bufInfo.waiting&&active&&!session.paused&&(!playerURL||player.paused||player.ended)));bar.setAttribute('aria-valuenow',String(Math.round(pct)))}
  if(hintEl){
   const h=hint();
   if(active&&session.holding){
