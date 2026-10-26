@@ -1,3 +1,7 @@
+## v1.12.76 — 26 October 2026
+- Mobile Now Reading defaults to an audiobook-style view with a large EPUB cover, title, author and prominent Play/Pause control. The existing bottom player and voice loading/buffering indicators are retained.
+- Added an optional Show book text button to reveal the traditional reading/chapter view. Desktop retains the existing scrolling/highlighted text view. No Kokoro engine changes.
+
 ## v1.12.75 — 26 October 2026
 - Display a live ‘Buffering…’ message directly above the fixed playback controls on both desktop and mobile when the existing narration buffer reports it is empty; hide it again when audio is ready.
 - Temporarily hide the Bedtime button without deleting its underlying code.
