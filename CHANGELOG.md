@@ -1,3 +1,7 @@
+## v1.12.69 — 26 October 2026
+- Removed the specially featured Conan free-book panel from the front page.
+- Added Conan: Original Published Stories as a standard cover/card on the Free Books page, with the same Open in E.D.D.i. button and shared loading logic as the other books. Its included EPUB and cover remain in the repository.
+
 ## v1.12.68 — 26 October 2026
 - Temporarily hide the AI Compatibility Test panel from the settings UI. Its test and Copy Report code remain intact for easy restoration; narration and playback are unchanged.
 
