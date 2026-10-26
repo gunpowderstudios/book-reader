@@ -196,8 +196,6 @@ $('ai-check-run').onclick=()=>{
   data.push('App/engine version: '+metrics.version,'Mode preference: '+metrics.modePreference,'Actual running mode: '+metrics.actualMode,'AI engine state: '+metrics.enginePhase,'AI model startup: '+measured(metrics.modelStartSeconds,'seconds'),'First speech after engine start request: '+measured(metrics.firstSpeechSeconds,'seconds'),'Generation speed: '+(metrics.generationSpeed?metrics.generationSpeed+'× real-time':'Not measured yet'),'Speech buffered ahead: '+metrics.bufferReadySeconds+' / '+metrics.bufferTargetSeconds+' seconds','Buffer underruns: '+metrics.bufferWaits+' (total '+metrics.bufferWaitSeconds+' seconds)','Audio clips played: '+metrics.audioClipsStarted,'Audio playback errors: '+metrics.audioErrors);
  }else data.push('Playback data not yet available. Reload the page if necessary.');
  data.push('Actual model-loading errors:');
- /*  end measurements */
- ];
  if(aiErrors.length)for(const e of aiErrors)data.push('• '+e.stage+' ('+e.mode+'): '+e.message);
  else data.push('None recorded yet. Press Play, then check again if it fails.');
  $('ai-check-report').textContent=data.join('\n');
