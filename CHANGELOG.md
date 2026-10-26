@@ -1,3 +1,7 @@
+## v1.12.52 — 26 October 2026
+- Expanded AI Compatibility Test with read-only playback metrics: selected vs actual engine mode, model startup time, first audible speech latency, generation speed, buffered seconds, buffer interruptions, clips played, and audio errors.
+- All figures are added to Copy Report. The test does not alter device voice preferences or trigger model loading on its own; press Play before collecting a report.
+
 # E.D.D.i. — Version history
 
 ## v1.12.51 — 26 October 2026
