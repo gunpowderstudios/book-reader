@@ -1,5 +1,12 @@
 # E.D.D.i. — Version history
 
+## v1.12.49 — 26 October 2026
+### Experimental Kokoro on older iPads
+- Added an **opt-in Experimental Smaller Kokoro (86 MB)** setting under Voice performance, using the official mixed-precision q8f16 ONNX model with CPU/WebAssembly. Keeps the same Kokoro voices.
+- Automatic mode and ordinary Fast/Low Memory modes remain unchanged. Existing Low Memory already uses one CPU thread, so simply disabling multithreading again could not resolve the reported error.
+- The smaller download **does not guarantee lower runtime RAM usage**; older WebKit browsers may still report out-of-memory or lack required WebAssembly features. This experiment needs a real-device test before being considered compatible.
+- AI Compatibility Test from v1.12.48 remains available to capture failure messages.
+
 ## v1.12.48 — 26 October 2026
 ### AI compatibility diagnosis
 - Added an **AI Compatibility Test** in the narration settings for older iPads and other devices. It checks key browser features and records the actual Kokoro model-loading error when the reader fails. The test itself does not download the AI model.
