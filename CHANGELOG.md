@@ -1,6 +1,7 @@
 # E.D.D.i. — Version history
 
 ## v1.12.50 — 26 October 2026
+- Updated branding to use the uploaded `eddi-reader-logo-long.png` in the header and `eddi-reader-logo-square.png` as the browser favicon and Apple home-screen icon.
 - Added **Copy Report** beside AI Compatibility Test, with clipboard support and a fallback for older iPad browsers.
 - The button copies the currently displayed diagnostic report for easy sharing with ChatGPT or Claude; it tells users to run the test first if no report is present.
 - Archived supplied debugging screenshots separately, without changing the voice engine.
