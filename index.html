@@ -256,7 +256,22 @@ function placeMobilePlayer(name){
  const target=name==='book'?$('heading'):name==='test'?$('test-panel')?.querySelector('h1,h2'):name==='narrators'?$('narrators-panel')?.querySelector('h2'):name==='sync'?$('sync-panel')?.querySelector('h2'):name==='free'?$('free-books-panel')?.querySelector('h2'):$('library-panel')?.querySelector('p');
  if(target&&target.parentNode)target.insertAdjacentElement('afterend',panel);
 }
-function showTab(name){let k=window.chapterKokoro;$('book-main').hidden=name!=='book';$('library-panel').hidden=name!=='library';$('sync-panel').hidden=name!=='sync';$('narrators-panel').hidden=name!=='narrators';$('free-books-panel').hidden=name!=='free';if($('mobile-tab-select'))$('mobile-tab-select').value=name;for(let t of['library','book','free','narrators','sync']){$('tab-'+t).classList.toggle('selected',t===name);$('tab-'+t).setAttribute('aria-selected',String(t===name))}if(!S.playing)say(S.chapters.length?'Ready. Press Play.':'Open an EPUB to start');if(name==='library')window.chapterLibrary?.render();if(name==='book'&&S.chapters.length&&(!$('text').children.length||!$('chapters').children.length))render();placeMobilePlayer(name)}
+const TAB_SLUGS={library:'library',book:'reading',free:'free-books',narrators:'narrators',sync:'sync'};
+const SLUG_TABS=Object.fromEntries(Object.entries(TAB_SLUGS).map(([tab,slug])=>[slug,tab]));
+function tabFromUrl(){return SLUG_TABS[decodeURIComponent(location.hash.slice(1))]||'library'}
+function showTab(name,updateUrl=true){
+ if(!Object.prototype.hasOwnProperty.call(TAB_SLUGS,name))name='library';
+ $('book-main').hidden=name!=='book';$('library-panel').hidden=name!=='library';$('sync-panel').hidden=name!=='sync';$('narrators-panel').hidden=name!=='narrators';$('free-books-panel').hidden=name!=='free';
+ if($('mobile-tab-select'))$('mobile-tab-select').value=name;
+ for(let t of ['library','book','free','narrators','sync']){$('tab-'+t).classList.toggle('selected',t===name);$('tab-'+t).setAttribute('aria-selected',String(t===name))}
+ if(!S.playing)say(S.chapters.length?'Ready. Press Play.':'Open an EPUB to start');
+ if(name==='library')window.chapterLibrary?.render();
+ if(name==='book'&&S.chapters.length&&(!$('text').children.length||!$('chapters').children.length))render();
+ placeMobilePlayer(name);
+ if(updateUrl&&location.hash!=='#'+TAB_SLUGS[name])history.pushState(null,'','#'+TAB_SLUGS[name]);
+}
+window.addEventListener('popstate',()=>showTab(tabFromUrl(),false));
+window.addEventListener('hashchange',()=>showTab(tabFromUrl(),false));
 $('tab-library').onclick=()=>showTab('library');$('tab-book').onclick=()=>showTab('book');$('tab-narrators').onclick=()=>showTab('narrators');$('tab-sync').onclick=()=>showTab('sync');$('tab-free').onclick=()=>showTab('free');$('chapter-select').onchange=e=>moveChapter(Number(e.target.value));$('mobile-tab-select').onchange=e=>showTab(e.target.value);
 $('progress-save').onclick=async()=>{
  try{
@@ -364,7 +379,7 @@ $('progress-file').onchange=async e=>{
  }catch(err){$('progress-status').textContent='Could not load progress: '+err.message}
 };
 
-function boot(){showTab('library');let lib=window.chapterLibrary;if(!lib)return Promise.resolve();return lib.ready.then(()=>{if(!S.chapters.length){showTab('library');const recent=lib.books.slice().sort((a,b)=>(b.lastOpened||0)-(a.lastOpened||0))[0];if(recent){$('now').textContent='Ready to continue: '+(recent.title||recent.name||'your book');$('status').textContent='Press Play to continue where you left off';$('play').textContent='▶ Continue'}}})}
+function boot(){showTab(tabFromUrl(),false);let lib=window.chapterLibrary;if(!lib)return Promise.resolve();return lib.ready.then(()=>{if(!S.chapters.length){const recent=lib.books.slice().sort((a,b)=>(b.lastOpened||0)-(a.lastOpened||0))[0];if(recent){$('now').textContent='Ready to continue: '+(recent.title||recent.name||'your book');$('status').textContent='Press Play to continue where you left off';$('play').textContent='▶ Continue'}}})}
 window.chapterApp={openFile,openFromLibrary,addFiles,stop,say,showTab,boot,render,state:S};$('open-free-conan').onclick=async()=>{const button=$('open-free-conan');button.disabled=true;button.textContent='Loading included book…';try{const response=await fetch('books/Conan_Original_Stories.epub');if(!response.ok)throw Error('Book download failed ('+response.status+')');const blob=await response.blob();await openFile(new File([blob],'Conan_Original_Stories.epub',{type:'application/epub+zip'}));}catch(e){say('Could not load free book: '+e.message)}finally{button.disabled=false;button.textContent='▶ Open free book'}};document.addEventListener('DOMContentLoaded',boot);window.addEventListener('resize',()=>{const active=['library','book','sync','free'].find(x=>$('tab-'+x).classList.contains('selected'))||(S.chapters.length&&!$('book-main').hidden?'book':'library');placeMobilePlayer(active)});
 })();
 </script><script defer src="kokoro.js?v=1.12.52"></script><script defer src="library.js?v=1.12.47"></script><script defer src="offline.js?v=1.12.47"></script><script defer src="read-along.js?v=1.12.47"></script></html>
