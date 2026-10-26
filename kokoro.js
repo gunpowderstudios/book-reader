@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.47';
+const VERSION='1.12.48';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -118,6 +118,7 @@ function armWatchdog(){
  watchdog=setTimeout(()=>failWorker(new Error('George stopped responding. Press Play to try again.')),initWaiter?INIT_TIMEOUT:GENERATE_TIMEOUT);
 }
 function failWorker(err,silent){
+ if(!silent)window.dispatchEvent(new CustomEvent('eddi-ai-diagnostic',{detail:{mode:runMode||mode,stage:'Worker or engine',message:String(err?.message||err)}}));
  clearTimeout(watchdog);watchdog=null;
  const w=worker;worker=null;readyPromise=null;engineReady=false;
  try{if(w)w.terminate()}catch(_){}
@@ -153,6 +154,7 @@ function onWorkerMessage(w,m){
    renderEngine();
    const iw=initWaiter;initWaiter=null;if(iw)iw.resolve(m.ms);break}
   case 'init-error':{
+   window.dispatchEvent(new CustomEvent('eddi-ai-diagnostic',{detail:{mode:m.mode||runMode||mode,stage:'Model initialisation',message:String(m.message||'Unknown error')}}));
    const from=m.mode||runMode||mode,next=nextLighter(from);
    store.set('cv-trying','');if(!failedModes.includes(from))failedModes.push(from);
    if(next&&initWaiter){ /* lighter mode in a fresh worker (a failed load can leave memory held) */
