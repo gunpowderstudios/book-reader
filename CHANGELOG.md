@@ -1,29 +1,19 @@
 # E.D.D.i. — Version history
 
-### Meet the Narrators restored — 25 October 2026
-- Restored a narrator preview page, second from the right before Syncing Playback in desktop and mobile navigation.
-- Lists all voices currently supported by the app, plays a short shared story through the existing Kokoro test engine, and lets listeners choose a narrator.
-- Reader and narration engine code left unchanged.
+## v1.12.48 — 26 October 2026
+### AI compatibility diagnosis
+- Added an **AI Compatibility Test** in the narration settings for older iPads and other devices. It checks key browser features and records the actual Kokoro model-loading error when the reader fails. The test itself does not download the AI model.
+- The test is diagnostic only; no replacement speech engine or change to the Kokoro narration quality was made.
 
-
-### Book & Progress transfer — 25 October 2026
-- Added an optional single ZIP export containing the current EPUB and its reading position, and a one-step importer that reopens the book at the saved position.
-- Preserved the existing JSON-only progress exchange for readers who prefer small files.
-- Supports browser Save As when available and standard downloads elsewhere; no narration model or audio is bundled.
-
-
-### Branding update — 25 October 2026
-- Renamed visible app branding to **E.D.D.i. (Every Day Digital Intelligence)** with the tagline **Your friendly AI reading companion**.
-- Updated page title, header wordmark, credits and README while preserving the existing application logic and version number.
-- GitHub repository URL and existing image asset filenames stay unchanged.
-
-
-- Free Books page: clarified that legally purchased DRM-free EPUBs can also be enjoyed privately, subject to licence and copyright rules.
-
-
-### Free Books page — 25 October 2026
-- Added a Free Books navigation tab (desktop and mobile), linking to five public-domain ebook resources with a short explanation of copyright and EPUB loading.
-- Left Claude’s existing playback, narrator, and reader implementation unchanged.
+### Consolidated recent interface and transfer updates
+- Renamed the app **E.D.D.i. — Your FREE AI ePUB Reader**, refreshed the long-logo desktop and mobile layouts, and moved the small version label to the upper-right.
+- Added a **Free Books** page with public-domain sources, copyright guidance and information about purchased DRM-free EPUBs.
+- Restored **Meet the Narrators**, listing all supported voices with a short sample and a narrator selection button.
+- Improved the **Now Reading** page and clarified progress as a percentage and paragraph number; retained optional spoken-word highlighting.
+- Added smoother continuous read-ahead indicators and shorter initial buffering defaults.
+- Added **Save Book & Progress / Load Book & Progress** (original EPUB + reading position in one ZIP), timestamped filenames, a copyright reminder and simpler cross-device instructions; retained JSON-only bookmark transfers.
+- Added browser-native **Save As** for supported browsers, with normal downloads elsewhere.
+- All these changes follow the core v1.12.47 release; this entry replaces earlier unnumbered notes.
 
 ## v1.12.47 — 25 October 2026
 - **“📖 Now Reading” tab is back** (after My Library): it shows the book you are playing, with its chapters, the paragraphs and the yellow word highlight, so you can get back to it from any other page.
