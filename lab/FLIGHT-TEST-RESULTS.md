@@ -15,6 +15,7 @@ E.D.D.i. LAB at https://gunpowderstudios.github.io/book-reader/lab/ — Emma voi
 | User's Mac Studio, Chrome | 1.16 | Auto → GPU unrestricted | Full 12 | 13.00 sec (10.15×) | 4.004 sec | 0 anomalies, 0 underruns; passage 11 1.60 sec; average transition 36 ms. **Not** a 3-passage-ahead test (report: lookAheadLimit unlimited). |
 | Simon's MacBook Pro, Chrome | 1.16 | Auto → GPU unrestricted | Full 12 | 18.25 sec (7.23×) | 27.067 sec | 0 anomalies, 0 underruns; passage 11 2.47 sec; avg transition 25 ms. Engine startup 25.38 sec, possibly first-load cost; second-run check outstanding. |
 | User's iPhone 13, Chrome iOS | 1.20 | Auto → Standard CPU | Full 12 (stopped during passage 1) | Not completed | No sound recorded | iOS audio unlock event; engine ready after 16.614 sec; generation of first full passage still incomplete when stopped ~21.5 sec later. This does **not** prove an engine crash. |
+| User's iPhone 13, Chrome iOS | 1.21 | Auto → Standard CPU, 1 thread | **Norwood Welcome, 6 passages** | **145.80 sec for 62.05 sec audio (0.43× real-time)** | **29.549 sec** | **Completed, but 5 buffer underruns**. Between-passage delays 12.404, 11.576, 10.829, 17.027, 16.999 sec (avg 13.767 sec). **0 intra-passage audio stalls and 0 clock anomalies**. Model ready in 5.908 sec; generation takes 20.72–28.43 sec/passage. Subjective audibility/smoothness on this particular six-passage run not yet explicitly confirmed. |
 | User's iPhone 13, Chrome iOS | 1.21 | Auto → Standard CPU, 1 thread | **Mobile quick test, 1 short sentence** | 8.91 sec for 4.85 sec audio (0.54×) | 15.857 sec | **Success, audible through AirPods (confirmed by user)**; 0 anomalies, 0 underruns; 5.58 sec wall-clock playback vs 4.85 sec media. Audio manually unlocked. |
 
 Earlier MacBook GPU unrestricted repeats in lab v1.11–1.14 also exhibited ~18–24 seconds of playback delay during passage 11 generation; this is a reproducible warning, not a general rule about all GPU-equipped computers.
@@ -25,7 +26,7 @@ Earlier MacBook GPU unrestricted repeats in lab v1.11–1.14 also exhibited ~18�
 - **Mac Studio**: GPU 3-ahead vs unlimited; optional Fast CPU performance comparator.
 - **Simon's MacBook Pro**: repeat Auto to determine whether 25-second engine load was one-off; confirm subjective audio.
 - **Old Dell Latitude PC**: Auto, Standard, Fast CPU if supported. Record Windows/Linux and Chrome/Edge version.
-- **iPhone 13**: after successful one-sentence Standard CPU test, try 6 passages and listen for buffering; do not infer full-book viability from quick-test success. Safari remains to be independently verified.
+- **iPhone 13**: the six-passage Standard CPU test completed with **5 significant underruns**, average 13.77 seconds. Investigate mobile speech chunks/model performance, scheduling, and faster inference; prebuffering alone cannot sustain continuous reading when sustained generation remains ~0.43× real time. Safari remains to be independently verified.
 - **Russ's Galaxy phone**: Auto first, then Standard or GPU 3-ahead if supported, with short mobile test before the full tour.
 - Continue collecting other testers' device models, actual engines, first sound, generation speed, clock anomalies, underruns, audible quality, and any browser crashes.
 
@@ -33,7 +34,7 @@ Earlier MacBook GPU unrestricted repeats in lab v1.11–1.14 also exhibited ~18�
 
 1. **Do not globally disable GPU.** It ran smoothly and rapidly on both Mac Studio and Simon's MacBook Pro. On the M2 MacBook, unrestricted GPU caused repeated stalls even when ample audio had buffered.
 2. **Test bounded look-ahead** before adopting it. v1.16 introduced GPU 3-passages-ahead experiment; its effect on the MacBook GPU freeze is **unverified**.
-3. **Mobile Standard CPU is functional**, but 8.91 sec compute for 4.85 sec audio is slower than real time. Six-passages/full-book performance unknown. Investigate shorter speech chunks, smaller mobile model, generation progress, and buffering; seek actual phone results.
+3. **Mobile Standard CPU is functional**, but 8.91 sec compute for 4.85 sec audio is slower than real time. Six-passages performance now measured at 0.43× real-time, with 5 substantial inter-passage gaps; full-book performance unknown. Investigate shorter speech chunks, smaller mobile model, generation progress, and buffering; seek actual phone results.
 4. **Autoplay and iOS audio unlock** require testing at the passage boundary as well as the first sound. An unlocked one-sentence test doesn't guarantee hands-free multi-passage playback.
 5. For live reader eventually consider: playback wall-clock monitoring, adaptive mode selection/fallback at safe passage boundaries, bounded generation buffers, explicit user progress during model loading, reliable resume/position. Preserve existing live experience until validated, and test on multiple classes of hardware.
 
@@ -50,4 +51,4 @@ Earlier MacBook GPU unrestricted repeats in lab v1.11–1.14 also exhibited ~18�
 
 ## Next production decision gate
 
-Wait for MacBook GPU-limited test, Dell and Galaxy results, plus longer iPhone test. Compare subjective continuity and objective logs. **Do not silently port Laboratory settings into the live Reading Room.** Keep this document updated as results arrive.
+Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mobile speed/chunking strategy informed by the six-passage iPhone test. Compare subjective continuity and objective logs. **Do not silently port Laboratory settings into the live Reading Room.** Keep this document updated as results arrive.
