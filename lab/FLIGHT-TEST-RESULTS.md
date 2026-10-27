@@ -72,3 +72,8 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 - Lab now offers **Device voice (older iPad · no AI download)** using browser `speechSynthesis`, and selects it by default on iPhone/iPad. It is **not Emma** (uses an English voice installed by the device) and cannot be assumed to have the same audio quality. Kokoro Standard remains selectable; live Reading Room unchanged.
 - New test logs: `native-ready`, `native-passage-start`, `native-speaking`, `first-sound`, `native-passage-complete`, `native-error`, `native-timeout`, `stream-complete`. Native speech does not provide accurate audio-duration, stall or transition statistics; 0 gaps in native completion is **not** proof of gapless playback.
 - **Unverified on actual older iPad**; tester should try single-sentence then six-passage test, report audible output and compact JSON. Older iOS implementations can behave differently.
+
+## 27 October 2026: older iPad native voice observation
+
+- Old iPad, Safari 17.14 reporting MacIntel, Lab v1.25, Device Voice (`native-speech`), six-passage tour selected. `native-ready` lists 186 installed voices. Passage 1 chose **Rocko** (not Emma); `first-sound` and `native-speaking` recorded at **247 ms** from start. User confirms they heard the iPad's synthetic voice.
+- **Important limitation:** supplied compact report ends immediately after first passage starts. There are **no** `native-passage-complete` or `stream-complete` events in the submitted excerpt, therefore full six-passage continuity is **not verified**. Device voice is a compatibility fallback, not a substitute for Emma's neural narrator; selecting first `en-GB` voice may yield a poor-quality/novelty voice (Rocko). Improve voice selection before considering production.
