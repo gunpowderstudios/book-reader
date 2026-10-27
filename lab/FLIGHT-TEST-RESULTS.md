@@ -58,6 +58,11 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 
 ## 27 October 2026: v1.23 mobile engine experiment
 
-- Kokoro worker already included **compact** WASM q8f16 mode (~86 MB model), compared with Standard q8 (~92.4 MB). v1.23 exposes this existing option in the Lab speech-engine selector; iOS Auto stays Standard. Smaller disk size does **not** establish faster generation or lower runtime memory; browser compatibility remains unknown.
+- Kokoro worker already included **compact** WASM mode (v1.23 specified invalid q8f16; corrected to q4f16 in v1.24, size unverified), compared with Standard q8 (~92 MB). v1.23 exposes this existing option in the Lab speech-engine selector; iOS Auto stays Standard. Smaller disk size does **not** establish faster generation or lower runtime memory; browser compatibility remains unknown.
 - **Correction:** v1.22 Benchmark A used `passages[0]` but Benchmark B used a separately authored `benchmarkParts` passage; previous first-sound results were not a controlled chunk-size comparison. v1.23 now derives both test scripts from `benchmarkParts` (joined text for A; segmented for B), marks `benchmarkTextVersion: matched-v2` in JSON, and thus requires new baseline tests.
 - Next test: iPhone 13, Emma, **Mobile benchmark A**, first **Standard q8**, then **Compact CPU q8f16**; send both compact reports and subjective audio quality. Avoid repeated attempts if Compact crashes the browser. No live reader changes.
+
+## 27 October 2026: Compact load failure and v1.24 fix
+
+- iPhone 13 Chrome, LAB v1.23, Compact selected: **13 recorded immediate engine failures** across attempts; all report `Invalid dtype: q8f16. Should be one of: auto, fp32, fp16, q8, int8, uint8, q4, bnb4, q4f16`. This demonstrates a configuration typo, not browser/memory incompatibility. No speech generation or valid engine-load benchmark occurred.
+- v1.24 corrects experimental Compact worker dtype to `q4f16`, updates Lab label and worker cache version. **Not yet confirmed** that q4f16 model files exist, load on iOS, or generate speech faster; size claims for q4f16 unverified. Standard/Auto unchanged; live reader unchanged.
