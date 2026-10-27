@@ -5,9 +5,9 @@
    Protocol (worker -> main): stage · progress · net · ready · init-error{mode} · audio · error */
 const KOKORO_URL='https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js';
 const MODEL_ID='onnx-community/Kokoro-82M-v1.0-ONNX';
-/* standard (Low Memory): 8-bit model, one core (~92 MB). compact (experimental): mixed 8-bit/fp16 (~86 MB), one core; may still fail on old WebKit.  fast: full-precision model, several cores when the page is
+/* standard (Low Memory): 8-bit model, one core (~92 MB). compact (experimental): experimental 4-bit/fp16 (size varies), one core; may still fail on old WebKit.  fast: full-precision model, several cores when the page is
    cross-origin isolated (~326 MB).  gpu: full-precision model on the graphics chip (~326 MB). */
-const MODES={standard:{device:'wasm',dtype:'q8'},compact:{device:'wasm',dtype:'q8f16'},fast:{device:'wasm',dtype:'fp32'},gpu:{device:'webgpu',dtype:'fp32'}};
+const MODES={standard:{device:'wasm',dtype:'q8'},compact:{device:'wasm',dtype:'q4f16'},fast:{device:'wasm',dtype:'fp32'},gpu:{device:'webgpu',dtype:'fp32'}};
 
 let lib=null,tts=null,loading=null,chain=Promise.resolve(),preparedVoices=new Set();
 const say=(m,transfer)=>self.postMessage(m,transfer||[]);
