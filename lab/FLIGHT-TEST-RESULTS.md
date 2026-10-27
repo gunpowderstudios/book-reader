@@ -66,3 +66,9 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 
 - iPhone 13 Chrome, LAB v1.23, Compact selected: **13 recorded immediate engine failures** across attempts; all report `Invalid dtype: q8f16. Should be one of: auto, fp32, fp16, q8, int8, uint8, q4, bnb4, q4f16`. This demonstrates a configuration typo, not browser/memory incompatibility. No speech generation or valid engine-load benchmark occurred.
 - v1.24 corrects experimental Compact worker dtype to `q4f16`, updates Lab label and worker cache version. **Not yet confirmed** that q4f16 model files exist, load on iOS, or generate speech faster; size claims for q4f16 unverified. Standard/Auto unchanged; live reader unchanged.
+
+## 27 October 2026: v1.25 older-iPad device voice fallback
+
+- Lab now offers **Device voice (older iPad · no AI download)** using browser `speechSynthesis`, and selects it by default on iPhone/iPad. It is **not Emma** (uses an English voice installed by the device) and cannot be assumed to have the same audio quality. Kokoro Standard remains selectable; live Reading Room unchanged.
+- New test logs: `native-ready`, `native-passage-start`, `native-speaking`, `first-sound`, `native-passage-complete`, `native-error`, `native-timeout`, `stream-complete`. Native speech does not provide accurate audio-duration, stall or transition statistics; 0 gaps in native completion is **not** proof of gapless playback.
+- **Unverified on actual older iPad**; tester should try single-sentence then six-passage test, report audible output and compact JSON. Older iOS implementations can behave differently.
