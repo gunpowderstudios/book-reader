@@ -17,7 +17,15 @@
 <link rel="icon" type="image/png" href="images/eddi-reader-logo-square.png?v=1.12.66">
 <link rel="apple-touch-icon" href="images/eddi-reader-logo-square.png?v=1.12.66">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"E.D.D.i Reader","url":"https://gunpowderstudios.github.io/book-reader/","description":"Your FREE AI Book Reader that works right in your browser!","applicationCategory":"MultimediaApplication","operatingSystem":"Any modern browser","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"GBP"},"creator":{"@type":"Organization","name":"Gunpowder Studios"}}</script>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script><script>
+<script>
+/* Device routing: phones/tablets use Mobile Beta; laptops/desktops stay on full Reading Room. */
+(function(){
+ var ua=navigator.userAgent||'';
+ var tablet=/iPad|Tablet|PlayBook|Silk/i.test(ua)||(/Android/i.test(ua)&&!/Mobile/i.test(ua))||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ var phone=/iPhone|iPod|Android.*Mobile|Windows Phone|Mobile.*Safari/i.test(ua);
+ if(tablet||phone){window.location.replace('./mobile-beta/'+window.location.search+window.location.hash);}
+})();
+</script><script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script><script>
 /* Fast mode needs a "cross-origin isolated" page for multi-core WebAssembly. GitHub Pages cannot send the headers,
    so coi-sw.js (a tiny service worker) adds them, and the page reloads once to pick them up. */
 (()=>{const ss={get(k){try{return sessionStorage.getItem(k)}catch(_){return null}},set(k,v){try{sessionStorage.setItem(k,v)}catch(_){}}};
