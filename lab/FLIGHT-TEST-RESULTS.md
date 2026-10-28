@@ -102,3 +102,10 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 - Added opt-in **Q4 CPU (dtype q4)** mode in shared Kokoro worker, selected only when explicitly requested in Lab. Q4 not yet confirmed available/functional on iPhone.
 - Worker now checks all generated samples before returning WAV: reject non-finite values (NaN/Infinity) or near-silent peak/RMS with a clear diagnostic error. This prevents UI clock playing through unusable audio. Shared worker was edited; live Reading Room *could* use it depending on its worker path, but the new q4 mode is not selected in live and audio guard is protective.
 - Lab v1.27 marks broken q4f16 as **avoid**, offers Q4 CPU for Mobile benchmark A, changes worker cache URL to lab27; Auto on iOS remains Standard on Lab (unless the user manually selects Device Voice). Report whether Q4 loads, generates valid audio and is audible, with stats.
+
+## 28 October 2026: Q4 model audible and valid on iPhone 13
+
+- Safari iPhone 13, LAB v1.27, Emma, q4 WASM, matched-v2 Mobile benchmark A: engine ready after 33.662 sec; generation 20.88 sec for 10.80 sec audio (0.52× real time), first sound 55.055 sec, 0 gaps/stalls/anomalies.
+- Signal is **valid and audible**: peak 0.965783, RMS 0.086739, 81.99% nonzero samples, 0 invalid out of ~259,200; muted false, volume 1. **User explicitly confirms hearing Emma through audio output**.
+- Comparison against earlier Standard q8 v1.23 (Chrome iOS) 0.53× shows **no demonstrated speed advantage** for q4; cold loading and browser/caching differ. Q4 potential memory/model-size benefits on older iPad remain unmeasured. Do not enable Q4 in live automatically yet. q4f16 remains unusable because it generated 100% invalid samples.
+- Next: repeat q4 in Safari after cached load to test startup; then test q4 on old iPad in single-sentence mode before longer runs; optionally compare q8 in Safari and collect subjective voice fidelity.
