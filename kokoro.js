@@ -719,8 +719,7 @@ function showRecommendation(){
 /* The head-start message and its Start now button live in the player bar itself. In the side panel they ended up behind the bar on shorter windows and could not be clicked. */
 try{const bar=document.getElementById('playback-panel'),hint=document.getElementById('speed-hint');if(bar&&hint&&!bar.contains(hint)){hint.style.cssText='text-align:center;margin:6px 12px 0;font-size:14px';bar.insertBefore(hint,bar.firstChild)}}catch(_){}
 window.addEventListener('pagehide',()=>store.set('cv-trying',''));
-/* Start the voice engine in the background when the page opens, if it is already installed, so Play is near-instant. */
-setTimeout(()=>{try{if(!mobileDevice()&&installed()&&!worker&&!readyPromise&&!(navigator.connection&&navigator.connection.saveData))ready().catch(()=>{})}catch(_){}},1500);
+/* v1.12.100: Voice engine initialises only when Play or a voice sample is requested. */
 /* Compact skip controls: seek precisely within the current WAV clip.
    When a 30-second jump crosses a clip boundary, choose the closest
    paragraph using a reading-duration estimate and restart narration. */
