@@ -30,6 +30,7 @@
    so coi-sw.js (a tiny service worker) adds them, and the page reloads once to pick them up. */
 (()=>{const ss={get(k){try{return sessionStorage.getItem(k)}catch(_){return null}},set(k,v){try{sessionStorage.setItem(k,v)}catch(_){}}};
 function enable(){
+ if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1))return false; // mobile beta: no service worker registration
  if(window.crossOriginIsolated){ss.set('cv-coi','on');return true}
  if(!('serviceWorker' in navigator)||!window.isSecureContext){ss.set('cv-coi','unsupported');return false}
  if(Date.now()-Number(ss.get('cv-coi-tried')||0)<30000){ss.set('cv-coi','failed');return false}
@@ -392,7 +393,7 @@ header>.upload{position:absolute!important;right:18px!important;left:auto!import
  #mobile-chapter-select{width:100%;padding:11px;background:#14231b;color:#ecf5ec;border:1px solid #698570;border-radius:8px;font-size:16px}
 }
 @media(prefers-reduced-motion:reduce){footer#playback-panel{transition:none!important}}
-</style><div id="eddi-mobile-notice" role="status" aria-label="Mobile beta notice"><p>🧪 <strong>E.D.D.i Mobile Beta</strong> — The phone and tablet reader is still being tested. Some features may not work as expected.</p><button type="button" id="eddi-beta-dismiss" aria-label="Dismiss mobile beta notice">×</button></div><header><div class="brand"><a href="./" class="eddi-brand" aria-label="E.D.D.i. — Your FREE AI ePUB Reader. Back to home" title="Back to home"><img class="eddi-long-logo" src="images/eddi-reader-logo-long.png" alt="E.D.D.i. — Your FREE AI ePUB Reader" width="559" height="120"><span class="eddi-long-tagline"><span>Your FREE AI Book Reader</span></span></a><strong><small id="app-version">v1.12.102</small></strong></div><input hidden id="file" type="file" accept=".epub,application/epub+zip"><div id="mobile-navigation"><button id="mobile-menu-toggle" type="button" aria-label="Open page menu" aria-expanded="false" aria-controls="mobile-menu-items">☰</button><nav id="mobile-menu-items" aria-label="Mobile pages" hidden><a href="#library">📚 My Library</a><a href="#reading">📖 Now Reading</a><a href="#free-books">📚 Free Books</a><a href="#narrators">🎙 Meet the Narrators</a><a href="#sync">☁ Syncing Playback</a></nav></div></header><nav id="tabs" aria-label="Reader tabs"><button id="tab-library" class="selected" aria-selected="true">📚 My Library</button><button id="tab-book" aria-selected="false">📖 Now Reading</button><button id="tab-free" aria-selected="false">📚 Free Books</button><button id="tab-narrators" aria-selected="false">🎙 Meet the Narrators</button><button id="tab-sync" aria-selected="false">☁ Syncing Playback</button></nav><div id="page-columns"><div id="tab-pages"><section id="free-books-panel" hidden style="max-width:850px;margin:25px auto 210px;padding:0 16px">
+</style><div id="eddi-mobile-notice" role="status" aria-label="Mobile beta notice"><p>🧪 <strong>E.D.D.i Mobile Beta</strong> — The phone and tablet reader is still being tested. Some features may not work as expected.</p><button type="button" id="eddi-beta-dismiss" aria-label="Dismiss mobile beta notice">×</button></div><header><div class="brand"><a href="./" class="eddi-brand" aria-label="E.D.D.i. — Your FREE AI ePUB Reader. Back to home" title="Back to home"><img class="eddi-long-logo" src="images/eddi-reader-logo-long.png" alt="E.D.D.i. — Your FREE AI ePUB Reader" width="559" height="120"><span class="eddi-long-tagline"><span>Your FREE AI Book Reader</span></span></a><strong><small id="app-version">v1.12.103</small></strong></div><input hidden id="file" type="file" accept=".epub,application/epub+zip"><div id="mobile-navigation"><button id="mobile-menu-toggle" type="button" aria-label="Open page menu" aria-expanded="false" aria-controls="mobile-menu-items">☰</button><nav id="mobile-menu-items" aria-label="Mobile pages" hidden><a href="#library">📚 My Library</a><a href="#reading">📖 Now Reading</a><a href="#free-books">📚 Free Books</a><a href="#narrators">🎙 Meet the Narrators</a><a href="#sync">☁ Syncing Playback</a></nav></div></header><nav id="tabs" aria-label="Reader tabs"><button id="tab-library" class="selected" aria-selected="true">📚 My Library</button><button id="tab-book" aria-selected="false">📖 Now Reading</button><button id="tab-free" aria-selected="false">📚 Free Books</button><button id="tab-narrators" aria-selected="false">🎙 Meet the Narrators</button><button id="tab-sync" aria-selected="false">☁ Syncing Playback</button></nav><div id="page-columns"><div id="tab-pages"><section id="free-books-panel" hidden style="max-width:850px;margin:25px auto 210px;padding:0 16px">
 <h2>📚 Free Books</h2>
 <p>Thousands of wonderful books can be read for free. Many older works are in the <strong>public domain</strong>, which usually means their copyright has expired. Others are shared with the copyright holder’s permission. You can legally download and enjoy books that are free to use in your country.</p>
 <p><strong>A small note:</strong> copyright rules vary between countries, and a new translation or edition may have its own copyright. Check the information on each book’s download page. These are independent websites; EPub Reader does not host their books.</p>
@@ -812,5 +813,18 @@ window.chapterApp={openFile,openFromLibrary,addFiles,stop,say,showTab,boot,rende
 })();
 </script><script defer src="kokoro.js?v=1.12.100"></script><script defer src="library.js?v=1.12.71"></script><script defer src="offline.js?v=1.12.66"></script><script defer src="read-along.js?v=1.12.96"></script><script>document.getElementById('eddi-beta-dismiss')?.addEventListener('click',()=>{document.getElementById('eddi-mobile-notice').hidden=true});</script><script>
 /* Check for updated offline shell without clearing saved books or narration data. */
-if('serviceWorker' in navigator){navigator.serviceWorker.getRegistration().then(reg=>reg?.update()).catch(()=>{});}
+(()=>{const mobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+if(!('serviceWorker' in navigator))return;
+if(mobile){
+ // Only unregister this site's app worker. Do not delete Cache Storage, IndexedDB, localStorage or books.
+ navigator.serviceWorker.getRegistration().then(async reg=>{
+  const hadController=!!navigator.serviceWorker.controller;
+  if(reg&&reg.active?.scriptURL.includes('coi-sw.js'))await reg.unregister();
+  const banner=document.getElementById('eddi-mobile-notice');
+  if(banner){const p=banner.querySelector('p');if(p)p.insertAdjacentHTML('beforeend',' <small id="eddi-mobile-diagnostic" style="display:block;opacity:.85;font-size:11px">App v1.12.103 · offline worker '+(hadController?'previously active':'not controlling')+'</small>');}
+  if(hadController){let done=false;try{done=sessionStorage.getItem('eddi-mobile-sw-reset-103')==='1';sessionStorage.setItem('eddi-mobile-sw-reset-103','1')}catch(_){}
+   if(!done){const u=new URL(location.href);u.searchParams.set('mobile-beta','1.12.103');location.replace(u.href);}}
+ }).catch(err=>console.warn('Mobile worker diagnostic:',err));
+}else navigator.serviceWorker.getRegistration().then(reg=>reg?.update()).catch(()=>{});
+})();
 </script></html>
