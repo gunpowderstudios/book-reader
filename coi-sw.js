@@ -1,7 +1,7 @@
-/* E.D.D.i. v1.12.100 — cache the application shell for offline reading.
+/* E.D.D.i. v1.12.101 — cache the application shell for offline reading.
    Keep COOP/COEP headers on same-origin replies so multi-threaded speech can still operate.
    Large AI model files remain managed by the speech library's browser cache. */
-const CACHE='eddi-shell-v1.12.100';
+const CACHE='eddi-shell-v1.12.101';
 const SHELL=['./','index.html','kokoro.js','kokoro-worker.js','library.js','offline.js','read-along.js',
  'images/eddi-reader-logo-long.png','images/eddi-reader-logo-square.png','images/book-cover-fallback.svg'];
 const JSZIP='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
@@ -35,7 +35,7 @@ self.addEventListener('fetch',e=>{
   const cache=await caches.open(CACHE);
   const key=same?new Request(url.origin+url.pathname):req;
   try{
-   const response=await fetch(req);
+   // Always revalidate the app shell. Safari can otherwise show a stale UI from HTTP cache.\n   const shellFile=same&&SHELL.some(p=>new URL(p,self.registration.scope).pathname===url.pathname);\n   const response=await fetch(shellFile?new Request(req,{cache:'no-store'}):req);
    if(response.ok&&same&&!url.pathname.includes('/books/')&&!url.pathname.includes('/audiobook/')){
     // Cache the shell only, not arbitrary reader content.
     if(SHELL.some(p=>new URL(p,self.registration.scope).pathname===url.pathname))
