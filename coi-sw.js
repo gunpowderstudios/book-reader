@@ -1,7 +1,7 @@
-/* E.D.D.i. v1.12.82 — cache the application shell for offline reading.
+/* E.D.D.i. v1.12.100 — cache the application shell for offline reading.
    Keep COOP/COEP headers on same-origin replies so multi-threaded speech can still operate.
    Large AI model files remain managed by the speech library's browser cache. */
-const CACHE='eddi-shell-v1.12.82';
+const CACHE='eddi-shell-v1.12.100';
 const SHELL=['./','index.html','kokoro.js','kokoro-worker.js','library.js','offline.js','read-along.js',
  'images/eddi-reader-logo-long.png','images/eddi-reader-logo-square.png','images/book-cover-fallback.svg'];
 const JSZIP='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
