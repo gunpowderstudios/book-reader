@@ -59,7 +59,7 @@ let startupNote='';
 }
 /* Automatic: see cvAutoMode in index.html (graphics chip or multi-core only on a capable computer; remembers failures). */
 const suggestedMode=()=>window.cvAutoMode?window.cvAutoMode():(mobileDevice()?'standard':'fast');
-let preference=store.get('cv-mode-choice','auto');
+let preference=mobileDevice()?'standard':store.get('cv-mode-choice','auto'); // Beta uses verified q8 on phones/tablets, independent of previously saved performance preference.
 if(!PREFS.includes(preference))preference='auto';
 let mode=preference==='auto'?suggestedMode():preference;
 const bufferTarget=()=>(mobileDevice()||mode==='standard'?6:2)*60; /* chosen automatically: a bigger cushion on phones and slower setups, light on fast computers */
