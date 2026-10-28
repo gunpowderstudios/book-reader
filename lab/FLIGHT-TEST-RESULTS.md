@@ -139,3 +139,8 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 
 - Mac-like Safari user agent `Macintosh; Intel Mac OS X 10_15_7 ... Version/17.14 Safari/605.1.15` (may be iPad Safari desktop-style UA): `lab/kitten.html` v1 generated immediate `Importing a module script failed.` 13 ms after `Loading KittenTTS browser SDK…`; **no model download and no voice synthesis attempted**. Selected Rosie, Norwood welcome sentence.
 - v2 changes SDK loader to try jsDelivr `@kittentts/web/+esm`, then two esm.sh variants, recording exact failed URLs/messages. No changes made to Kokoro or main Reading Room. Whether CDNs/SDK function on this Safari is **not yet established**; retest and send report.
+
+## 28 October 2026: Kitten Lab v2.1 import failure; v3 bundle fallback
+
+- User on Safari 17.14 (Macintosh Intel UA, potentially iPad desktop mode) reports **all three ESM CDN imports failed** (jsDelivr +esm, esm.sh es2020, esm.sh default), before model loading or speech generation. Bella was selected. No evidence of Kitten engine incompatibility yet; the JavaScript loading is blocked/unsatisfied.
+- Official KittenTTS-web repo `examples/html/index.html` uses a **traditional UMD/plain browser bundle** (`assets/kittentts-web.js`, global `window.KittenTTSWeb`) rather than importing the npm package from CDN. Kitten Lab v3.0 tries that bundle through two CDN file paths, with load errors in the report. Its success on the user's device and hosted CDN paths remain unverified. Kokoro production unchanged.
