@@ -15,7 +15,7 @@ const MODES={
  gpu:{label:'Graphics chip (experimental)',mb:326}
 };
 const MAX_TEST_CHARS=300;            /* keeps a sample well inside Kokoro's ~510-token limit */
-const CACHE_MAX_BYTES=(/iPad|iPhone|iPod|Android/i.test(navigator.userAgent)?16:48)*1024*1024; /* temporary speech clips, not voice models */
+const CACHE_MAX_BYTES=(/iPad/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)?8:(/iPhone|iPod|Android/i.test(navigator.userAgent)?16:48))*1024*1024; /* temporary speech clips, not voice models */
 const PARA_PAD=0.3;                  /* seconds of quiet added after each paragraph, like an audiobook narrator's breath */
 const MAX_PENDING=2,MAX_AHEAD=600;   /* passages queued in the worker at once / held ahead of playback */
 const INIT_TIMEOUT=300000,GENERATE_TIMEOUT=180000; /* worker silence limits before we give up and restart it */
@@ -58,10 +58,11 @@ let startupNote='';
 }
 /* Automatic: see cvAutoMode in index.html (graphics chip or multi-core only on a capable computer; remembers failures). */
 const suggestedMode=()=>window.cvAutoMode?window.cvAutoMode():(mobileDevice()?'standard':'fast');
-let preference=store.get('cv-mode-choice','auto');
+const ipadDevice=()=>/iPad/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+let preference=ipadDevice()?'standard':store.get('cv-mode-choice','auto'); // iPad beta: verified safest CPU configuration; do not reuse desktop GPU/Fast preference.
 if(!PREFS.includes(preference))preference='auto';
 let mode=preference==='auto'?suggestedMode():preference;
-const bufferTarget=()=>(mobileDevice()||mode==='standard'?6:2)*60; /* chosen automatically: a bigger cushion on phones and slower setups, light on fast computers */
+const bufferTarget=()=>(ipadDevice()?90:(mobileDevice()||mode==='standard'?6:2)*60); /* chosen automatically: a bigger cushion on phones and slower setups, light on fast computers */
 const installed=()=>store.get('cv-ready-'+mode,'')==='1';
 const coresWanted=()=>store.get('cv-lowmem-cores','')==='1';
 const isolated=()=>typeof crossOriginIsolated!=='undefined'&&crossOriginIsolated===true;
