@@ -144,3 +144,8 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 
 - User on Safari 17.14 (Macintosh Intel UA, potentially iPad desktop mode) reports **all three ESM CDN imports failed** (jsDelivr +esm, esm.sh es2020, esm.sh default), before model loading or speech generation. Bella was selected. No evidence of Kitten engine incompatibility yet; the JavaScript loading is blocked/unsatisfied.
 - Official KittenTTS-web repo `examples/html/index.html` uses a **traditional UMD/plain browser bundle** (`assets/kittentts-web.js`, global `window.KittenTTSWeb`) rather than importing the npm package from CDN. Kitten Lab v3.0 tries that bundle through two CDN file paths, with load errors in the report. Its success on the user's device and hosted CDN paths remain unverified. Kokoro production unchanged.
+
+## 28 October 2026: Kitten Nano Safari 17.14 WASM out-of-memory
+
+- Kitten Lab v3.0 plain browser bundle **loaded successfully** from jsDelivr GitHub `KittenML/KittenTTS-web@main/examples/html/assets/kittentts-web.js` after npm path failed. Bella selected, standard welcome text. On Safari 17.14 Macintosh-style UA (likely older iPad desktop-style UA), after ~5.8 sec model initialisation failed: `ONNX inference failed: Could not initialise ONNX Runtime: no available backend found. ERR: [wasm] RangeError: Out of memory`.
+- Hence SDK import issue is resolved; **actual blocker is memory / ONNX WASM initialisation**. 25MB model on disk does NOT imply it fits in the browser's runtime memory. No audio produced; Kitten Nano not proven viable on this iPad. Do not replace working Kokoro. Consider testing Nano on newer iPhone or desktop, and native Apple speech on old iPad; do not repeat same failing browser/model without memory improvement.
