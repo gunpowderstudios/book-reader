@@ -109,3 +109,10 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 - Signal is **valid and audible**: peak 0.965783, RMS 0.086739, 81.99% nonzero samples, 0 invalid out of ~259,200; muted false, volume 1. **User explicitly confirms hearing Emma through audio output**.
 - Comparison against earlier Standard q8 v1.23 (Chrome iOS) 0.53× shows **no demonstrated speed advantage** for q4; cold loading and browser/caching differ. Q4 potential memory/model-size benefits on older iPad remain unmeasured. Do not enable Q4 in live automatically yet. q4f16 remains unusable because it generated 100% invalid samples.
 - Next: repeat q4 in Safari after cached load to test startup; then test q4 on old iPad in single-sentence mode before longer runs; optionally compare q8 in Safari and collect subjective voice fidelity.
+
+## 28 October 2026: Mobile Reading Room beta created
+
+- Separate beta at https://gunpowderstudios.github.io/book-reader/mobile-beta/ clones the Reading Room so existing EPUB parsing, library and bookmarks can be tested on mobile. Desktop production `index.html` and the public phone/tablet holding notice are untouched.
+- Beta has its own `mobile-beta/index.html` and `mobile-beta/kokoro-beta.js`. It uses Standard CPU by default on mobile; Q4 can be explicitly selected in Voice performance. Broken q4f16 is not offered. Uses shared `kokoro-worker.js` with invalid-audio rejection.
+- Free-book links and local asset paths were adjusted for nested deployment. **Not yet tested on actual phone/iPad**, including whether EPUBs open and position persists; confirm before lifting live notice. Beta uses same-origin browser local storage, so testing may share book positions with the normal reader on the same device. Device Voice fallback has only been tested in LAB, not integrated into the live beta.
+- Next validation: load a free classic or local EPUB on iPhone, choose Emma (or another available narrator), Standard CPU, start/pause/resume, reload and check saved location. Optionally test Q4 for memory/quality. Record mobile playback gaps and bugs.
