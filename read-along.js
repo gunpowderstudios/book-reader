@@ -51,7 +51,18 @@ function start(text,p,progress){
   const at=Math.min(endAt-1,startAt+k);
   if(active.last===at)return;
   if(active.last>=0)active.spans[active.last]?.classList.remove('word-now');
-  active.last=at;active.spans[at]?.classList.add('word-now');
+  active.last=at;
+  const word=active.spans[at];
+  word?.classList.add('word-now');
+  // Keep the spoken word inside the reader viewport, not merely its paragraph.
+  // Scroll once per line as needed, leaving plenty of text visible ahead.
+  if(word&&scroller){
+   const box=scroller.getBoundingClientRect(),rect=word.getBoundingClientRect();
+   if(rect.bottom>box.bottom-55||rect.top<box.top+16){
+    const target=scroller.scrollTop+(rect.top-box.top)-Math.min(110,box.height*0.28);
+    scroller.scrollTop=Math.max(0,target);
+   }
+  }
  }
  tick();timer=setInterval(tick,120);
 }
