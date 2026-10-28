@@ -116,3 +116,10 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 - Beta has its own `mobile-beta/index.html` and `mobile-beta/kokoro-beta.js`. It uses Standard CPU by default on mobile; Q4 can be explicitly selected in Voice performance. Broken q4f16 is not offered. Uses shared `kokoro-worker.js` with invalid-audio rejection.
 - Free-book links and local asset paths were adjusted for nested deployment. **Not yet tested on actual phone/iPad**, including whether EPUBs open and position persists; confirm before lifting live notice. Beta uses same-origin browser local storage, so testing may share book positions with the normal reader on the same device. Device Voice fallback has only been tested in LAB, not integrated into the live beta.
 - Next validation: load a free classic or local EPUB on iPhone, choose Emma (or another available narrator), Standard CPU, start/pause/resume, reload and check saved location. Optionally test Q4 for memory/quality. Record mobile playback gaps and bugs.
+
+## 28 October 2026: Mobile beta simplified for early testing
+
+- In `/mobile-beta/`, mobile/tablet UI now carries **Mobile Beta** label, a plain instruction to open a book and press Play, and a warning narration may buffer.
+- Hide the advanced Settings, offline-generation controls and speed slider on mobile/tablet via CSS (preserved in DOM for script compatibility). Leave book/library and primary playback controls accessible. The experimental q4 choice is intentionally hidden from the simplified mobile UI.
+- Beta narration controller now forces **Standard q8** on mobile/tablet at initial load, independent of any saved selection, without overwriting existing stored preference; this is the only engine confirmed audible and valid with sufficiently repeatable results, though still <1× realtime. Desktop public Reading Room and holding notice not changed.
+- Beta remains unverified on real mobile device; test a free book, Play, pause/resume, library return/bookmarks, loading and buffering feedback. Complex offline features not part of early beta.
