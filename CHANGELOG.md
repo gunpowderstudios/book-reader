@@ -1,3 +1,7 @@
+## v1.12.106 — 28 October 2026
+
+- Fixed: phones and tablets were sent to a separate, older copy of the app (the mobile-beta folder, frozen at v1.12.96), so they never showed any newer version whatever was done to the main page. Phones now open the main page, so the new mobile layout (menu, collapsible player, chapter list, voice starting on Play) reaches them. The old mobile-beta address now just forwards to the main page. No saved books, progress or voices are touched.
+
 ## v1.12.102 — 28 October 2026
 
 - Fixed: the offline helper (coi-sw.js, v1.12.101) had two lines of code run together by mistake, so it never fetched anything from the internet. It could only show files it had already saved, which was just the app's own pages. That is why phones kept showing an old version (v1.12.96) and why book covers and books would not load. It now fetches fresh files again and falls back to the saved copy only when offline. Saved books, progress, settings and downloaded voices are not touched.
