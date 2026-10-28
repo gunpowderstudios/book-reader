@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>E.D.D.i — Mobile Recovery</title>
+<style>body{margin:0;min-height:100dvh;background:#070b08;color:#e5f4e7;font:17px/1.55 system-ui,-apple-system,sans-serif;display:grid;place-items:center}main{max-width:580px;margin:24px;padding:25px;border:1px solid #456c50;background:#14241a;border-radius:15px}h1{color:#d1f869;font-size:clamp(25px,6vw,36px);line-height:1.15}button,a.button{display:block;width:100%;box-sizing:border-box;background:#315d41;border:1px solid #74a580;border-radius:10px;color:white;font:700 18px system-ui;text-decoration:none;padding:15px;cursor:pointer;text-align:center;margin:16px 0}a.button[hidden]{display:none}#result{padding:12px;background:#0c1910;border-radius:8px;overflow-wrap:anywhere}small{color:#b6cfba}</style></head>
+<body><main>
+<h1>E.D.D.i Mobile Recovery</h1>
+<p>This page removes E.D.D.i's old offline service worker, which may be showing an outdated version of the reader.</p>
+<p><strong>Your saved books, reading progress, voice models and browser storage will not be deleted.</strong></p>
+<button type="button" id="repair">Repair E.D.D.i</button>
+<p id="result" role="status" aria-live="polite">Ready. Tap Repair E.D.D.i to begin.</p>
+<a class="button" id="return" hidden href="./mobile-beta-104.html?recovered=1">Open E.D.D.i Reader</a>
+<small>Recovery utility v1.12.105. If your phone continues displaying an old version, note the result shown here.</small>
+</main>
+<script>
+document.getElementById('repair').addEventListener('click', async function(){
+ const result=document.getElementById('result'),back=document.getElementById('return');
+ this.disabled=true;result.textContent='Checking offline worker…';
+ if(!('serviceWorker' in navigator)){result.textContent='No service-worker support detected. You can open E.D.D.i now.';back.hidden=false;return}
+ try{
+  const regs=await navigator.serviceWorker.getRegistrations();
+  const scope=new URL('./',location.href).href;
+  const matches=regs.filter(r=>r.scope===scope&&[r.active,r.waiting,r.installing].some(w=>w&&new URL(w.scriptURL).pathname.endsWith('/coi-sw.js')));
+  let removed=0;
+  for(const r of matches){if(await r.unregister())removed++}
+  result.textContent=removed?('Removed '+removed+' E.D.D.i offline worker(s). Open E.D.D.i using the button below.'):('No matching E.D.D.i offline worker registered. The old page may be cached elsewhere.');
+  back.hidden=false;
+ }catch(e){result.textContent='Could not finish the check: '+e.message+'. No books or browser data were deleted.';this.disabled=false}
+});
+</script></body></html>
