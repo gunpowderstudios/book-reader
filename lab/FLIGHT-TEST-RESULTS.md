@@ -134,3 +134,8 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 
 - Added `lab/kitten.html` isolated experimental browser test using official `@kittentts/web` SDK via ESM CDN, model `nano-int8` (~25 MB), 8 available Kitten voices, output WAV signal metrics, real-time synthesis ratio, progress and copyable report. `analytics:false` disables SDK's opt-in/out analytics. The browser SDK is currently developer preview, Apache-2.0, and model is downloaded on first use.
 - Linked Kitten test at top of Lab page. **No Kokoro worker, Kokoro controller, production Reading Room code or settings were changed**. Kitten has NOT yet been verified on iPhone/iPad; SDK CDN/module runtime behavior is subject to live test. Confirm generated speech is audible (not only advancing player clock) and report download/load/generation timing.
+
+## 28 October 2026: KittenTTS first Safari attempt fails at module import
+
+- Mac-like Safari user agent `Macintosh; Intel Mac OS X 10_15_7 ... Version/17.14 Safari/605.1.15` (may be iPad Safari desktop-style UA): `lab/kitten.html` v1 generated immediate `Importing a module script failed.` 13 ms after `Loading KittenTTS browser SDK…`; **no model download and no voice synthesis attempted**. Selected Rosie, Norwood welcome sentence.
+- v2 changes SDK loader to try jsDelivr `@kittentts/web/+esm`, then two esm.sh variants, recording exact failed URLs/messages. No changes made to Kokoro or main Reading Room. Whether CDNs/SDK function on this Safari is **not yet established**; retest and send report.
