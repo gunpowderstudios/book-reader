@@ -7,7 +7,7 @@
 <div class="card"><strong>Test report</strong><pre id="report">No test run yet.</pre></div>
 <p class="muted">KittenTTS Web is Apache-2.0 licensed and currently a developer preview. Anonymous SDK analytics are explicitly disabled for this experiment. Generated text stays on the device for synthesis, but the browser downloads the engine files from remote servers.</p></main>
 <script type="module">
-const $=id=>document.getElementById(id), report={version:"kitten-lab-1",created:new Date().toISOString(),device:{userAgent:navigator.userAgent},engine:"KittenTTS Web",model:"nano-int8",events:[]};let instance=null,audioURL=null;
+const $=id=>document.getElementById(id), report={version:"kitten-lab-2",created:new Date().toISOString(),device:{userAgent:navigator.userAgent},engine:"KittenTTS Web",model:"nano-int8",events:[]};let instance=null,audioURL=null;
 function ev(kind,detail={}){report.events.push({at:new Date().toISOString(),kind,...detail});$('report').textContent=JSON.stringify(report,null,2)}
 function status(msg){$('status').textContent=msg;ev('status',{message:msg})}
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(report,null,2));$('status').textContent='Report copied.'}catch(e){$('report').select?.();$('status').textContent='Select and copy the report below.'}};
@@ -15,7 +15,22 @@ $('start').onclick=async()=>{
  $('start').disabled=true;const t0=performance.now();report.created=new Date().toISOString();report.voice=$('voice').value;report.text=$('sample').value;report.events=[];report.result={audible:"not yet confirmed by listener"};if(audioURL){URL.revokeObjectURL(audioURL);audioURL=null;}
  try{
  status('Loading KittenTTS browser SDK…');
- const sdk=await import('https://esm.sh/@kittentts/web?bundle');
+ const sources=[
+  'https://cdn.jsdelivr.net/npm/@kittentts/web/+esm',
+  'https://esm.sh/@kittentts/web?bundle&target=es2020',
+  'https://esm.sh/@kittentts/web?bundle'
+ ];
+ let sdk=null,loadErrors=[];
+ for(const url of sources){
+   try{
+     status('Loading Kitten SDK from '+new URL(url).hostname+'…');
+     sdk=await import(url);
+     if(!sdk?.KittenTTS)throw Error('SDK loaded without KittenTTS export');
+     ev('sdk-imported',{source:url});
+     break;
+   }catch(e){loadErrors.push({url,message:String(e?.message||e)});ev('sdk-import-failed',{url,message:String(e?.message||e)})}
+ }
+ if(!sdk)throw Error('All Kitten SDK imports failed; see report for sources. '+loadErrors.map(x=>x.message).join(' | '));
  status('Preparing Nano int8 model (first download can take some time)…');
  const tLoad=performance.now();
  if(!instance)instance=await sdk.KittenTTS.create({model:'nano-int8',analytics:false},(progress,info)=>{let p=Math.max(0,Math.min(100,Math.round(progress*100)));$('bar').style.display='block';$('bar').value=p;$('status').textContent='Loading AI voice: '+p+'%'+(info?.stage?' · '+info.stage:'')});
