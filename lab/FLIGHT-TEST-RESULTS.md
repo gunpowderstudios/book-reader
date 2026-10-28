@@ -84,3 +84,9 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 - iPhone 13 **Safari** iOS, LAB v1.25 Compact q4f16, 1 thread, matched-v2 full paragraph: 35.270-sec model/engine readiness, 17.24-sec generation producing 10.80-sec audio (0.63×), first sound 52.841 sec, playback completed with zero gaps/stalls/anomalies.
 - Standard comparator from v1.23 used **Chrome iOS**: 7.045-sec readiness, 20.68-sec generation, 11.05-sec audio (0.53×), first sound 28.057 sec. Despite shared WebKit, browser, cache and repeated runs differ; do not claim controlled speed advantage until a matched same-browser comparison/repeat.
 - Suggested next step: repeat Compact on same Safari/iPhone to examine cached start, then try Standard in Safari with identical text; continuous narration still unproven at below 1× generation.
+
+## 28 October 2026: Compact output audibly silent despite successful media clock
+
+- User reports **no audible output through AirPods** on iPhone 13 Safari with Compact q4f16. Two iPhone Safari reports show the engine loading, generating, and playback media clock completing without stalls, but this does **not** establish audible output. In particular repeat v1.25 run: engine ready 5.291 sec, generation 17.92 sec for 10.8 sec audio (0.60×), first media start 23.427 sec, and no playback anomalies. User confirms silence. Earlier iPhone Standard q8 on Chrome was *audible* through AirPods.
+- Possible cause: Compact q4f16 inference returns extremely low/silent waveform or Safari output route/mute is silent. Do not label Compact voice as verified successful/audible yet.
+- v1.26 Lab adds `audio-signal` event (peak amplitude, RMS, nonzero sample %, invalid samples, muted, volume) and warning for near-silent output to distinguish generated-silence from audio-output routing; live reader unchanged. Ask user to run Compact benchmark and submit report; if signal nonzero, compare same Safari Standard q8.
