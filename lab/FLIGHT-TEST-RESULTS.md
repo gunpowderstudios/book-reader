@@ -96,3 +96,9 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 - iPhone 13 Safari LAB v1.26 Compact q4f16: `audio-signal` measured **259,200 invalid/nonfinite samples out of 259,200**, peak 0, RMS 0, 0% nonzero. Muted false, HTML media volume 1. Engine load 5.980 sec, generation 17.80 sec, output duration 10.80 sec, media player completed **silently**, confirmed by user.
 - **Conclusion:** q4f16 does not produce usable speech on this phone. Previously reported 0.60–0.63× generation and completed media timeline are **not successful voice benchmarks**; speed comparison with Standard is invalid. Cause may be model numerical inference instability or unsupported quantized model on this runtime; don't blame Bluetooth/audio routing.
 - **Production:** do not enable Compact q4f16 in Automatic mode; retain known-audible Standard q8 and continue looking for working alternatives. Consider guarding all generated waveforms against nonfinite samples before playback and presenting an error instead of silent progress.
+
+## 28 October 2026: Lab v1.27 q4 model experiment and invalid-audio guard
+
+- Added opt-in **Q4 CPU (dtype q4)** mode in shared Kokoro worker, selected only when explicitly requested in Lab. Q4 not yet confirmed available/functional on iPhone.
+- Worker now checks all generated samples before returning WAV: reject non-finite values (NaN/Infinity) or near-silent peak/RMS with a clear diagnostic error. This prevents UI clock playing through unusable audio. Shared worker was edited; live Reading Room *could* use it depending on its worker path, but the new q4 mode is not selected in live and audio guard is protective.
+- Lab v1.27 marks broken q4f16 as **avoid**, offers Q4 CPU for Mobile benchmark A, changes worker cache URL to lab27; Auto on iOS remains Standard on Lab (unless the user manually selects Device Voice). Report whether Q4 loads, generates valid audio and is audible, with stats.
