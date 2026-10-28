@@ -1,3 +1,8 @@
+## v1.12.102 — 28 October 2026
+
+- Fixed: the offline helper (coi-sw.js, v1.12.101) had two lines of code run together by mistake, so it never fetched anything from the internet. It could only show files it had already saved, which was just the app's own pages. That is why phones kept showing an old version (v1.12.96) and why book covers and books would not load. It now fetches fresh files again and falls back to the saved copy only when offline. Saved books, progress, settings and downloaded voices are not touched.
+- Not fixed here: the Beowulf cover (and EPUB) were never added to the repository, so Beowulf shows the placeholder cover.
+
 ## v1.12.85 — 26 October 2026
 
 - Removed the experimental capsule test page (capsule.html) and its bundled files. It is parked while a different approach is tried. The main reader is unchanged.
