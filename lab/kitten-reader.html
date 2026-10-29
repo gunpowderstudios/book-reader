@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#12251b"><title>E.D.D.i. Kitten EPUB Beta v2.3</title>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#12251b"><title>E.D.D.i. Kitten EPUB Beta v2.4</title>
 <style>*{box-sizing:border-box}body{background:#101e16;color:#ecf7ef;margin:0;font:16px/1.5 system-ui,-apple-system,sans-serif}header{background:#193624;padding:14px 18px;border-bottom:1px solid #426950}header a,a{color:#d9f8a3}main{max-width:840px;margin:auto;padding:16px 16px 90px}.head{display:flex;align-items:center;justify-content:space-between;gap:8px}.version{font-size:11px;border:1px solid #57815f;padding:4px 8px;border-radius:20px}h1{font-size:clamp(25px,6vw,34px);line-height:1.2;margin:8px 0}.card{border:1px solid #486d52;background:#1a3023;padding:15px;border-radius:12px;margin:14px 0}button,select,input{font:inherit;border:1px solid #789781;border-radius:9px;min-height:44px;padding:9px;background:#284634;color:#fff}button.primary{background:#baf089;color:#102719;font-weight:800;border:0}button:disabled{opacity:.55}.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.row>button{flex:1}.muted{color:#c7dbca}#text{font-size:20px;line-height:1.75;height:190px;max-height:32vh;overflow-y:auto;overscroll-behavior:contain;scroll-behavior:smooth;background:#12251a;border:1px solid #527354;border-radius:10px;padding:16px;white-space:pre-wrap}#text p{margin:0;color:#f2ffc4}#passage-progress{font-size:13px;color:#c7dbca;margin:7px 0 0}#status{font-size:14px;min-height:42px}select{max-width:100%}audio{width:100%;margin-top:10px}#report{white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto;background:#101d16;padding:12px;font-size:11px}#chapter{flex:1;min-width:190px}label{display:block;margin-bottom:5px;font-size:13px;color:#d3eddb}footer{text-align:center;font-size:12px;color:#c6dbc7;padding:16px;border-top:1px solid #3b6046}.small{font-size:13px}/* Distraction-free audiobook overlay */
 #reader-screen{position:fixed;inset:0;background:#000;color:#fff;z-index:1000;display:none;flex-direction:column;justify-content:center;align-items:center;overflow:hidden}
 #reader-screen.visible{display:flex}
@@ -17,9 +17,9 @@
 #reader-controls .version-read{font-size:12px;color:#aaa;text-align:center}
 .reader-button-arrow{display:none}
 @media(max-width:600px){
- #reader-controls #reader-prev,#reader-controls #reader-next{flex:0 0 46px;min-width:46px;max-width:46px;padding:8px 4px;font-size:25px;line-height:1}
- #reader-controls .reader-button-label{display:none}
- #reader-controls .reader-button-arrow{display:inline}
+  #reader-controls #reader-prev,#reader-controls #reader-next,main #back,main #next{flex:0 0 46px;min-width:46px;max-width:46px;padding:8px 4px;font-size:25px;line-height:1}
+  #reader-controls .reader-button-label,main #back .reader-button-label,main #next .reader-button-label{display:none}
+  #reader-controls .reader-button-arrow,main #back .reader-button-arrow,main #next .reader-button-arrow{display:inline}
 }
 body.reader-active{overflow:hidden}
 #reader-buffer{position:absolute;bottom:39px;width:min(80vw,380px);display:flex;flex-direction:column;gap:4px;align-items:center;pointer-events:none}
@@ -39,10 +39,10 @@ body.reader-active{overflow:hidden}
 #reader-progress:not(.dragging) #reader-progress-label{display:none}
 @media (max-width:600px){#reader-paragraph{width:calc(100vw - 40px);padding-right:22px}}
 </style>
-</head><body><header><div class="head"><a href="./kitten.html">← Kitten Lab</a><span class="version">Kitten EPUB Beta v2.3</span></div></header>
+</head><body><header><div class="head"><a href="./kitten.html">← Kitten Lab</a><span class="version">Kitten EPUB Beta v2.4</span></div></header>
 <main><h1>🐱 E.D.D.i. · Kitten EPUB Beta</h1><p class="muted">Try real-book narration with Rosie. Kitten generates the next passages while you listen. Kokoro and the normal Reading Room are unchanged.</p>
 <div class="card"><div class="row"><button id="free" type="button">📚 Open free Dracula EPUB</button><label style="cursor:pointer;border:1px solid #7c967c;border-radius:8px;padding:10px" for="file">＋ Your EPUB</label><input id="file" hidden type="file" accept=".epub,application/epub+zip"></div><p id="bookname" class="muted">No book loaded yet</p><label for="chapter">Chapter</label><select id="chapter"><option>No book</option></select></div>
-<div class="card"><div class="row"><button id="back" type="button">↶ Previous</button><button id="play" class="primary" type="button" disabled>▶ Play</button><button id="next" type="button">Next ↷</button></div><p id="status" role="status" aria-live="polite">Open an EPUB to begin.</p><audio id="audio" controls preload="auto"></audio><p class="muted small">Narration is experimental. On iPhone, tap ▶ on the audio player if Safari requires a second touch. Bookmarks are saved on this device. Model loading uses local browser memory.</p></div>
+<div class="card"><div class="row"><button id="back" type="button" aria-label="Previous passage"><span class="reader-button-label">↶ Previous</span><span class="reader-button-arrow" aria-hidden="true">←</span></button><button id="play" class="primary" type="button" disabled>▶ Play</button><button id="next" type="button" aria-label="Next passage"><span class="reader-button-label">Next ↷</span><span class="reader-button-arrow" aria-hidden="true">→</span></button></div><p id="status" role="status" aria-live="polite">Open an EPUB to begin.</p><audio id="audio" controls preload="auto"></audio><p class="muted small">Narration is experimental. On iPhone, tap ▶ on the audio player if Safari requires a second touch. Bookmarks are saved on this device. Model loading uses local browser memory.</p></div>
 <section class="card" aria-label="Book text"><h2 id="chaptertitle">Your book text</h2><div id="text" role="region" aria-label="Current narrated passage" tabindex="0"><p>Open a book to see the narration here.</p></div><p id="passage-progress">Waiting for a book</p></section>
 <div class="card"><div class="row"><button id="copy" type="button">Copy test report</button></div><details><summary>Diagnostics</summary><pre id="report"></pre></details></div></main>
 <footer>© 2026 <a href="https://www.gunpowderstudios.co.uk/apps/">Gunpowder Studios</a> · <a href="../about.html">About E.D.D.i.</a></footer>
@@ -50,9 +50,9 @@ body.reader-active{overflow:hidden}
  <div id="reader-paragraph" role="region" aria-label="Words currently being narrated"></div>
  <div id="reader-progress"><div id="reader-progress-track"><div id="reader-progress-fill"></div></div><div id="reader-progress-thumb"></div><span id="reader-progress-label"></span><input id="reader-progress-input" type="range" min="1" max="100" value="1" aria-label="Jump to a passage in this chapter"></div>
  <div id="reader-buffer"><span id="reader-buffer-label">Waiting for book</span><div id="reader-buffer-track"><div id="reader-buffer-fill"></div></div></div>
- <div id="reader-hint">Tap anywhere for controls · Kitten Beta v2.3</div>
+ <div id="reader-hint">Tap anywhere for controls · Kitten Beta v2.4</div>
  <div id="reader-controls">
-  <div class="version-read">E.D.D.i. · Kitten EPUB Beta v2.3</div>
+  <div class="version-read">E.D.D.i. · Kitten EPUB Beta v2.4</div>
   <div class="row"><button id="reader-prev" type="button" aria-label="Previous passage"><span class="reader-button-label">↶ Previous</span><span class="reader-button-arrow" aria-hidden="true">←</span></button><button id="reader-play" class="primary" type="button">⏸ Pause</button><button id="reader-next" type="button" aria-label="Next passage"><span class="reader-button-label">Next ↷</span><span class="reader-button-arrow" aria-hidden="true">→</span></button><button id="reader-chapter-next" type="button">Next chapter »</button></div>
   <div class="row"><button id="reader-exit" type="button">✕ Close reading screen</button></div>
  </div>
