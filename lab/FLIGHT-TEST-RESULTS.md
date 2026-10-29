@@ -235,3 +235,8 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 
 - User reports unable to play next chapter in v1.9. Found a missed branch in `player.onended`: when no additional WAV was queued and `generating` was false, the code only displayed "Chapter narration finished" rather than calling `finishChapter()`. This specifically affects the last passage after generation has already completed.
 - v2.0 calls `finishChapter()` on that branch; also serializes generation jobs across chapter changes to avoid the old in-flight worker output blocking the next chapter's queued generation. Explicit Play tap still required after preloading, consistent with Safari media restrictions. JavaScript syntax validated, on-device behavior not yet validated. Production Kokoro untouched.
+
+## 29 October 2026 — Beta v2.1 automatic chapter playback experiment
+
+- In v2.0, Chapter 5 correctly changed to Chapter 6 and preloaded 27.15 seconds; Chapter 6 playback was manually started and progressed sequentially from passage 1 to 98 without a missing source index or buffering pause. A second media play event at 5.96s on passage 98 did not change source.
+- v2.1 attempts `player.play()` automatically after the next chapter reaches its start buffer. It reports `chapter-autoplay-attempt`, `chapter-autoplay-success`, or `chapter-autoplay-blocked`; on Safari rejection it restores Play buttons and prompts for a tap. Normal manual chapter changes still require user Play. Production Kokoro unchanged. Device verification pending.
