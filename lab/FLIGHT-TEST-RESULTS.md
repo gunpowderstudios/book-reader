@@ -213,3 +213,9 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 - User submitted iPhone 13 Safari Dracula test, chapter 5 from passage 28. Dedicated Kitten Web Worker ready **1.75s**. 25-second gate opened with **26.07s** queued across 2 passages, about **17.03s** after opening book. User pressed Play about 2s later.
 - Recorded 4 transition gaps **447ms, 657ms, 303ms, 250ms** (mean **414ms**, max **657ms**), no buffering status during playback. Speech generation remained in dedicated Worker; slower generation ratios **1.21–1.74×** in this run, but consistently ahead of playback thanks to buffer. Last reported event is copied report; test is not evidence of chapter completion.
 - Next: longer listening test to check queue underrun, chunk transition consistency, and chapter-end behavior. Do not change Kokoro production.
+
+## 29 October 2026: Long iPhone run reveals sustained Kitten throughput collapse
+
+- User heard rare possible skipped or brief passages. v1.7 Dracula chapter 5, started passage 53; generated/playback passage indexes advance sequentially through passage 99. One repeated `play` event for position 97 (passage 98) needs more logging to distinguish ordinary Safari playback event from restarted audio. **No confirmed missing passage index in provided log.**
+- Generation ratio declines from about 1.5x realtime early to near 1.0x around passage 68 and later roughly 0.54-0.8x. Frequent buffering gaps later reach 5.0s, 8.16s, 12.63s, 11.68s and 15.36s. Worker still runs but can no longer keep up. Potential thermal throttling/resource pressure, not proven. Initial 25s buffer only postpones underrun. Not ready for main mobile/tablet release.
+- Next: instrument playback source indexes and ended/playing events to diagnose perceived skips/repeats; consider thermal/resource monitoring and native voice fallback if sustained slower-than-real-time generation. Kokoro remains untouched.
