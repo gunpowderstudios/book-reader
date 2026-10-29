@@ -186,3 +186,8 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 ## 29 October 2026: Kitten EPUB beta v1.3 immersive reading screen
 
 - Added pure-black fullscreen narration overlay activated by the audio `play` event. It shows only the current passage, tap-to-toggle transport/close controls, scrolling text, and estimated word progress based on `audio.currentTime / audio.duration`. Highlighting is **approximate** (not real TTS word timings), and needs device validation; narration synthesis/playback engine and original Kokoro reader untouched.
+
+## 29 October 2026: Kitten EPUB v1.4 transition stalls and v1.5 scheduling experiment
+
+- User reports iPhone 13 v1.4, Dracula, starting from chapter 5 passage 13. Kitten engine ready 0.81s, first audio ready in 7.21s; per-passage generation 1.94–2.20× audio real time. Despite queued WAVs, transition gaps **5969, 4169, 5676 and 7399 milliseconds**, closely correlate with contemporaneous ONNX generation durations. This points toward synchronous main-thread CPU blocking audio event dispatch, rather than strictly missing queued content.
+- v1.5 experimental scheduler: if playing and under 2.2s remain in current file, defer *starting* new generation for 2.7s to give media callbacks time to transition. Adds `generation-yield` diagnostic event and Reading + pre-loading label. **Not yet validated**; inference already in progress can still block events, and robust fix may require a Web Worker or alternative rendering architecture. Kokoro unchanged.
