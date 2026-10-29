@@ -207,3 +207,9 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 
 - Updated isolated Kitten EPUB beta to **automatically open bundled Dracula** at page startup, restore local chapter/passage bookmark, launch Rosie Nano Web Worker preloading and hold Play disabled until **25 seconds of generated audio** are queued (or chapter has ended). Shows live Play-button preloading progress, then `Ready to listen` status. Once ready, user only needs a single Play tap to start narration. iOS autoplay restrictions respected; no forced sound before user gesture. All other book controls remain available. Kokoro production unchanged.
 - User's v1.6 confirmed worker mode with 0.88-second initialization, later smooth ~147–174ms transitions, but 2.207s initial underrun; this v1.7 test focuses on preventing that startup underrun. Still needs device test.
+
+## 29 October 2026: v1.7 smart startup buffer confirmed on iPhone
+
+- User submitted iPhone 13 Safari Dracula test, chapter 5 from passage 28. Dedicated Kitten Web Worker ready **1.75s**. 25-second gate opened with **26.07s** queued across 2 passages, about **17.03s** after opening book. User pressed Play about 2s later.
+- Recorded 4 transition gaps **447ms, 657ms, 303ms, 250ms** (mean **414ms**, max **657ms**), no buffering status during playback. Speech generation remained in dedicated Worker; slower generation ratios **1.21–1.74×** in this run, but consistently ahead of playback thanks to buffer. Last reported event is copied report; test is not evidence of chapter completion.
+- Next: longer listening test to check queue underrun, chunk transition consistency, and chapter-end behavior. Do not change Kokoro production.
