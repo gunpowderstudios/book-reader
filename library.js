@@ -127,10 +127,35 @@ function card(b){
  c.append(cover,info);
  return c;
 }
+function renderMobileCurrentBook(){
+ const host=$('mobile-current-book');if(!host)return;
+ host.replaceChildren();
+ const latest=[...books].sort((a,b)=>(b.lastOpened||0)-(a.lastOpened||0))[0];
+ if(!latest){
+  const link=el('a','eddi-first-book','＋ Add your first book');
+  link.href='#free-books';
+  host.append(link);
+ }else{
+  const cover=el('img','eddi-current-cover');
+  cover.src=latest.cover||(/Conan/i.test(latest.title||latest.name||'')?'books/conan-cover.svg':'images/book-cover-fallback.svg');
+  cover.alt='Cover of '+(latest.title||latest.name||'current book');
+  cover.onerror=()=>{cover.onerror=null;cover.src='images/book-cover-fallback.svg'};
+  const details=el('div','eddi-current-details');
+  details.append(el('div','eddi-current-title',latest.title||latest.name||'Your current book'));
+  if(latest.author)details.append(el('p','eddi-current-author',latest.author));
+  const go=el('button','','▶ Continue reading');
+  go.type='button';
+  go.onclick=()=>window.chapterApp?.openFromLibrary(latest.id);
+  details.append(go);
+  host.append(cover,details);
+ }
+ host.hidden=false;
+}
 function render(){
  const grid=$('lib-list');if(!grid)return;
  const empty=$('lib-empty');
  grid.replaceChildren(...[...books].sort((a,b)=>(b.lastOpened||0)-(a.lastOpened||0)).map(card));
+ renderMobileCurrentBook();
  if(empty){
   empty.hidden=books.length>0;
   // Keep the designed welcome card and its Free Books link in place.
