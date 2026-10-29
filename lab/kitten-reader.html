@@ -201,8 +201,8 @@ async function showLibrary(){
    const item=document.createElement('div');item.className='library-item';
    const btn=document.createElement('button');btn.type='button';btn.className='library-open-book';
    const cover=record.cover;
-   if(typeof cover==='string'&&(cover.startsWith('data:image/')||cover.startsWith('blob:')||cover.startsWith('https://'))){
-    const img=document.createElement('img');img.className='library-cover';img.alt='Cover of '+(record.title||record.name||'book');img.loading='lazy';img.src=cover;
+   if(typeof cover==='string'&&(cover.startsWith('data:image/')||cover.startsWith('blob:')||cover.startsWith('https://')||cover.startsWith('books/')||cover.startsWith('images/'))){
+    const img=document.createElement('img');img.className='library-cover';img.alt='Cover of '+(record.title||record.name||'book');img.loading='lazy';img.src=(cover.startsWith('books/')||cover.startsWith('images/'))?'../'+cover:cover;
     img.onerror=()=>{const placeholder=document.createElement('span');placeholder.className='library-cover library-cover-fallback';placeholder.textContent='📖';img.replaceWith(placeholder)};
     btn.append(img);
    }else{
@@ -214,7 +214,7 @@ async function showLibrary(){
    const remove=document.createElement('button');remove.type='button';remove.className='library-remove';remove.textContent='×';remove.title='Remove '+(record.title||record.name||'book');remove.setAttribute('aria-label',remove.title);
    remove.onclick=async()=>{
     const title=record.title||record.name||'this book';
-    if(!confirm('Remove “'+title+'” from Your Library? The saved EPUB and its reading progress will be deleted from this browser.'))return;
+    if(!confirm('Remove “'+title+'” from Your Library? The saved EPUB will be removed from this browser. This cannot be undone.'))return;
     remove.disabled=true;
     try{
      await new Promise((resolve,reject)=>{const tx=db.transaction(['books','files'],'readwrite');tx.objectStore('books').delete(record.id);tx.objectStore('files').delete(record.id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});
