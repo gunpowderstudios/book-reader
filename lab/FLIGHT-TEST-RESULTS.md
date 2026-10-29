@@ -225,3 +225,8 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 - Based on v1.7 long-session test: worker synthesis throughput drops from ~1.5× audio length early to ~0.5–0.8×, yielding long real buffering gaps; separate issue of apparent brief text jumping/skipping. Main reader not ready for replacement.
 - v1.8 keeps Dracula auto-opening, Rosie, 25s startup buffer, worker and black reading view. Adds separate `source-switch`, `media-play`, `media-playing`, `media-ended` and `sequence-warning` events with passage IDs and playback serials to distinguish actual skipping from repeated Safari `play` notifications. Fixes early visual jump: passage text now changes on `playing`, not immediately on prior passage `ended`.
 - Reduces JavaScript and memory work: report JSON no longer stringified/re-rendered on every event (render on open/copy); consumed WAV object URLs revoked after two extra passages. No guarantee of preventing thermal/device slowdown. Live device validation pending.
+
+## 29 October 2026 — Kitten EPUB beta v1.9 chapter navigation
+
+- User could not play the next chapter after finishing Dracula chapter 5 in v1.8. Previous logic marked the chapter finished and left the transport on the last audio passage, while the Next button was passage-only.
+- Added chapter-end advance: preload the next chapter and present the Play control once its start buffer is ready (no assumption of Safari autoplay permission). Added `Next chapter` to the immersive reader; passage Next also advances chapter at the final passage. Preserve chapter/position bookmarks, Rosie worker mode and Kokoro production unchanged. On-device testing pending.
