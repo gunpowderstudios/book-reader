@@ -196,3 +196,9 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 
 - iPhone 13, Dracula, v1.5 still has 2098ms, 2846ms, 7679ms gaps. Synthesis durations 2.00s, 2.83s, 7.57s coincide with gaps, indicating main JS thread ONNX blocks media transition event dispatch despite prepared WAVs. Simple yielding cannot fix inference already running.
 - Added `lab/kitten-worker.js` and Kitten EPUB v1.6: first tries creating Kitten Nano engine in a dedicated Web Worker, runs all speech generation there and transfers WAV buffer to main thread; worker-ready and worker-fallback logs, with fallback to the original working main-thread code if SDK cannot initialize in a worker. Separate worker viability on iOS Safari not yet verified. Script syntax checked. Existing production Kokoro and main Reading Room unchanged.
+
+## 29 October 2026: Kitten EPUB v1.6 iPhone Web Worker success
+
+- iPhone 13 Safari: `worker-ready` in **0.88s**; first Dracula passage ready **3.99s** from opening, worker-generated passage 22 in 3.11s for 6.15s audio. All subsequent generated events report `mode:worker` with synthesis ratios about 1.79–2.01× realtime.
+- First transition 22→23 required buffering **2207ms**, because passage 23 took 9.45s to synthesise vs 6.15s of starting audio and user began playback shortly after passage 22 was generated. Subsequent measured gaps **174ms and 147ms** while Worker continued generating. The 5–8s main-thread-blocking gaps from v1.4/v1.5 are not present in those later transitions.
+- Conclusion: worker succeeds on iPhone and materially improves playback responsiveness; cannot prevent underrun if user starts with only a short first clip. Next improvement should start when at least 2 passages (~20s audio) are buffered or provide an optional instant-start mode, and monitor minutes of audio ready. Do not assume older iPad supports worker Kitten since previous ONNX WASM OOM. Kokoro untouched.
