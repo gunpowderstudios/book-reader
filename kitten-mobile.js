@@ -70,8 +70,8 @@ function setupVoices(){
  const mode=$('mode-select');if(mode){mode.replaceChildren(new Option('Kitten (Mobile)','kitten'));mode.disabled=true}
 }
 function initKittenUI(){
- const panel=$('playback-panel');
- if(panel&&!$('kitten-loading')){const bar=document.createElement('div');bar.id='kitten-loading';bar.hidden=true;bar.setAttribute('role','status');bar.innerHTML='<span>Preparing narration…</span><div class="kitten-loading-track"><i></i></div>';panel.insertBefore(bar,panel.firstChild);}
+ const host=$('mobile-audiobook')||$('playback-panel');
+ if(host&&!$('kitten-loading')){const bar=document.createElement('div');bar.id='kitten-loading';bar.hidden=true;bar.setAttribute('role','status');bar.setAttribute('aria-live','polite');bar.innerHTML='<span>Preparing narration…</span><div class="kitten-loading-track"><i></i></div>';const play=$('mobile-book-play');if(play&&play.parentElement===host)play.insertAdjacentElement('afterend',bar);else host.insertBefore(bar,host.firstChild);}
  setupVoices();
  // Legacy page initialisation may run later; reapply once after it completes.
  setTimeout(setupVoices,250);
