@@ -230,3 +230,8 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 
 - User could not play the next chapter after finishing Dracula chapter 5 in v1.8. Previous logic marked the chapter finished and left the transport on the last audio passage, while the Next button was passage-only.
 - Added chapter-end advance: preload the next chapter and present the Play control once its start buffer is ready (no assumption of Safari autoplay permission). Added `Next chapter` to the immersive reader; passage Next also advances chapter at the final passage. Preserve chapter/position bookmarks, Rosie worker mode and Kokoro production unchanged. On-device testing pending.
+
+## 29 October 2026 — Chapter continuation fix v2.0
+
+- User reports unable to play next chapter in v1.9. Found a missed branch in `player.onended`: when no additional WAV was queued and `generating` was false, the code only displayed "Chapter narration finished" rather than calling `finishChapter()`. This specifically affects the last passage after generation has already completed.
+- v2.0 calls `finishChapter()` on that branch; also serializes generation jobs across chapter changes to avoid the old in-flight worker output blocking the next chapter's queued generation. Explicit Play tap still required after preloading, consistent with Safari media restrictions. JavaScript syntax validated, on-device behavior not yet validated. Production Kokoro untouched.
