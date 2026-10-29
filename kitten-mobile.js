@@ -1,11 +1,11 @@
-/* E.D.D.i mobile Kitten speech adapter v1.12.120.
+/* E.D.D.i mobile Kitten speech adapter v1.12.128.
    Preserves the original reader/library UI; loads the Kitten worker on first Play. */
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 let worker=null,initPromise=null,seq=0,pending=new Map(),generation=null,session=null,audio=null,url=null;
 const cancelled=()=>Object.assign(new Error('Cancelled'),{cancelled:true});
 function request(type,text,voice){
- return new Promise((resolve,reject)=>{const id=++seq;pending.set(id,{resolve,reject});
+ return new Promise((resolve,reject)=>{const id=++seq;const timeout=setTimeout(()=>{if(!pending.has(id))return;pending.delete(id);reject(Error(type==='init'?'Kitten voice took too long to load. Try again or use the original reader.':'Kitten narration timed out. Try again.'))},type==='init'?60000:90000);pending.set(id,{resolve:v=>{clearTimeout(timeout);resolve(v)},reject:e=>{clearTimeout(timeout);reject(e)}});
  try{worker.postMessage({id,type,text,voice})}catch(e){pending.delete(id);reject(e)}
  });
 }
@@ -50,7 +50,7 @@ function toggle({S,update,render}){
  };void loop();
 }
 function skipSeconds(seconds,S,update){if(!S?.chapters?.length)return;const n=S.chapters[S.index].paragraphs.length;if(audio&&Number.isFinite(audio.duration)&&audio.duration){const t=audio.currentTime+seconds;if(t>=0&&t<audio.duration){audio.currentTime=t;return}}const was=!!session&&!session.cancelled;stop();S.p=Math.max(0,Math.min(n-1,S.p+(seconds<0?-1:1)));update();if(was)toggle({S,update,render:window.chapterApp?.render})}
-window.chapterKokoro={toggle,stop,skipSeconds,prefetch:()=>{},refreshNarrator:()=>{},stopTest:()=>{},version:'kitten-mobile-1.12.123',isMobile:()=>true};
+window.chapterKokoro={toggle,stop,skipSeconds,prefetch:()=>{},refreshNarrator:()=>{},stopTest:()=>{},version:'kitten-mobile-1.12.128',isMobile:()=>true};
 const KITTEN_VOICES=['Rosie','Bella','Jasper','Luna','Bruno','Hugo','Kiki','Leo'];
 function setLoading(on,message){const bar=$('kitten-loading');if(!bar)return;bar.hidden=!on;const label=bar.querySelector('span');if(label&&message)label.textContent=message;}
 function setupVoices(){
@@ -74,7 +74,7 @@ function initKittenUI(){
  if(host&&!$('kitten-loading')){const bar=document.createElement('div');bar.id='kitten-loading';bar.hidden=true;bar.setAttribute('role','status');bar.setAttribute('aria-live','polite');bar.innerHTML='<span>Preparing narration…</span><div class="kitten-loading-track"><i></i></div>';const play=$('mobile-book-play');if(play&&play.parentElement===host)play.insertAdjacentElement('afterend',bar);else host.insertBefore(bar,host.firstChild);}
  setupVoices();
  // Legacy page initialisation may run later; reapply once after it completes.
- setTimeout(setupVoices,250);
+ setTimeout(setupVoices,250);setTimeout(setupVoices,1000);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initKittenUI,{once:true});else initKittenUI();
 })();
