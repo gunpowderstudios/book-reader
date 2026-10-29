@@ -61,7 +61,14 @@ body.reader-active{overflow:hidden}
 #eddi-menu a:hover,#eddi-menu button:hover{background:#345641}
 #library-panel{margin:12px 0;padding:14px;background:#14291d;border:1px solid #54735b;border-radius:12px}
 #library-books{display:grid;gap:8px;margin:10px 0}
-#library-books button{width:100%;text-align:left;padding:12px;white-space:normal}
+#library-books .library-item{display:flex;align-items:center;gap:10px;background:#203b2a;border:1px solid #55735c;border-radius:10px;padding:8px}
+#library-books .library-open-book{flex:1;min-width:0;display:flex;align-items:center;gap:12px;text-align:left;border:0;background:transparent;padding:4px;white-space:normal;min-height:66px}
+#library-books .library-cover{width:47px;height:65px;flex:0 0 47px;border-radius:4px;object-fit:cover;background:#38513d;box-shadow:0 2px 8px #0007}
+#library-books .library-cover-fallback{display:flex;align-items:center;justify-content:center;color:#ecf3c9;font-size:24px}
+#library-books .library-book-details{min-width:0;overflow-wrap:anywhere;font-weight:700;font-size:15px}
+#library-books .library-remove{flex:0 0 35px;width:35px;min-width:35px;min-height:35px;height:35px;padding:0;border:1px solid #8caaa0;border-radius:50%;font-size:23px;line-height:1;background:#263b30;color:#fff}
+#library-books .library-remove:hover{background:#923e3e}
+#library-books .library-remove:focus-visible{outline:3px solid #baf089;outline-offset:2px}
 #library-books small{display:block;color:#c2ddcb;font-size:12px;margin-top:3px}
 #eddi-menu-toggle:focus-visible,#library-books button:focus-visible{outline:3px solid #baf089;outline-offset:2px}
 </style>
@@ -85,7 +92,7 @@ body.reader-active{overflow:hidden}
  </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script><script>
-(function(){'use strict';const $=id=>document.getElementById(id),player=$('audio'),report={version:'kitten-mobile-live-3.3',ua:navigator.userAgent,events:[]};
+(function(){'use strict';const $=id=>document.getElementById(id),player=$('audio'),report={version:'kitten-mobile-live-3.4',ua:navigator.userAgent,events:[]};
 let worker=null,workerUsable=false,workerSeq=0,workerPending=new Map();let readerWordNodes=[],readerShownPos=-1,readerWordCount=0,preloadStartedAt=0,kit=null,kitLoading=null,book=null,chapterIndex=0,parts=[],position=0,queue=[],generating=false,started=false,stopped=true,token=0,lastEnd=0,urls=[],playIndex=-1,playRequested=false,preparingPassage=false,generationRun=null;const START_BUFFER_SECONDS=25;let reportDirty=false,reportTimer=0,playSerial=0,expectedNext=null,autoContinueChapter=false,autoContinueAttempted=false,progressDragging=false;
 function flushReport(){if(!reportDirty)return;reportDirty=false;$('report').textContent=JSON.stringify(report,null,2)}
 function log(kind,other){report.events.push({t:new Date().toISOString(),kind,...(other||{})});reportDirty=true;if(!reportTimer)reportTimer=setTimeout(()=>{reportTimer=0;if($('report').parentElement.open)flushReport()},1200)}
@@ -191,10 +198,31 @@ async function showLibrary(){
   const records=await new Promise((resolve,reject)=>{const tx=db.transaction('books','readonly'),req=tx.objectStore('books').getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error)});
   list.replaceChildren();records.sort((a,b)=>(b.lastOpened||0)-(a.lastOpened||0));
   for(const record of records){
-   const btn=document.createElement('button');btn.type='button';btn.textContent=record.title||record.name||'Untitled EPUB';
-   const sub=document.createElement('small');sub.textContent=(record.author||'')+(record.chapters?' · '+record.chapters+' chapters':'');btn.append(sub);
+   const item=document.createElement('div');item.className='library-item';
+   const btn=document.createElement('button');btn.type='button';btn.className='library-open-book';
+   const cover=record.cover;
+   if(typeof cover==='string'&&(cover.startsWith('data:image/')||cover.startsWith('blob:')||cover.startsWith('https://'))){
+    const img=document.createElement('img');img.className='library-cover';img.alt='Cover of '+(record.title||record.name||'book');img.loading='lazy';img.src=cover;
+    img.onerror=()=>{const placeholder=document.createElement('span');placeholder.className='library-cover library-cover-fallback';placeholder.textContent='📖';img.replaceWith(placeholder)};
+    btn.append(img);
+   }else{
+    const placeholder=document.createElement('span');placeholder.className='library-cover library-cover-fallback';placeholder.textContent='📖';btn.append(placeholder);
+   }
+   const details=document.createElement('span');details.className='library-book-details';details.append(document.createTextNode(record.title||record.name||'Untitled EPUB'));
+   const sub=document.createElement('small');sub.textContent=(record.author||'')+(record.chapters?' · '+record.chapters+' chapters':'');details.append(sub);btn.append(details);
    btn.onclick=async()=>{try{say('Opening '+(record.title||'your book')+'…');const blob=await new Promise((resolve,reject)=>{const tx=db.transaction('files','readonly'),req=tx.objectStore('files').get(record.id);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});if(!blob)throw Error('The saved EPUB file is missing');await openBuffer(await blob.arrayBuffer(),record.name||record.title||'saved.epub');libraryPanel.hidden=true}catch(e){say('Could not open saved book: '+e.message)}};
-   list.append(btn);
+   const remove=document.createElement('button');remove.type='button';remove.className='library-remove';remove.textContent='×';remove.title='Remove '+(record.title||record.name||'book');remove.setAttribute('aria-label',remove.title);
+   remove.onclick=async()=>{
+    const title=record.title||record.name||'this book';
+    if(!confirm('Remove “'+title+'” from Your Library? The saved EPUB and its reading progress will be deleted from this browser.'))return;
+    remove.disabled=true;
+    try{
+     await new Promise((resolve,reject)=>{const tx=db.transaction(['books','files'],'readwrite');tx.objectStore('books').delete(record.id);tx.objectStore('files').delete(record.id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});
+     item.remove();if(!list.children.length){const empty=document.createElement('p');empty.className='muted small';empty.textContent='No saved EPUBs yet. You can start with Dracula or upload a book.';list.append(empty)}
+     say('Removed '+title+' from Your Library.');
+    }catch(e){remove.disabled=false;say('Could not remove book: '+e.message)}
+   };
+   item.append(btn,remove);list.append(item);
   }
   if(!records.length){const empty=document.createElement('p');empty.className='muted small';empty.textContent='No saved EPUBs yet. You can start with Dracula or upload a book.';list.append(empty)}
  }catch(e){list.replaceChildren();const msg=document.createElement('p');msg.className='muted small';msg.textContent='Could not access your saved library: '+e.message;list.append(msg)}
