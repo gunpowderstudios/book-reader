@@ -10,12 +10,12 @@ async function init(){
  tts=await self.KittenTTSWeb.KittenTTS.create({model:'nano-int8',analytics:false});
 }
 self.onmessage=async function(event){
- const {id,type,text}=event.data||{};
+ const {id,type,text,voice}=event.data||{};
  try{
   if(type==='init'){await init();self.postMessage({id,type:'ready'});return}
   if(type==='generate'){
    await init();
-   const start=performance.now(),result=await tts.generate(text,{voice:'rosie'});
+   const start=performance.now(),result=await tts.generate(text,{voice:['bella','jasper','luna','bruno','rosie','hugo','kiki','leo'].includes(voice)?voice:'rosie'});
    const raw=result.wavData(),arr=raw instanceof Uint8Array?raw:new Uint8Array(raw);
    const bytes=arr.slice();
    self.postMessage({id,type:'generated',data:bytes.buffer,sampleRate:result.sampleRate,seconds:(performance.now()-start)/1000},[bytes.buffer]);
