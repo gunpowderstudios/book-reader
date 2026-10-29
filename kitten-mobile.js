@@ -4,15 +4,15 @@
 const $=id=>document.getElementById(id);
 let worker=null,initPromise=null,seq=0,pending=new Map(),generation=null,session=null,audio=null,url=null;
 const cancelled=()=>Object.assign(new Error('Cancelled'),{cancelled:true});
-function request(type,text){
+function request(type,text,voice){
  return new Promise((resolve,reject)=>{const id=++seq;pending.set(id,{resolve,reject});
- try{worker.postMessage({id,type,text})}catch(e){pending.delete(id);reject(e)}
+ try{worker.postMessage({id,type,text,voice})}catch(e){pending.delete(id);reject(e)}
  });
 }
 function ready(){
  if(initPromise)return initPromise;
  initPromise=(async()=>{
-  worker=new Worker('lab/kitten-worker.js?v=1.6');
+  worker=new Worker('lab/kitten-worker.js?v=1.12.123');
   worker.onmessage=e=>{const m=e.data||{},p=pending.get(m.id);if(!p)return;pending.delete(m.id);m.type==='error'?p.reject(Error(m.message||'Kitten failed')):p.resolve(m)};
   worker.onerror=e=>{for(const p of pending.values())p.reject(Error(e.message||'Kitten worker error'));pending.clear();initPromise=null;worker?.terminate();worker=null};
   await request('init');return true;
@@ -34,7 +34,7 @@ function toggle({S,update,render}){
     if(S.p>=paras.length){if(S.index+1>=S.chapters.length){say('Finished reading');break}S.index++;S.p=0;render();continue}
     const passage=String(paras[S.p]||'').trim();if(!passage){S.p++;update();continue}
     say('Kitten is preparing narration…');
-    const result=await request('generate',passage);
+    const result=await request('generate',passage,$('voice')?.value||'rosie');
     if(task.cancelled)return;
     clearAudio();url=URL.createObjectURL(new Blob([result.data],{type:'audio/wav'}));audio=new Audio(url);
     const a=audio;a.playbackRate=Number($('rate')?.value)||1;
@@ -50,9 +50,23 @@ function toggle({S,update,render}){
  };void loop();
 }
 function skipSeconds(seconds,S,update){if(!S?.chapters?.length)return;const n=S.chapters[S.index].paragraphs.length;if(audio&&Number.isFinite(audio.duration)&&audio.duration){const t=audio.currentTime+seconds;if(t>=0&&t<audio.duration){audio.currentTime=t;return}}const was=!!session&&!session.cancelled;stop();S.p=Math.max(0,Math.min(n-1,S.p+(seconds<0?-1:1)));update();if(was)toggle({S,update,render:window.chapterApp?.render})}
-window.chapterKokoro={toggle,stop,skipSeconds,prefetch:()=>{},refreshNarrator:()=>{},stopTest:()=>{},version:'kitten-mobile-1.12.120',isMobile:()=>true};
-document.addEventListener('DOMContentLoaded',()=>{
- const voice=$('voice');if(voice){voice.replaceChildren(new Option('Kitten — Rosie','kitten_rosie'));voice.disabled=true}
+window.chapterKokoro={toggle,stop,skipSeconds,prefetch:()=>{},refreshNarrator:()=>{},stopTest:()=>{},version:'kitten-mobile-1.12.123',isMobile:()=>true};
+const KITTEN_VOICES=['Rosie','Bella','Jasper','Luna','Bruno','Hugo','Kiki','Leo'];
+function setupVoices(){
+ const voice=$('voice');
+ if(voice){
+  let selected='rosie';
+  try{selected=localStorage.getItem('br-kitten-voice')||'rosie'}catch(_){}
+  voice.replaceChildren(...KITTEN_VOICES.map(name=>new Option('Kitten — '+name,name.toLowerCase())));
+  voice.value=KITTEN_VOICES.some(n=>n.toLowerCase()===selected)?selected:'rosie';
+  voice.disabled=false;
+  const update=()=>{try{localStorage.setItem('br-kitten-voice',voice.value)}catch(_){}
+    const label=$('engine-narrator');if(label)label.textContent='Kitten — '+voice.selectedOptions[0]?.textContent?.replace('Kitten — ','');
+  };
+  voice.addEventListener('change',update);
+  update();
+ }
  const mode=$('mode-select');if(mode){mode.replaceChildren(new Option('Kitten (Mobile)','kitten'));mode.disabled=true}
-});
+}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(setupVoices,0));
 })();
