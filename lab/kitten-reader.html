@@ -3,8 +3,13 @@
 #reader-screen{position:fixed;inset:0;background:#000;color:#fff;z-index:1000;display:none;flex-direction:column;justify-content:center;align-items:center;overflow:hidden}
 #reader-screen.visible{display:flex}
 #reader-chapter-heading{position:absolute;top:max(14px,env(safe-area-inset-top));left:54px;right:54px;text-align:center;color:#999;font-size:12px;line-height:1.5;letter-spacing:.025em;pointer-events:none;z-index:2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#reader-paragraph{width:min(94vw,850px);max-height:75dvh;overflow-y:auto;padding:28px 22px;font-size:clamp(24px,5vw,39px);line-height:1.7;text-align:left;overflow-wrap:anywhere;scrollbar-width:none}
+#reader-paragraph{width:min(96vw,850px);height:calc(100dvh - 95px - env(safe-area-inset-top) - env(safe-area-inset-bottom));max-height:none;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding:30px 18px 120px;font-size:clamp(20px,4.8vw,32px);line-height:1.6;text-align:left;overflow-wrap:anywhere;scrollbar-width:none;scroll-padding-top:20vh}
 #reader-paragraph::-webkit-scrollbar{display:none}
+#reader-paragraph .passage-panel{display:block;margin:12px 0;padding:17px 17px 20px;border:1px solid #262626;border-radius:13px;background:#0c0c0c;color:#b8b8b8;cursor:pointer;transition:border-color .18s,background .18s}
+#reader-paragraph .passage-panel.active{background:#182117;border-color:#a6d87d;box-shadow:inset 4px 0 #baf089;color:#fff}
+#reader-paragraph .passage-panel:focus-visible{outline:3px solid #baf089;outline-offset:2px}
+#reader-paragraph .passage-number{display:block;font-size:11px;line-height:1.4;letter-spacing:.06em;color:#777;margin-bottom:10px;text-transform:uppercase}
+#reader-paragraph .passage-panel.active .passage-number{color:#cef579}
 #reader-paragraph .word{color:#858585;transition:color .12s ease}
 #reader-paragraph .word.spoken{color:#fff}
 #reader-paragraph .word.current{color:#e6ff8b;background:rgba(165,195,91,.13);border-radius:3px}
@@ -36,7 +41,7 @@ body.reader-active{overflow:hidden}
 #reader-buffer-fill{width:0;height:100%;background:#bded8c;transition:width .35s ease}
 #reader-screen.controls-open #reader-buffer{bottom:calc(185px + env(safe-area-inset-bottom))}
 #reader-screen.controls-open #reader-hint{display:none}
-#reader-progress{position:absolute;right:max(0px,env(safe-area-inset-right));top:12%;bottom:12%;width:48px;z-index:5;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;opacity:.5;transition:opacity .2s}
+ #reader-progress{display:none!important;position:absolute;right:max(0px,env(safe-area-inset-right));top:12%;bottom:12%;width:48px;z-index:5;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;opacity:.5;transition:opacity .2s}
 #reader-progress.dragging,#reader-screen.controls-open #reader-progress{opacity:1}
 #reader-progress-track{position:absolute;width:4px;top:0;bottom:0;background:#454545;border-radius:5px;pointer-events:none}
 #reader-progress-fill{position:absolute;left:0;top:0;width:100%;height:0%;background:#baf089;border-radius:5px}
@@ -92,8 +97,8 @@ body.reader-active{overflow:hidden}
  </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script><script>
-(function(){'use strict';const $=id=>document.getElementById(id),player=$('audio'),report={version:'kitten-mobile-live-3.4',ua:navigator.userAgent,events:[]};
-let worker=null,workerUsable=false,workerSeq=0,workerPending=new Map();let readerWordNodes=[],readerShownPos=-1,readerWordCount=0,preloadStartedAt=0,kit=null,kitLoading=null,book=null,chapterIndex=0,parts=[],position=0,queue=[],generating=false,started=false,stopped=true,token=0,lastEnd=0,urls=[],playIndex=-1,playRequested=false,preparingPassage=false,generationRun=null;const START_BUFFER_SECONDS=25;let reportDirty=false,reportTimer=0,playSerial=0,expectedNext=null,autoContinueChapter=false,autoContinueAttempted=false,progressDragging=false;
+(function(){'use strict';const $=id=>document.getElementById(id),player=$('audio'),report={version:'kitten-mobile-live-3.5',ua:navigator.userAgent,events:[]};
+let worker=null,workerUsable=false,workerSeq=0,workerPending=new Map();let readerWordNodes=[],readerShownPos=-1,readerWordCount=0,readerBuiltChapter=-1,readerBuiltBook=null,manualScrollUntil=0,preloadStartedAt=0,kit=null,kitLoading=null,book=null,chapterIndex=0,parts=[],position=0,queue=[],generating=false,started=false,stopped=true,token=0,lastEnd=0,urls=[],playIndex=-1,playRequested=false,preparingPassage=false,generationRun=null;const START_BUFFER_SECONDS=25;let reportDirty=false,reportTimer=0,playSerial=0,expectedNext=null,autoContinueChapter=false,autoContinueAttempted=false,progressDragging=false;
 function flushReport(){if(!reportDirty)return;reportDirty=false;$('report').textContent=JSON.stringify(report,null,2)}
 function log(kind,other){report.events.push({t:new Date().toISOString(),kind,...(other||{})});reportDirty=true;if(!reportTimer)reportTimer=setTimeout(()=>{reportTimer=0;if($('report').parentElement.open)flushReport()},1200)}
 function say(s){$('status').textContent=s;log('status',{text:s});updateBufferIndicator()}
@@ -133,9 +138,62 @@ function updateBufferIndicator(){
  $('main-load-label').textContent=!book?'Open a book to prepare narration':active?'Reading · '+Math.round(total)+'s of audio buffered':generating?($('play').disabled?'Preparing audio · '+Math.min(100,Math.round(mainPercent))+'%':'Ready to play · continuing to buffer'):queue.length?'Audio ready · '+Math.round(seconds)+'s buffered':'Preparing voice…';
  $('main-load').setAttribute('aria-valuenow',String(Math.round(mainPercent)));
 }
-function renderReaderParagraph(){if(!$('reader-screen').classList.contains('visible'))return;if(readerShownPos!==position){readerShownPos=position;const pane=$('reader-paragraph');pane.replaceChildren();readerWordNodes=[];const p=parts[position]||'';const tokens=p.match(/\S+|\s+/g)||[];for(const token of tokens){if(/^\s+$/.test(token)){pane.appendChild(document.createTextNode(token))}else{const el=document.createElement('span');el.className='word';el.textContent=token;pane.appendChild(el);readerWordNodes.push(el)}}readerWordCount=readerWordNodes.length;pane.scrollTop=0;}updateReaderWords()}
-function updateReaderWords(){if(!$('reader-screen').classList.contains('visible')||!readerWordCount)return;const q=queue[playIndex];const audioTime=q&&q.pos===position&&Number.isFinite(player.duration)&&player.duration>0?player.currentTime/player.duration:0;const active=Math.min(readerWordCount-1,Math.max(0,Math.floor(audioTime*readerWordCount)));for(let i=0;i<readerWordCount;i++){const el=readerWordNodes[i];el.className=i<active?'word spoken':i===active?'word current':'word'}const el=readerWordNodes[active];if(el&&el.offsetTop-$('reader-paragraph').scrollTop>$('reader-paragraph').clientHeight*.67)$('reader-paragraph').scrollTop=Math.max(0,el.offsetTop-$('reader-paragraph').clientHeight*.32)}
-$('reader-screen').addEventListener('click',e=>{if(e.target.closest('#reader-controls'))return;$('reader-screen').classList.toggle('controls-open')});
+function renderReaderParagraph(){
+ if(!$('reader-screen').classList.contains('visible'))return;
+ const pane=$('reader-paragraph');
+ if(readerBuiltBook!==book||readerBuiltChapter!==chapterIndex||pane.children.length!==parts.length){
+  readerBuiltBook=book;readerBuiltChapter=chapterIndex;readerShownPos=-1;pane.replaceChildren();
+  const fragment=document.createDocumentFragment();
+  parts.forEach((passage,i)=>{
+   const panel=document.createElement('div');panel.className='passage-panel';panel.dataset.passage=String(i);
+   panel.setAttribute('role','button');panel.setAttribute('tabindex','0');panel.setAttribute('aria-label','Read from passage '+(i+1));
+   const number=document.createElement('span');number.className='passage-number';number.textContent='Passage '+(i+1);panel.append(number);
+   const body=document.createElement('span');body.className='passage-body';body.textContent=passage;panel.append(body);
+   const choose=()=>seekToReaderPassage(i);
+   panel.addEventListener('click',choose);
+   panel.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choose()}});
+   fragment.append(panel);
+  });
+  pane.append(fragment);
+ }
+ if(readerShownPos!==position){
+  const previous=pane.querySelector('.passage-panel.active');if(previous){previous.classList.remove('active');previous.removeAttribute('aria-current')}
+  const current=pane.children[position];readerShownPos=position;
+  readerWordNodes=[];readerWordCount=0;
+  if(current){
+   current.classList.add('active');current.setAttribute('aria-current','true');
+   const body=current.querySelector('.passage-body');body.replaceChildren();
+   for(const token of (parts[position]||'').match(/\\S+|\\s+/g)||[]){
+    if(/^\\s+$/.test(token))body.append(document.createTextNode(token));
+    else{const el=document.createElement('span');el.className='word';el.textContent=token;body.append(el);readerWordNodes.push(el)}
+   }
+   readerWordCount=readerWordNodes.length;
+   if(Date.now()>manualScrollUntil)current.scrollIntoView({block:'center',behavior:'instant'});
+  }
+ }
+ updateReaderWords();
+}
+function updateReaderWords(){
+ if(!$('reader-screen').classList.contains('visible')||!readerWordCount)return;
+ const q=queue[playIndex],duration=Number.isFinite(player.duration)?player.duration:0;
+ const audioTime=q&&q.pos===position&&duration>0?player.currentTime/duration:0;
+ const active=Math.min(readerWordCount-1,Math.max(0,Math.floor(audioTime*readerWordCount)));
+ for(let i=0;i<readerWordCount;i++)readerWordNodes[i].className=i<active?'word spoken':i===active?'word current':'word';
+ const el=readerWordNodes[active],pane=$('reader-paragraph');
+ if(el&&Date.now()>manualScrollUntil){const y=el.getBoundingClientRect().top-pane.getBoundingClientRect().top;if(y>pane.clientHeight*.72||y<0)el.scrollIntoView({block:'center',behavior:'instant'})}
+}
+function seekToReaderPassage(target){
+ if(!book||target===position)return;
+ const wasPlaying=started&&!player.paused;
+ stop();position=target;highlight();save();
+ log('chapter-seek',{chapter:chapterIndex+1,passage:target+1,resumeRequested:wasPlaying,method:'tap-passage'});
+ startPreload();say('Loading passage '+(target+1)+' of '+parts.length+'. Press Play when ready.');
+ $('reader-screen').classList.add('controls-open');
+}
+$('reader-paragraph').addEventListener('touchstart',()=>{manualScrollUntil=Date.now()+8000},{passive:true});
+$('reader-paragraph').addEventListener('touchmove',()=>{manualScrollUntil=Date.now()+8000},{passive:true});
+$('reader-paragraph').addEventListener('wheel',()=>{manualScrollUntil=Date.now()+8000},{passive:true});
+$('reader-screen').addEventListener('click',e=>{if(e.target.closest('#reader-controls,#reader-paragraph'))return;$('reader-screen').classList.toggle('controls-open')});
 $('reader-exit').onclick=hideReader;
 $('reader-play').onclick=()=>{if($('play').disabled)return;$('play').click();$('reader-play').textContent=player.paused?'▶ Play':'⏸ Pause';$('reader-screen').classList.remove('controls-open')};
 $('reader-prev').onclick=()=>{$('back').click();showReader()};
@@ -145,42 +203,8 @@ $('reader-chapter-prev').onclick=()=>{if(!book||chapterIndex===0)return;stop();c
 $('reader-chapter-next').onclick=()=>{advanceChapter(false)};
 player.addEventListener('timeupdate',()=>{updateReaderWords();updateBufferIndicator()});
 function updateChapterProgress(){
- if(book&&parts.length){const current=Math.max(1,Math.min(parts.length,position+1));$('reader-chapter-heading').textContent='Chapter '+(chapterIndex+1)+' · Passage '+current+' of '+parts.length;}
- const max=Math.max(1,parts.length),value=progressDragging?Number($('reader-progress-input').value):Math.min(max,Math.max(1,position+1));
- $('reader-progress-input').max=String(max);
- if(!progressDragging)$('reader-progress-input').value=String(value);
- const percent=(value-1)/Math.max(1,max-1)*100;
- $('reader-progress-fill').style.height=percent+'%';
- $('reader-progress-thumb').style.top=percent+'%';
- $('reader-progress-label').textContent='Passage '+value+' / '+max+' · '+Math.round(percent)+'%';
- $('reader-progress-label').style.top=Math.max(8,Math.min(92,percent))+'%';
+ if(book&&parts.length){const current=Math.max(1,Math.min(parts.length,position+1));$('reader-chapter-heading').textContent='Chapter '+(chapterIndex+1)+' · Passage '+current+' of '+parts.length}
 }
-function commitChapterSeek(){
- if(!progressDragging)return;
- const target=Math.max(0,Math.min(parts.length-1,Number($('reader-progress-input').value)-1));
- progressDragging=false;$('reader-progress').classList.remove('dragging');
- if(!book||!parts.length||target===position){updateChapterProgress();return}
- const wasPlaying=started&&!player.paused;
- stop();position=target;highlight();save();log('chapter-seek',{chapter:chapterIndex+1,passage:target+1,resumeRequested:wasPlaying});startPreload();
- say('Moved to passage '+(target+1)+' of '+parts.length+'. Preparing narration — tap Play when ready.');
-}
-const progressRail=$('reader-progress');
-function previewProgressAt(y){
- const rect=progressRail.getBoundingClientRect(),fraction=Math.max(0,Math.min(1,(y-rect.top)/Math.max(1,rect.height)));
- $('reader-progress-input').value=String(1+Math.round(fraction*Math.max(0,parts.length-1)));
- updateChapterProgress();
-}
-progressRail.addEventListener('pointerdown',e=>{
- if(!book||!parts.length)return;
- e.preventDefault();e.stopPropagation();
- progressDragging=true;progressRail.classList.add('dragging');
- progressRail.setPointerCapture(e.pointerId);
- previewProgressAt(e.clientY);
-});
-progressRail.addEventListener('pointermove',e=>{if(progressDragging){e.preventDefault();previewProgressAt(e.clientY)}});
-progressRail.addEventListener('pointerup',e=>{if(!progressDragging)return;e.preventDefault();previewProgressAt(e.clientY);commitChapterSeek()});
-progressRail.addEventListener('pointercancel',()=>{progressDragging=false;progressRail.classList.remove('dragging');updateChapterProgress()});
-progressRail.addEventListener('click',e=>e.stopPropagation());
 function highlight(){updateChapterProgress();renderReaderParagraph();const pane=$('text');const passage=parts[position]||'';if(pane.dataset.shown!==String(position)||pane.textContent!==passage){pane.textContent=passage;pane.dataset.shown=String(position);pane.scrollTop=0;}$('passage-progress').textContent=parts.length?'Passage '+(position+1)+' of '+parts.length:''}
 async function openBuffer(buffer,name){stop();say('Opening EPUB…');book=await readEpub(buffer,name);report.book=book.title;const old=JSON.parse(localStorage.getItem(bookmarkKey())||'null');chapterIndex=old&&old.chapterIndex<book.chapters.length?old.chapterIndex:0;position=old?.position||0;$('bookname').textContent=book.title;$('chapter').replaceChildren(...book.chapters.map((c,i)=>new Option((i+1)+'. '+c.title,String(i))));showChapter();log('book-open',{chapters:book.chapters.length,title:book.title});startPreload()}
 
