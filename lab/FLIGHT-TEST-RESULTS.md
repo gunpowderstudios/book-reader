@@ -182,3 +182,7 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 
 - iPhone 13 Safari user confirmed beta v1.1 works. Dracula chapter 5, engine loaded in 0.82 s, first passage prepared in 3.85 s, speech generated 2.06–2.24× realtime. Playback events prove narration started and progressed. Transition gaps observed: 111 ms, **3527 ms**, 104 ms, 130 ms. One long audible interruption remains to investigate independently of UI change.
 - v1.2 replaces entire long chapter DOM rendering with a short (~190px) vertically scrollable text area showing only the currently narrated passage, plus passage counter. It updates at playback transitions and resets scroll per passage. Generation and Kokoro production code unchanged.
+
+## 29 October 2026: Kitten EPUB beta v1.3 immersive reading screen
+
+- Added pure-black fullscreen narration overlay activated by the audio `play` event. It shows only the current passage, tap-to-toggle transport/close controls, scrolling text, and estimated word progress based on `audio.currentTime / audio.duration`. Highlighting is **approximate** (not real TTS word timings), and needs device validation; narration synthesis/playback engine and original Kokoro reader untouched.
