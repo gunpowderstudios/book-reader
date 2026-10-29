@@ -240,3 +240,8 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 
 - In v2.0, Chapter 5 correctly changed to Chapter 6 and preloaded 27.15 seconds; Chapter 6 playback was manually started and progressed sequentially from passage 1 to 98 without a missing source index or buffering pause. A second media play event at 5.96s on passage 98 did not change source.
 - v2.1 attempts `player.play()` automatically after the next chapter reaches its start buffer. It reports `chapter-autoplay-attempt`, `chapter-autoplay-success`, or `chapter-autoplay-blocked`; on Safari rejection it restores Play buttons and prompts for a tap. Normal manual chapter changes still require user Play. Production Kokoro unchanged. Device verification pending.
+
+## 29 October 2026 — Kitten beta v2.2 chapter position slider
+
+- Added subtle vertical chapter progress rail on right of fullscreen black reader screen, with thumb updated according to passage index. Dragging reveals passage number / chapter passage count and percent complete; committing the slider saves bookmark, restarts preloading at the chosen passage, and prompts user to tap Play when ready. Passage-based navigation, not estimated time. The main Kokoro reader remains unchanged.
+- On-device touch usability / drag behavior remains to be tested.
