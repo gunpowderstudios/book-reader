@@ -20,7 +20,7 @@ function ready(){
  return initPromise;
 }
 function clearAudio(){if(audio){audio.pause();audio.removeAttribute('src');audio.load();audio=null}if(url){URL.revokeObjectURL(url);url=null}}
-function stop(){if(session)session.cancelled=true;session=null;clearAudio();const p=$('play');if(p)p.textContent='▶ Play'}
+function stop(){setLoading(false);if(session)session.cancelled=true;session=null;clearAudio();const p=$('play');if(p)p.textContent='▶ Play'}
 const say=t=>{const el=$('status');if(el)el.textContent=t};
 function toggle({S,update,render}){
  if(session&&!session.cancelled){if(audio){if(audio.paused){audio.play().then(()=>{S.paused=false;$('play').textContent='⏸ Pause'}).catch(e=>say(e.message))}else{audio.pause();S.paused=true;$('play').textContent='▶ Resume'}}else {session.cancelled=true;session=null;S.playing=false;S.paused=false;$('play').textContent='▶ Play'}return}
@@ -28,30 +28,31 @@ function toggle({S,update,render}){
  let task={cancelled:false};session=task;S.playing=true;S.paused=false;$('play').textContent='⏸ Pause';
  const loop=async()=>{
   try{
-   say('Preparing Kitten voice…');await ready();if(task.cancelled)return;
+   setLoading(true,'Loading Kitten voice…');say('Preparing Kitten voice…');await ready();if(task.cancelled)return;
    while(!task.cancelled&&S.chapters[S.index]){
     const paras=S.chapters[S.index].paragraphs||[];
     if(S.p>=paras.length){if(S.index+1>=S.chapters.length){say('Finished reading');break}S.index++;S.p=0;render();continue}
     const passage=String(paras[S.p]||'').trim();if(!passage){S.p++;update();continue}
-    say('Kitten is preparing narration…');
+    setLoading(true,'Preparing narration…');say('Kitten is preparing narration…');
     const result=await request('generate',passage,$('voice')?.value||'rosie');
     if(task.cancelled)return;
     clearAudio();url=URL.createObjectURL(new Blob([result.data],{type:'audio/wav'}));audio=new Audio(url);
     const a=audio;a.playbackRate=Number($('rate')?.value)||1;
     // Highlight/position updates remain owned by the existing reader.
     window.readerTracking?.start?.(passage,S.p,()=>a.duration?Math.min(1,a.currentTime/a.duration):0);
-    say('Reading with Kitten');
+    setLoading(false);say('Reading with Kitten');
     await new Promise((resolve,reject)=>{a.onended=resolve;a.onerror=()=>reject(Error('Audio playback failed'));a.play().catch(reject)});
     if(task.cancelled)return;
     window.readerTracking?.clear?.();clearAudio();S.p++;update();
    }
   }catch(e){if(!task.cancelled)say('Kitten narration error: '+e.message)}
-  finally{if(session===task){session=null;S.playing=false;S.paused=false;clearAudio();$('play').textContent='▶ Play'}}
+  finally{setLoading(false);if(session===task){session=null;S.playing=false;S.paused=false;clearAudio();$('play').textContent='▶ Play'}}
  };void loop();
 }
 function skipSeconds(seconds,S,update){if(!S?.chapters?.length)return;const n=S.chapters[S.index].paragraphs.length;if(audio&&Number.isFinite(audio.duration)&&audio.duration){const t=audio.currentTime+seconds;if(t>=0&&t<audio.duration){audio.currentTime=t;return}}const was=!!session&&!session.cancelled;stop();S.p=Math.max(0,Math.min(n-1,S.p+(seconds<0?-1:1)));update();if(was)toggle({S,update,render:window.chapterApp?.render})}
 window.chapterKokoro={toggle,stop,skipSeconds,prefetch:()=>{},refreshNarrator:()=>{},stopTest:()=>{},version:'kitten-mobile-1.12.123',isMobile:()=>true};
 const KITTEN_VOICES=['Rosie','Bella','Jasper','Luna','Bruno','Hugo','Kiki','Leo'];
+function setLoading(on,message){const bar=$('kitten-loading');if(!bar)return;bar.hidden=!on;const label=bar.querySelector('span');if(label&&message)label.textContent=message;}
 function setupVoices(){
  const voice=$('voice');
  if(voice){
@@ -68,5 +69,12 @@ function setupVoices(){
  }
  const mode=$('mode-select');if(mode){mode.replaceChildren(new Option('Kitten (Mobile)','kitten'));mode.disabled=true}
 }
-document.addEventListener('DOMContentLoaded',()=>setTimeout(setupVoices,0));
+function initKittenUI(){
+ const panel=$('playback-panel');
+ if(panel&&!$('kitten-loading')){const bar=document.createElement('div');bar.id='kitten-loading';bar.hidden=true;bar.setAttribute('role','status');bar.innerHTML='<span>Preparing narration…</span><div class="kitten-loading-track"><i></i></div>';panel.insertBefore(bar,panel.firstChild);}
+ setupVoices();
+ // Legacy page initialisation may run later; reapply once after it completes.
+ setTimeout(setupVoices,250);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initKittenUI,{once:true});else initKittenUI();
 })();
