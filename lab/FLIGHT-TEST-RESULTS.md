@@ -155,3 +155,8 @@ Wait for MacBook GPU-limited test, Dell and Galaxy results, plus an effective mo
 - LAB v3.0, iPhone 13 Safari iOS 18.7 UA, KittenTTS nano-int8, Bella, Norwood welcome sentence. Browser bundle loaded via jsDelivr GitHub route; model ready in **2.95 sec**; **3.27 sec** generated **7.48 sec** of audio (**2.29× real time**). Valid WAV 24kHz, 359066 bytes, peak 0.68451, RMS 0.10141, playback started and user explicitly confirms **'worked very well'** (audible and good subjective result).
 - Stronger mobile outcome than prior Kokoro q8 (0.53×) / q4 (0.52×) iPhone benchmarks, but **not controlled same-text tests**, so keep comparison provisional. Previous old iPad Safari 17.14 failed with ONNX WASM out-of-memory; not solved.
 - Next: run Kitten 6+ passage / EPUB streaming test with same text/voice to assess buffering, playback transitions, voice quality over longer passages; keep Kokoro as production fallback pending validation. Preserve both engines.
+
+## 29 October 2026: Kitten LAB v4.0 multi-passage test added
+
+- Separate Kitten Laboratory now offers original single-passage benchmark and six-passage sequential Norwood narration benchmark. Generates successive WAV passages while first passage is available to manually play on iOS, queues audio, measures per-passage generation seconds, audio duration, valid waveform and transition gaps. Playback events only indicate media clock; **user must confirm audible narration**. Voice and current working Kokoro reader unchanged.
+- Prior iPhone 13 successful single-passage result (2.29×) should be confirmed across multiple passages. Older iPad failed ONNX memory initialization, so not an automatic Kitten candidate without separate validation. New lab code remains untested on actual devices.
