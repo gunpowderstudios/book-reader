@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#12251b"><title>E.D.D.i. Kitten EPUB Beta v2.8</title>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#12251b"><title>E.D.D.i. Kitten EPUB Beta v2.9</title>
 <style>*{box-sizing:border-box}body{background:#101e16;color:#ecf7ef;margin:0;font:16px/1.5 system-ui,-apple-system,sans-serif}header{background:#193624;padding:14px 18px;border-bottom:1px solid #426950}header a,a{color:#d9f8a3}main{max-width:840px;margin:auto;padding:16px 16px 90px}.head{display:flex;align-items:center;justify-content:space-between;gap:8px}.version{font-size:11px;border:1px solid #57815f;padding:4px 8px;border-radius:20px}h1{font-size:clamp(25px,6vw,34px);line-height:1.2;margin:8px 0}.card{border:1px solid #486d52;background:#1a3023;padding:15px;border-radius:12px;margin:14px 0}button,select,input{font:inherit;border:1px solid #789781;border-radius:9px;min-height:44px;padding:9px;background:#284634;color:#fff}button.primary{background:#baf089;color:#102719;font-weight:800;border:0}button:disabled{opacity:.55}.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.row>button{flex:1}.muted{color:#c7dbca}#text{font-size:20px;line-height:1.75;height:190px;max-height:32vh;overflow-y:auto;overscroll-behavior:contain;scroll-behavior:smooth;background:#12251a;border:1px solid #527354;border-radius:10px;padding:16px;white-space:pre-wrap}#text p{margin:0;color:#f2ffc4}#passage-progress{font-size:13px;color:#c7dbca;margin:7px 0 0}#status{font-size:14px;min-height:42px}#main-load{margin:9px 0 4px}#main-load-label{display:block;font-size:12px;color:#bfd9c5;margin-bottom:5px}#main-load-track{height:7px;border-radius:99px;overflow:hidden;background:#102218;border:1px solid #42644c}#main-load-fill{height:100%;width:0;background:#baf089;border-radius:99px;transition:width .2s ease}select{max-width:100%}audio#audio{display:none}#report{white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto;background:#101d16;padding:12px;font-size:11px}#chapter{flex:1;min-width:190px}label{display:block;margin-bottom:5px;font-size:13px;color:#d3eddb}footer{text-align:center;font-size:12px;color:#c6dbc7;padding:16px;border-top:1px solid #3b6046}.small{font-size:13px}/* Distraction-free audiobook overlay */
 #reader-screen{position:fixed;inset:0;background:#000;color:#fff;z-index:1000;display:none;flex-direction:column;justify-content:center;align-items:center;overflow:hidden}
 #reader-screen.visible{display:flex}
@@ -15,6 +15,7 @@
 #reader-controls .row{justify-content:center}
 #reader-controls button{min-width:75px;max-width:240px;background:#222;border-color:#666}
 #reader-controls button.primary{background:#cef579;color:#111}
+#reader-controls button.chapter-arrow{min-width:46px;max-width:58px;flex:0 0 48px;font-size:25px;padding:7px 4px;line-height:1.1}
 #reader-controls .version-read{font-size:12px;color:#aaa;text-align:center}
 .reader-button-arrow{display:none}
 @media(max-width:600px){
@@ -39,7 +40,7 @@ body.reader-active{overflow:hidden}
 #reader-progress-input{display:none}
 @media (max-width:600px){#reader-paragraph{width:calc(100vw - 40px);padding-right:22px}}
 </style>
-</head><body><header><div class="head"><a href="./kitten.html">← Kitten Lab</a><span class="version">Kitten EPUB Beta v2.8</span></div></header>
+</head><body><header><div class="head"><a href="./kitten.html">← Kitten Lab</a><span class="version">Kitten EPUB Beta v2.9</span></div></header>
 <main><h1>🐱 E.D.D.i. · Kitten EPUB Beta</h1><p class="muted">Try real-book narration with Rosie. Kitten generates the next passages while you listen. Kokoro and the normal Reading Room are unchanged.</p>
 <div class="card"><div class="row"><button id="free" type="button">📚 Open free Dracula EPUB</button><label style="cursor:pointer;border:1px solid #7c967c;border-radius:8px;padding:10px" for="file">＋ Your EPUB</label><input id="file" hidden type="file" accept=".epub,application/epub+zip"></div><p id="bookname" class="muted">No book loaded yet</p><label for="chapter">Chapter</label><select id="chapter"><option>No book</option></select></div>
 <div class="card"><div class="row"><button id="back" type="button" aria-label="Previous passage"><span class="reader-button-label">↶ Previous</span><span class="reader-button-arrow" aria-hidden="true">←</span></button><button id="play" class="primary" type="button" disabled>▶ Play</button><button id="next" type="button" aria-label="Next passage"><span class="reader-button-label">Next ↷</span><span class="reader-button-arrow" aria-hidden="true">→</span></button></div><div id="main-load" role="progressbar" aria-label="Narration buffer progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="main-load-label">Open a book to prepare narration</span><div id="main-load-track"><div id="main-load-fill"></div></div></div><p id="status" role="status" aria-live="polite">Open an EPUB to begin.</p><audio id="audio" preload="auto"></audio><p class="muted small">Narration is experimental. On iPhone, tap the green Play button to enable sound. Bookmarks are saved on this device. Model loading uses local browser memory.</p></div>
@@ -51,15 +52,15 @@ body.reader-active{overflow:hidden}
  <div id="reader-paragraph" role="region" aria-label="Words currently being narrated"></div>
  <div id="reader-progress"><div id="reader-progress-track"><div id="reader-progress-fill"></div></div><div id="reader-progress-thumb"></div><span id="reader-progress-label"></span><input id="reader-progress-input" type="range" min="1" max="100" value="1" aria-label="Jump to a passage in this chapter"></div>
  <div id="reader-buffer"><span id="reader-buffer-label">Waiting for book</span><div id="reader-buffer-track"><div id="reader-buffer-fill"></div></div></div>
- <div id="reader-hint">Tap anywhere for controls · Kitten Beta v2.8</div>
+ <div id="reader-hint">Tap anywhere for controls · Kitten Beta v2.9</div>
  <div id="reader-controls">
-  <div class="version-read">E.D.D.i. · Kitten EPUB Beta v2.8</div>
-  <div class="row"><button id="reader-prev" type="button" aria-label="Previous passage"><span class="reader-button-label">↶ Previous</span><span class="reader-button-arrow" aria-hidden="true">←</span></button><button id="reader-play" class="primary" type="button">⏸ Pause</button><button id="reader-next" type="button" aria-label="Next passage"><span class="reader-button-label">Next ↷</span><span class="reader-button-arrow" aria-hidden="true">→</span></button><button id="reader-chapter-next" type="button">Next chapter »</button></div>
+  <div class="version-read">E.D.D.i. · Kitten EPUB Beta v2.9</div>
+  <div class="row"><button id="reader-prev" type="button" aria-label="Previous passage"><span class="reader-button-label">↶ Previous</span><span class="reader-button-arrow" aria-hidden="true">←</span></button><button id="reader-play" class="primary" type="button">⏸ Pause</button><button id="reader-next" type="button" aria-label="Next passage"><span class="reader-button-label">Next ↷</span><span class="reader-button-arrow" aria-hidden="true">→</span></button><button id="reader-chapter-prev" class="chapter-arrow" type="button" aria-label="Previous chapter" title="Previous chapter">«</button><button id="reader-chapter-next" class="chapter-arrow" type="button" aria-label="Next chapter" title="Next chapter">»</button></div>
   <div class="row"><button id="reader-exit" type="button">✕ Close reading screen</button></div>
  </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script><script>
-(function(){'use strict';const $=id=>document.getElementById(id),player=$('audio'),report={version:'kitten-epub-beta-2.8',ua:navigator.userAgent,events:[]};
+(function(){'use strict';const $=id=>document.getElementById(id),player=$('audio'),report={version:'kitten-epub-beta-2.9',ua:navigator.userAgent,events:[]};
 let worker=null,workerUsable=false,workerSeq=0,workerPending=new Map();let readerWordNodes=[],readerShownPos=-1,readerWordCount=0,preloadStartedAt=0,kit=null,kitLoading=null,book=null,chapterIndex=0,parts=[],position=0,queue=[],generating=false,started=false,stopped=true,token=0,lastEnd=0,urls=[],playIndex=-1,playRequested=false,preparingPassage=false,generationRun=null;const START_BUFFER_SECONDS=25;let reportDirty=false,reportTimer=0,playSerial=0,expectedNext=null,autoContinueChapter=false,autoContinueAttempted=false,progressDragging=false;
 function flushReport(){if(!reportDirty)return;reportDirty=false;$('report').textContent=JSON.stringify(report,null,2)}
 function log(kind,other){report.events.push({t:new Date().toISOString(),kind,...(other||{})});reportDirty=true;if(!reportTimer)reportTimer=setTimeout(()=>{reportTimer=0;if($('report').parentElement.open)flushReport()},1200)}
@@ -106,6 +107,7 @@ $('reader-exit').onclick=hideReader;
 $('reader-play').onclick=()=>{if($('play').disabled)return;$('play').click();$('reader-play').textContent=player.paused?'▶ Play':'⏸ Pause';$('reader-screen').classList.remove('controls-open')};
 $('reader-prev').onclick=()=>{$('back').click();showReader()};
 $('reader-next').onclick=()=>{$('next').click();showReader()};
+$('reader-chapter-prev').onclick=()=>{previousChapter()};
 $('reader-chapter-next').onclick=()=>{advanceChapter(false)};
 player.addEventListener('timeupdate',()=>{updateReaderWords();updateBufferIndicator()});
 function updateChapterProgress(){
@@ -152,6 +154,7 @@ $('free').onclick=async()=>{try{say('Downloading Dracula EPUB…');const res=awa
 $('chapter').onchange=()=>{stop();chapterIndex=Number($('chapter').value);position=0;showChapter();startPreload()};
 $('back').onclick=()=>{stop();position=Math.max(0,position-1);highlight();save();startPreload()};
 $('next').onclick=()=>{if(position>=parts.length-1){advanceChapter(false);return}stop();position=Math.min(parts.length-1,position+1);highlight();save();startPreload()};
+function previousChapter(){if(!book||chapterIndex<=0){say('You are at the beginning of the book.');return}stop();chapterIndex--;position=0;showChapter();log('chapter-change',{chapter:chapterIndex+1,automatic:false,direction:'previous'});startPreload();if($('reader-screen').classList.contains('visible')){$('reader-screen').classList.add('controls-open');renderReaderParagraph()}say('Chapter '+(chapterIndex+1)+' is pre-loading. Press Play when ready.')}
 function advanceChapter(automatic){if(!book||chapterIndex>=book.chapters.length-1){say('You have reached the end of the book.');return}stop();autoContinueChapter=!!automatic;chapterIndex++;position=0;showChapter();log('chapter-change',{chapter:chapterIndex+1,automatic});startPreload();if($('reader-screen').classList.contains('visible')){$('reader-screen').classList.add('controls-open');renderReaderParagraph()}say('Chapter '+(chapterIndex+1)+' is pre-loading. Press Play when ready.')}
 function callWorker(type,text,timeout=60000){return new Promise((resolve,reject)=>{const id=++workerSeq;const timer=setTimeout(()=>{workerPending.delete(id);reject(Error('Worker '+type+' timed out'))},timeout);workerPending.set(id,{resolve,reject,timer});worker.postMessage({id,type,text})})}
 async function tryWorker(){
