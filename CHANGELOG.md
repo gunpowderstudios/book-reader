@@ -1,3 +1,7 @@
+## v1.12.117 — 30 October 2026
+
+- Moved the 'Already bought an ebook?' DRM-free EPUB guidance and the E.D.D.i’s Choice explanatory heading/text beneath the free-book source links, without altering book covers, links or reader logic.
+
 ## Kitten research archive — preserved 30 October 2026 (reference only)
 
 Kitten is **not part of the live Eddi voice engine**; live desktop, tablet and mobile use Kokoro. These files remain in GitHub for future investigation and should not be deleted during routine cleanup.
