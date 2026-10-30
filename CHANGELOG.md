@@ -1,3 +1,7 @@
+## v1.12.130 — 30 October 2026
+
+- Adjusted desktop player dock's collapsed transform so only the Player tab sits neatly at the bottom edge, without the extra visible strip beneath it. Opening and closing behaviour is unchanged.
+
 ## v1.12.129 — 30 October 2026
 
 - Pauses automatic narration-follow scrolling when the user manually wheels, touches, or drags in the reading text. Word highlighting and audio continue without interruption.
