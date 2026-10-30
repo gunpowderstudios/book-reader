@@ -59,7 +59,8 @@ let startupNote='';
 /* Automatic: see cvAutoMode in index.html (graphics chip or multi-core only on a capable computer; remembers failures). */
 const suggestedMode=()=>window.cvAutoMode?window.cvAutoMode():(mobileDevice()?'standard':'fast');
 const ipadDevice=()=>/iPad/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-let preference=ipadDevice()?'standard':store.get('cv-mode-choice','auto'); // iPad beta: verified safest CPU configuration; do not reuse desktop GPU/Fast preference.
+store.set('cv-mode-choice','auto'); // Processing mode now selected automatically, even if a manual choice was saved previously.
+let preference=ipadDevice()?'standard':'auto'; // Preserve the known-safe iPad CPU mode.
 if(!PREFS.includes(preference))preference='auto';
 let mode=preference==='auto'?suggestedMode():preference;
 const bufferTarget=()=>(ipadDevice()?90:(mobileDevice()||mode==='standard'?6:2)*60); /* chosen automatically: a bigger cushion on phones and slower setups, light on fast computers */
