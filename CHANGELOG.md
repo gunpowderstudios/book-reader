@@ -1,3 +1,7 @@
+## v1.12.134 — 30 October 2026
+
+- Reading now carries on when you click the E.D.D.i. logo. It used to reload the whole page, which stopped the narration; it now just takes you to the home page (My Library) with the player still going. The About and Eddi’s Lab links now open in a new tab for the same reason, so the book keeps reading in the first tab.
+
 ## v1.12.133 — 30 October 2026
 
 - Reading now carries on when you visit another page, including after a narrator sample. Switching between My Library, Free Books, Meet the Narrators and Take your book with you never stopped the reading, and the player stays at the bottom on every page. The two exceptions are now fixed. Playing a sample on Meet the Narrators used to silence the book while the button still said Pause; it now pauses the book properly for the sample and continues afterwards. Choosing Use this narrator now carries on reading with the new voice instead of stopping.
