@@ -1,3 +1,10 @@
+## v1.12.118 — 30 October 2026
+
+- Replaced the desktop Mobile Test shortcut with **Eddi’s Lab**, linking to the existing isolated laboratory; made the link available on tablets and phones too.
+- Confirmed automatic Desktop / Tablet / Mobile edition labels remain based on device detection; kept one Kokoro-powered player and its existing layouts unchanged.
+- Extended the existing memory-related engine failure warning with: “Eddi is working on this in his lab.” The warning is triggered by reported memory-related failures, not by device type alone. An abrupt browser termination can still prevent any message appearing.
+- Preserved Kitten experimental files and test logs.
+
 ## v1.12.117 — 30 October 2026
 
 - Moved the 'Already bought an ebook?' DRM-free EPUB guidance and the E.D.D.i’s Choice explanatory heading/text beneath the free-book source links, without altering book covers, links or reader logic.
