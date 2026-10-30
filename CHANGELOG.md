@@ -1,3 +1,15 @@
+## Kitten research archive — preserved 30 October 2026 (reference only)
+
+Kitten is **not part of the live Eddi voice engine**; live desktop, tablet and mobile use Kokoro. These files remain in GitHub for future investigation and should not be deleted during routine cleanup.
+
+- [Flight test results](lab/FLIGHT-TEST-RESULTS.md) — iPhone 13 Safari testing, measured startup, worker performance, buffering gaps, chapter transitions, prolonged-run slowdowns and diagnostic history (29 October 2026).
+- [Kitten beta reader](lab/kitten-reader.html) — experimental EPUB player, including the later chapter navigation and playback tests; kept as research source, not a public-facing alternative Eddi interface.
+- [Kitten Web Worker](lab/kitten-worker.js) — tested Nano INT8 engine and supported voices: Bella, Jasper, Luna, Bruno, Rosie, Hugo, Kiki and Leo.
+- [Kitten diagnostics](lab/kitten.html) — isolated diagnostics and model testing.
+- [Integrated mobile engine experiment](lab/mobile-engine-test.js) and [mobile test reader](lab/mobile-kitten.html) — preliminary attempt to share Eddi's mobile layout; **not validated as ready for release**.
+
+Key findings: Kitten Nano using a dedicated Web Worker successfully produced audible speech on iPhone Safari, but long narration tests exposed throughput deterioration and buffering pauses. Reuse requires fresh testing, particularly on iOS; preserve the original results and code.
+
 ## v1.12.116 — 30 October 2026
 
 - Keep Kokoro as the single live voice engine on desktop, tablet, and mobile, with responsive layouts.
