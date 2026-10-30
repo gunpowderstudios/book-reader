@@ -1,3 +1,8 @@
+## v1.12.128 — 30 October 2026
+
+- Library Start/Continue now opens the saved book and immediately starts Kokoro narration at its restored reading position, without requiring a second Play click.
+- Existing player, voice model loading and buffering are unchanged. Browser autoplay restrictions may still require a manual tap on some devices.
+
 ## v1.12.127 — 30 October 2026
 
 - Added an Eddi-green H2 heading “Current reader” above the active narrator name in the right-side voice panel. No playback changes.
