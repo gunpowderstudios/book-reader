@@ -1,3 +1,8 @@
+## v1.12.114 — 30 October 2026
+
+- Hid the slow-speech / Prepare this chapter advisory panel in the desktop edition, including its estimates and storage notices. Preserved playback, the remaining right-sidebar controls, mobile behaviour, and the underlying preparation feature.
+- Bumped the visible desktop/live edition to v1.12.114.
+
 ## v1.12.113 — 30 October 2026
 
 - Restored E.D.D.i. live reader to v1.12.112 as the baseline before these changes.
