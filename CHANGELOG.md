@@ -1,3 +1,8 @@
+## v1.12.129 — 30 October 2026
+
+- Pauses automatic narration-follow scrolling when the user manually wheels, touches, or drags in the reading text. Word highlighting and audio continue without interruption.
+- Shows a Back to reading button to smoothly return to the currently spoken word and re-enable automatic following. No changes to Kokoro, playback or saved positions.
+
 ## v1.12.128 — 30 October 2026
 
 - Library Start/Continue now opens the saved book and immediately starts Kokoro narration at its restored reading position, without requiring a second Play click.
