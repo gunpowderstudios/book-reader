@@ -117,7 +117,7 @@ function card(b){
  info.append(el('small','',bits.join(' · ')));
  const acts=el('div','acts');
  const go=el('button','go',(b.pct||0)>0||(b.index||0)>0||(b.p||0)>0?'▶ Continue':'▶ Start');
- go.onclick=()=>{if(window.chapterApp)window.chapterApp.openFromLibrary(b.id)};
+ go.onclick=async()=>{const app=window.chapterApp;if(!app)return;go.disabled=true;try{await app.openFromLibrary(b.id);if(app.state?.key===b.id&&app.state.chapters?.length){const play=document.getElementById('play');if(play&&!app.state.playing)play.click()}}finally{go.disabled=false}};
  const rm=el('button','rm','Remove');let armed=0;
  rm.onclick=()=>{
   if(!armed){rm.textContent='Really remove?';rm.classList.add('danger');armed=setTimeout(()=>{armed=0;rm.textContent='Remove';rm.classList.remove('danger')},4000);return}
