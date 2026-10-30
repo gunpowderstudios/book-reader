@@ -1,3 +1,7 @@
+## v1.12.127 — 30 October 2026
+
+- Added an Eddi-green H2 heading “Current reader” above the active narrator name in the right-side voice panel. No playback changes.
+
 ## v1.12.126 — 30 October 2026
 
 - Made the mobile header and logo section use the full available width, placing the white hamburger over the logo area at the top right without reserving an extra row.
