@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>E.D.D.i. — Mobile Test Bench</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0d1510;color:#edf5ef;font:15px/1.5 system-ui,-apple-system,sans-serif}
+header{padding:14px 20px;background:#182d20;border-bottom:1px solid #385543;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header a{color:#b4e9c6}h1{font-size:19px;margin:0 20px 0 0}main{padding:16px;display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:24px;align-items:start}
+aside{padding:18px;background:#19291e;border:1px solid #3e5947;border-radius:14px}
+label{display:block;font-weight:650;margin:0 0 7px}select,button,a.action{appearance:none;border:1px solid #66806b;border-radius:8px;padding:11px 12px;background:#254632;color:white;font:inherit;cursor:pointer;max-width:100%}
+select{width:100%;margin-bottom:16px}p{color:#c4d6c9;margin:10px 0}small{color:#bacabb}a.action{display:inline-block;text-decoration:none;margin-top:8px}
+.preview-area{display:flex;justify-content:center;min-width:0;overflow:auto;padding:5px 4px 25px}
+.phone{width:390px;max-width:100%;padding:10px;background:#050908;border:2px solid #67786c;border-radius:35px;box-shadow:0 18px 45px #0008}
+.notch{height:16px;width:100px;border-radius:12px;background:#111;margin:0 auto 9px}
+iframe{width:100%;height:740px;border:0;border-radius:17px;background:#fff;display:block}
+#size-label{font-weight:bold;color:#def2e2}
+@media(max-width:750px){main{grid-template-columns:1fr;gap:12px}aside{padding:14px}.preview-area{padding:0 0 20px}header{padding:12px}}
+</style></head><body>
+<header><h1>📱 E.D.D.i. Mobile Test Bench</h1><a href="../">← Return to desktop reader</a></header>
+<main><aside>
+<label for="test-source">Reader to test</label><select id="test-source">
+<option value="../">Live Eddi v1.12.112 (responsive preview)</option>
+<option value="kitten-reader.html">Kitten beta reader</option>
+<option value="kitten.html">Kitten diagnostics</option>
+</select>
+<label for="device">Preview screen width</label><select id="device">
+<option value="375">Small iPhone — 375px</option><option value="390" selected>iPhone — 390px</option>
+<option value="430">Large iPhone — 430px</option><option value="768">Tablet — 768px</option>
+</select>
+<p>Preview width: <span id="size-label">390px</span></p>
+<button id="reload" type="button">↻ Reload preview</button>
+<p><a class="action" id="open-tab" target="_blank" rel="noopener" href="../">Open reader in another tab</a></p>
+<p><small>This is a desktop browser preview of the phone-sized layout, not a true iOS simulation. For Safari memory limits, voice playback, touch behaviour and performance, test on the actual iPhone or iPad.</small></p>
+<p><small>Testing here does not change the live Eddi code. Opening an EPUB may use this browser's own local storage.</small></p>
+</aside>
+<section class="preview-area" aria-label="Mobile reader preview"><div class="phone" id="phone"><div class="notch" aria-hidden="true"></div><iframe id="preview" title="Eddi mobile-width preview" src="../"></iframe></div></section>
+</main><script>
+const source=document.getElementById('test-source'),device=document.getElementById('device'),frame=document.getElementById('preview'),phone=document.getElementById('phone'),openTab=document.getElementById('open-tab'),sizeLabel=document.getElementById('size-label');
+function refreshSource(){frame.src=source.value;openTab.href=source.value}
+function refreshSize(){const width=Number(device.value);phone.style.width=(width+24)+'px';sizeLabel.textContent=width+'px';}
+source.addEventListener('change',refreshSource);device.addEventListener('change',refreshSize);
+document.getElementById('reload').addEventListener('click',()=>{try{frame.contentWindow.location.reload()}catch(_){refreshSource()}});
+refreshSize();
+</script></body></html>
