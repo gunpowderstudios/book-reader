@@ -168,7 +168,7 @@ function onWorkerMessage(w,m){
     runMode=next;ready().then(iw.resolve,iw.reject);
     return;
    }
-   failWorker(new Error('Kokoro could not load: '+m.message));if(/out of memory|memory access|allocation|rangeerror/i.test(m.message))window.dispatchEvent(new CustomEvent('kokoro-memory-failure',{detail:{message:'This device could not load the AI voice, probably because there is not enough available memory. Try a newer device. You can also update your browser if an update is available.'}}));return}
+   failWorker(new Error('Kokoro could not load: '+m.message));if(/out of memory|memory access|allocation|rangeerror/i.test(m.message))window.dispatchEvent(new CustomEvent('kokoro-memory-failure',{detail:{message:'This device may not have enough available memory (RAM) to play Eddi smoothly. Try closing other apps or browser tabs, then reload Eddi.'}}));return}
   case 'audio':{const c=calls.get(m.id);if(c){calls.delete(m.id);c.resolve(m)}break}
   case 'error':{const c=calls.get(m.id);if(c){calls.delete(m.id);c.reject(new Error(m.message))}else console.error('Kokoro worker:',m.message);break}
  }
