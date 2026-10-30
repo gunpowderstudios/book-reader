@@ -1,3 +1,9 @@
+## Eddi’s Lab v1.29 — 30 October 2026
+
+- Removed the introductory Kitten experiment module from the Lab homepage; Kokoro/Kitten selection remains in the main test controls.
+- Hid the large grey native audio control strip by default, retaining the audio element for actual narration. A compact fallback player can appear for Kitten if browser playback is blocked.
+- Live Eddi player remains unchanged.
+
 ## Eddi’s Lab v1.28 — 30 October 2026
 
 - Added a Kokoro / Kitten Nano **Voice engine** dropdown to the Lab's Live Eddi test section. The Voice dropdown updates to show Emma and Lewis for Kokoro, or Bella, Jasper, Luna, Bruno, Rosie, Hugo, Kiki and Leo for Kitten.
