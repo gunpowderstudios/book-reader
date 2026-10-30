@@ -843,4 +843,4 @@ if(mobile){
 /* Mobile Test only: preserve original reader layout and Kokoro controls */
 #eddi-test-engine{background:#213c2d;color:#eff8f0;border:1px solid #658a6e;border-radius:7px;padding:6px;margin-right:5px;max-width:150px}
 @media(max-width:720px){#eddi-test-engine{max-width:125px;font-size:13px}}
-</style><script src="lab/mobile-engine-test.js" defer></script></html>
+</style><script>document.addEventListener('DOMContentLoaded',()=>{const label=document.getElementById('eddi-edition');if(label){label.textContent='Mobile Edition (Test)';label.title='Mobile-sized test preview on desktop';} });</script><script src="lab/mobile-engine-test.js" defer></script></html>
