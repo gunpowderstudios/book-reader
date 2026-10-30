@@ -12,7 +12,7 @@ let worker=null,pending=new Map(),counter=0,active=null;
 const report=()=>window.eddiLabBridge?.getReport?.();
 function note(msg){status.textContent=msg;const r=report();if(r)r.events.push({time:new Date().toISOString(),message:'Kitten: '+msg})}
 function reset(){
- if(active)active.cancelled=true;
+ if(active){active.cancelled=true;for(const url of active.urls||[])URL.revokeObjectURL(url)}
  active=null;audio.pause();audio.removeAttribute('src');audio.load();
  if(worker){worker.terminate();worker=null}
  for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('Stopped'))}pending.clear();
