@@ -1,3 +1,7 @@
+## v1.12.131 — 30 October 2026
+
+- Restored the quick start on computers. Since v1.12.100 nothing was prepared before Play on any device, so a laptop that already had the voice installed had to load it after Play. Now, on computers only, the voice warms up in the background when the page opens and the first few passages are prepared when a book is opened, so Play starts almost at once. Phones and tablets are unchanged: nothing loads until Play. Playback, buffering and read-ahead during listening are untouched.
+
 ## v1.12.130 — 30 October 2026
 
 - Adjusted desktop player dock's collapsed transform so only the Player tab sits neatly at the bottom edge, without the extra visible strip beneath it. Opening and closing behaviour is unchanged.
