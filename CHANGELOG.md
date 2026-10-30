@@ -1,3 +1,8 @@
+## v1.12.121 — 30 October 2026
+
+- Corrected the underlying 210px bottom margins on Library, Narrators, Free Books and other panels that left large gaps above Gunpowder Studios credits.
+- Reduced credits bottom spacing and removed the dividing line on all device layouts, without modifying the reader/player.
+
 ## v1.12.119 — 30 October 2026
 
 - Reduced excess vertical spacing above Gunpowder Studios credits across desktop, tablet and mobile.
