@@ -21,6 +21,6 @@ Live: https://gunpowderstudios.github.io/book-reader/
 - Saved books, places and prepared audio are per browser and device. Private browsing blocks saving.
 
 ## Files
-`index.html` (interface and EPUB reading), `kokoro.js` (playback, read-ahead and memory), `kokoro-worker.js` (voice model, runs off the main thread), `library.js` (My Library), `offline.js` (prepared chapters), `read-along.js` (highlighting), `bookmarks.js`, `coi-sw.js` (enables multi-core for Fast mode on GitHub Pages), `audiobook/` (optional offline audiobook maker).
+`index.html` (interface and EPUB reading), `kokoro.js` (playback, read-ahead and memory), `kokoro-worker.js` (voice model, runs off the main thread), `library.js` (My Library), `offline.js` (prepared chapters), `read-along.js` (highlighting), `coi-sw.js` (enables multi-core for Fast mode on GitHub Pages), `audiobook/` (optional offline audiobook maker).
 
 DRM-protected EPUBs are not supported. Voices: Kokoro 82M via `kokoro-js` (voice and library load from public CDNs).
