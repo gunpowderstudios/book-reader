@@ -1,3 +1,9 @@
+## v1.12.116 — 30 October 2026
+
+- Keep Kokoro as the single live voice engine on desktop, tablet, and mobile, with responsive layouts.
+- Simplified the existing memory-related voice load failure notice to a brief RAM warning, shown after a relevant failure rather than simply based on device age.
+- Left the separate Kitten laboratory tests untouched.
+
 ## v1.12.115 — 30 October 2026
 
 - Hide the slow-speech / Prepare this chapter advisory panel across desktop, tablet and mobile, while keeping existing voice buffering and other controls intact.
