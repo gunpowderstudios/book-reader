@@ -68,7 +68,7 @@ start.addEventListener('click',async e=>{
    if(s.cancelled)return;
    if(index>=clips.length){note('Test complete. All '+clips.length+' passages played.');reset();return}
    audio.src=clips[index++];
-   try{await audio.play();note('Playing passage '+index+' of '+clips.length)}catch(err){note('Audio ready; tap play on the audio bar (browser permission required).')}
+   try{await audio.play();note('Playing passage '+index+' of '+clips.length)}catch(err){audio.controls=true;audio.style.display='block';note('Audio ready; tap Play on the fallback player to allow sound.')}
   };
   audio.onended=()=>{if(active===s)playNext()};
   await playNext();
