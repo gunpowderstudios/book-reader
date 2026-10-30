@@ -1,3 +1,8 @@
+## v1.12.126 — 30 October 2026
+
+- Made the mobile header and logo section use the full available width, placing the white hamburger over the logo area at the top right without reserving an extra row.
+- Retained existing navigation and player behaviour.
+
 ## v1.12.125 — 30 October 2026
 
 - Centred the full mobile logo and tagline section across the available header width, retaining the top-right hamburger and existing player.
