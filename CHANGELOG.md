@@ -1,3 +1,7 @@
+## v1.12.133 — 30 October 2026
+
+- Reading now carries on when you visit another page, including after a narrator sample. Switching between My Library, Free Books, Meet the Narrators and Take your book with you never stopped the reading, and the player stays at the bottom on every page. The two exceptions are now fixed. Playing a sample on Meet the Narrators used to silence the book while the button still said Pause; it now pauses the book properly for the sample and continues afterwards. Choosing Use this narrator now carries on reading with the new voice instead of stopping.
+
 ## v1.12.131 — 30 October 2026
 
 - Restored the quick start on computers. Since v1.12.100 nothing was prepared before Play on any device, so a laptop that already had the voice installed had to load it after Play. Now, on computers only, the voice warms up in the background when the page opens and the first few passages are prepared when a book is opened, so Play starts almost at once. Phones and tablets are unchanged: nothing loads until Play. Playback, buffering and read-ahead during listening are untouched.
