@@ -1,5 +1,9 @@
 ## v1.12.125 — 30 October 2026
 
+- Centred the full mobile logo and tagline section across the available header width, retaining the top-right hamburger and existing player.
+
+## v1.12.125 — 30 October 2026
+
 - Housekeeping from the code audit; no change to how the reader looks or plays. Removed the Voice engine dropdown on Meet the Narrators (it did nothing yet) and the missing script it pointed to. Made the speed setting safe in browsers that block saved settings. Removed unused phone-detection code and the small version line that showed on phones. README no longer lists a file that does not exist.
 
 ## v1.12.124 — 30 October 2026
