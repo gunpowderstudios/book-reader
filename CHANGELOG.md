@@ -1,3 +1,12 @@
+## v1.12.113 — 30 October 2026
+
+- Restored E.D.D.i. live reader to v1.12.112 as the baseline before these changes.
+- Added desktop-only Mobile Test shortcut, located in the header below the edition badge.
+- Added an isolated Mobile Test Bench in `lab/mobile-test.html`, with a v1.12.112 UI test copy and experimental Kokoro/Kitten voice-engine selection. This is not integrated into live mobile.
+- Retained standalone Kitten beta code and recorded flight-test results in `lab/` for reference.
+- Updated Free Books Conan and Beowulf covers to favour saved EPUB artwork; Beowulf uses its JPG cover, and Conan's unsaved fallback was changed to a historical magazine cover.
+- Updated the visible live edition number to v1.12.113. The existing voice engine and mobile behaviour are otherwise unchanged.
+
 ## v1.12.106 — 28 October 2026
 
 - Fixed: phones and tablets were sent to a separate, older copy of the app (the mobile-beta folder, frozen at v1.12.96), so they never showed any newer version whatever was done to the main page. Phones now open the main page, so the new mobile layout (menu, collapsible player, chapter list, voice starting on Play) reaches them. The old mobile-beta address now just forwards to the main page. No saved books, progress or voices are touched.
