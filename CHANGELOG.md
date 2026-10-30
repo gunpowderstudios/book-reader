@@ -1,3 +1,8 @@
+## v1.12.119 — 30 October 2026
+
+- Reduced excess vertical spacing above Gunpowder Studios credits across desktop, tablet and mobile.
+- Removed the thin border above the credits. Player, voice engine and navigation logic unchanged.
+
 ## Eddi’s Lab v1.30 — 30 October 2026
 
 - Relabelled voice engine choices as “Kokoro (best for desktop and laptops)” and “Kitten (best for mobile and tablets)”. Display labels only; test engines and live Eddi are unchanged.
