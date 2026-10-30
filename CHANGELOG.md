@@ -1,3 +1,7 @@
+## v1.12.123 — 30 October 2026
+
+- Moved the version label from the header to the bottom Gunpowder Studios credits on all screen sizes.
+
 ## v1.12.122 — 30 October 2026
 
 - Moved Eddi’s Lab to the end of the main desktop navigation and mobile hamburger menu; removed separate header shortcut.
