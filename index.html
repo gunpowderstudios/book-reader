@@ -436,7 +436,7 @@ header>.upload{position:absolute!important;right:18px!important;left:auto!import
 <div class="eddi-pick"><a href="#" class="eddi-classic-cover-open" data-book="books/classics/gullivers-travels.epub" aria-label="Open this book in E.D.D.i"><img src="images/classics/gullivers-travels.jpg" alt="Cover of Gulliver’s Travels" loading="lazy" onerror="this.onerror=null;this.src='images/book-cover-fallback.svg'"></a><strong>Gulliver’s Travels</strong><small>Jonathan Swift</small><button class="eddi-classic-open" data-book="books/classics/gullivers-travels.epub" type="button" style="margin-top:9px;font-size:12px;padding:7px 9px">▶ Open in E.D.D.i</button><a class="eddi-classic-info" href="https://www.gutenberg.org/ebooks/829" target="_blank" rel="noopener noreferrer">More info</a></div>
 <div class="eddi-pick"><a href="#" class="eddi-classic-cover-open" data-book="books/classics/dracula.epub" aria-label="Open this book in E.D.D.i"><img src="images/classics/dracula.jpg" alt="Cover of Dracula" loading="lazy" onerror="this.onerror=null;this.src='images/book-cover-fallback.svg'"></a><strong>Dracula</strong><small>Bram Stoker</small><button class="eddi-classic-open" data-book="books/classics/dracula.epub" type="button" style="margin-top:9px;font-size:12px;padding:7px 9px">▶ Open in E.D.D.i</button><a class="eddi-classic-info" href="https://www.gutenberg.org/ebooks/345" target="_blank" rel="noopener noreferrer">More info</a></div>
 <div class="eddi-pick"><a href="#" class="eddi-classic-cover-open" data-book="books/classics/war-of-the-worlds.epub" aria-label="Open this book in E.D.D.i"><img src="images/classics/war-of-the-worlds.jpg" alt="Cover of The War of the Worlds" loading="lazy" onerror="this.onerror=null;this.src='images/book-cover-fallback.svg'"></a><strong>The War of the Worlds</strong><small>H. G. Wells</small><button class="eddi-classic-open" data-book="books/classics/war-of-the-worlds.epub" type="button" style="margin-top:9px;font-size:12px;padding:7px 9px">▶ Open in E.D.D.i</button><a class="eddi-classic-info" href="https://www.gutenberg.org/ebooks/36" target="_blank" rel="noopener noreferrer">More info</a></div>
-<div class="eddi-pick"><a href="#" class="eddi-classic-cover-open" data-book="books/classics/beowulf.epub" aria-label="Open this book in E.D.D.i"><img src="images/classics/beowulf-cover.svg" alt="Cover of Beowulf" loading="lazy" onerror="this.onerror=null;this.src='images/book-cover-fallback.svg'"></a><strong>Beowulf</strong><small>Anonymous · Translated by J. Lesslie Hall</small><button class="eddi-classic-open" data-book="books/classics/beowulf.epub" type="button" style="margin-top:9px;font-size:12px;padding:7px 9px">▶ Open in E.D.D.i</button><a class="eddi-classic-info" href="https://www.gutenberg.org/ebooks/16328" target="_blank" rel="noopener noreferrer">More info</a></div>
+<div class="eddi-pick"><a href="#" class="eddi-classic-cover-open" data-book="books/classics/beowulf.epub" aria-label="Open this book in E.D.D.i"><img src="images/classics/beowulf.jpg" alt="Cover of Beowulf" loading="lazy" onerror="this.onerror=null;this.src='images/book-cover-fallback.svg'"></a><strong>Beowulf</strong><small>Anonymous · Translated by J. Lesslie Hall</small><button class="eddi-classic-open" data-book="books/classics/beowulf.epub" type="button" style="margin-top:9px;font-size:12px;padding:7px 9px">▶ Open in E.D.D.i</button><a class="eddi-classic-info" href="https://www.gutenberg.org/ebooks/16328" target="_blank" rel="noopener noreferrer">More info</a></div>
 </div>
 <h3>More free book sources</h3>
 <ul class="eddi-source-links">
@@ -838,5 +838,23 @@ if(mobile){
    if(!done){const u=new URL(location.href);u.searchParams.set('mobile-beta','1.12.103');location.replace(u.href);}}
  }).catch(err=>console.warn('Mobile worker diagnostic:',err));
 }else navigator.serviceWorker.getRegistration().then(reg=>reg?.update()).catch(()=>{});
+})();
+</script><script>
+/* Reuse genuine saved EPUB cover thumbnails on the Free Books page. */
+(function(){
+ function syncCovers(){
+  var lib=window.chapterLibrary;
+  if(!lib || !Array.isArray(lib.books))return;
+  [['books/Conan_Original_Stories.epub','conan'],['books/classics/beowulf.epub','beowulf']].forEach(function(pair){
+   var img=document.querySelector('.eddi-classic-cover-open[data-book="'+pair[0]+'"] img');
+   if(!img)return;
+   var book=lib.books.find(function(b){return (b.title||'').toLowerCase().includes(pair[1])});
+   if(book && typeof book.cover==='string' && /^(data:image\/|blob:|https?:\/)/.test(book.cover))img.src=book.cover;
+  });
+ }
+ document.addEventListener('DOMContentLoaded',function(){
+  syncCovers();var tries=0;var timer=setInterval(function(){syncCovers();if(++tries>=30)clearInterval(timer)},500);
+  document.querySelectorAll('#tab-free, [href="#free-books"]').forEach(function(el){el.addEventListener('click',function(){setTimeout(syncCovers,100)})});
+ });
 })();
 </script></html>
