@@ -1,3 +1,7 @@
+## Eddi’s Lab v1.30 — 30 October 2026
+
+- Relabelled voice engine choices as “Kokoro (best for desktop and laptops)” and “Kitten (best for mobile and tablets)”. Display labels only; test engines and live Eddi are unchanged.
+
 ## Eddi’s Lab v1.29 — 30 October 2026
 
 - Removed the introductory Kitten experiment module from the Lab homepage; Kokoro/Kitten selection remains in the main test controls.
