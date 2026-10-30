@@ -1,3 +1,9 @@
+## Eddi’s Lab v1.28 — 30 October 2026
+
+- Added a Kokoro / Kitten Nano **Voice engine** dropdown to the Lab's Live Eddi test section. The Voice dropdown updates to show Emma and Lewis for Kokoro, or Bella, Jasper, Luna, Bruno, Rosie, Hugo, Kiki and Leo for Kitten.
+- Kokoro retains its existing diagnostic processing options. Kitten selects the preserved Nano INT8 Web Worker and generates sample narration using the selected Kitten voice, then plays it in the lab audio player.
+- Experimental Kitten playback is not yet verified on all devices. Main live Eddi is unchanged at v1.12.118.
+
 ## v1.12.118 — 30 October 2026
 
 - Replaced the desktop Mobile Test shortcut with **Eddi’s Lab**, linking to the existing isolated laboratory; made the link available on tablets and phones too.
