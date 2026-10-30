@@ -1,3 +1,7 @@
+## v1.12.115 — 30 October 2026
+
+- Hide the slow-speech / Prepare this chapter advisory panel across desktop, tablet and mobile, while keeping existing voice buffering and other controls intact.
+
 ## v1.12.114 — 30 October 2026
 
 - Hid the slow-speech / Prepare this chapter advisory panel in the desktop edition, including its estimates and storage notices. Preserved playback, the remaining right-sidebar controls, mobile behaviour, and the underlying preparation feature.
