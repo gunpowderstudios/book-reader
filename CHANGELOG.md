@@ -1,3 +1,10 @@
+## v1.12.122 — 30 October 2026
+
+- Moved Eddi’s Lab to the end of the main desktop navigation and mobile hamburger menu; removed separate header shortcut.
+- Removed mobile beta notice and edition badges on all devices.
+- Set the version number small at the top right and made the mobile logo fill the available header width.
+- No reader or playback changes.
+
 ## v1.12.121 — 30 October 2026
 
 - Corrected the underlying 210px bottom margins on Library, Narrators, Free Books and other panels that left large gaps above Gunpowder Studios credits.
