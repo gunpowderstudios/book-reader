@@ -1,20 +1,4 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script>
-/* v1.12.130: Route touch devices to the long-tested Kitten v3.0 reader before
-   the legacy UI and narrator engine initialise. ?classic=1 opens the original. */
-(function(){
- try {
-  const params=new URLSearchParams(location.search);
-  if(params.has('classic')||params.has('kokoro')||params.has('desktop'))return;
-  const ua=navigator.userAgent||'';
-  const tablet=/iPad|Tablet|PlayBook|Silk/i.test(ua)||(/Android/i.test(ua)&&!/Mobile/i.test(ua))||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  const phone=/iPhone|iPod|Windows Phone/i.test(ua)||(/Android/i.test(ua)&&/Mobile/i.test(ua));
-  if(phone||tablet)location.replace(new URL('lab/kitten-reader.html?v=3.6',location.href).href);
- } catch(error) { console.warn('E.D.D.i. Kitten routing',error); }
-})();
-</script><script>/* v1.12.120: Original UI on all devices; mobile/tablet use Kitten speech. */
-window.eddiTouchReader=/iPhone|iPad|iPod|Android|Windows Phone/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-if(window.eddiTouchReader)document.documentElement.classList.add('eddi-kitten-device');
-</script><title>E.D.D.i — Your FREE AI Book Reader that works right in your browser!</title>
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>E.D.D.i — Your FREE AI Book Reader that works right in your browser!</title>
 <meta name="description" content="E.D.D.i is a free AI book reader in your browser. Open EPUB books, listen with natural-sounding AI narrators, follow along and save your place. No download or account needed.">
 <link rel="canonical" href="https://gunpowderstudios.github.io/book-reader/">
 <meta name="robots" content="index,follow,max-image-preview:large">
@@ -420,62 +404,13 @@ header>.upload{position:absolute!important;right:18px!important;left:auto!import
  #book-main{padding-left:12px!important;padding-right:12px!important}
  #free-books-panel .eddi-picks{width:100%;min-width:0}
 }
-<style>/* v1.12.112: covers open reader; resource links appear below */#free-books-panel .eddi-classic-cover-open{cursor:pointer}#free-books-panel .eddi-classic-info{display:block;margin:9px auto 0;color:#e4d183;font-size:12px;text-decoration:underline;text-underline-offset:2px}#free-books-panel .eddi-classic-info:hover{color:#fff0ac}/* v1.12.116: hide slow-speech preparation warning panel across all editions */
-#offline-panel{display:none!important}
-/* v1.12.117: Kitten mobile trial link only on phones/tablets, not desktop/laptops */
-@media(min-width:1025px){#kitten-mobile-entry{display:none!important}}
-
-/* v1.12.118 — desktop/laptop: remove voice-status sidebar and reclaim full width.
-   Player is independently moved to document.body on startup. */
-@media(min-width:901px){
- #page-columns{display:block!important;max-width:none!important;width:100%!important}
- #tab-pages{width:100%!important;max-width:none!important}
- #activity-panel,#activity-panel[hidden]{display:none!important}
- #reader-layout,#library-panel,#free-books-panel,#sync-panel,#narrators-panel,#test-panel{max-width:none!important;width:100%!important;box-sizing:border-box!important}
- #reader-layout #book-main{max-width:none!important}
-}
-/* v1.12.121 — Kitten devices use the original reader, without legacy Kokoro diagnostics. */
-.eddi-kitten-device #activity-panel{display:none!important}
-.eddi-kitten-device #kitten-mobile-inbook{display:none!important}
-/* v1.12.124 — full-width mobile logo, compact edition/version label */
-@media(max-width:720px){
- header{padding:28px 0 12px!important;display:block!important}
- header .brand{width:100%!important;max-width:none!important;padding:0!important;display:block!important}
- header .eddi-brand{display:flex!important;flex-direction:column!important;align-items:stretch!important;width:100%!important;max-width:none!important;gap:5px!important}
- header .eddi-long-logo{display:block!important;width:100%!important;max-width:none!important;height:auto!important;max-height:none!important;object-fit:contain!important;object-position:center!important}
- header .eddi-long-tagline{padding:0 14px!important;box-sizing:border-box}
- header .brand>.eddi-version-wrap{position:absolute!important;top:4px!important;right:10px!important;display:flex!important;align-items:center!important;gap:4px!important;font-size:10px!important;z-index:4}
- header .brand>.eddi-version-wrap #app-version{font-size:10px!important;display:inline!important;opacity:.8}
- header .brand>.eddi-version-wrap #eddi-edition{font-size:10px!important;padding:2px 7px!important;margin:0!important;line-height:1.2!important}
- header #mobile-navigation{top:42px!important}
-}
-/* v1.12.125 — Kitten-only loading strip within existing playback dock */
-#kitten-loading[hidden]{display:none!important}
-#kitten-loading{width:100%;padding:6px 10px 10px;color:#d1f869;font:600 12px/1.4 system-ui,sans-serif}
-.kitten-loading-track{height:5px;overflow:hidden;background:#334e3a;border-radius:10px;margin-top:6px}
-.kitten-loading-track i{display:block;background:#d1f869;height:100%;width:34%;border-radius:10px;animation:kitten-loading-sweep 1.3s ease-in-out infinite}
-@keyframes kitten-loading-sweep{from{transform:translateX(-110%)}to{transform:translateX(300%)}}
-@media(prefers-reduced-motion:reduce){.kitten-loading-track i{animation:none;width:100%}}
-/* v1.12.127 — visible Kitten progress beneath the book Play button on phones */
-@media(max-width:720px){#mobile-audiobook #kitten-loading:not([hidden]){display:block!important;width:min(100%,430px)!important;box-sizing:border-box;text-align:left;padding:8px 10px 12px!important;background:#1a3224;border:1px solid #496c4b;border-radius:9px;margin:3px auto 8px!important}#mobile-audiobook #kitten-loading .kitten-loading-track{height:6px!important}}
-
-/* Mobile library home: current book instead of introductory library panel */
-@media(max-width:720px){
- #library-panel>h1,#library-panel>h2,#library-panel>p:first-of-type{display:none!important}
- #mobile-current-book:not([hidden]){display:flex!important;align-items:center;justify-content:center;gap:18px;background:#16271d;border:1px solid #456247;border-radius:16px;margin:8px 0 18px;padding:18px;min-height:132px;box-sizing:border-box}
- #mobile-current-book .eddi-current-cover{width:92px;height:130px;flex:0 0 92px;border-radius:6px;object-fit:cover;box-shadow:0 6px 16px #0007}
- #mobile-current-book .eddi-current-details{flex:1;min-width:0}
- #mobile-current-book .eddi-current-title{font-size:18px;font-weight:800;color:#fff;line-height:1.25;margin:0 0 6px}
- #mobile-current-book .eddi-current-author{font-size:13px;color:#c4d2c7;margin:0 0 12px}
- #mobile-current-book button,#mobile-current-book a{display:inline-block;border:0;border-radius:12px;padding:12px 16px;background:#d1f869;color:#142018;font-size:15px;font-weight:800;text-decoration:none;cursor:pointer}
- #mobile-current-book .eddi-first-book{text-align:center;width:100%;font-size:18px;padding:19px 12px}
- #library-panel #lib-empty{display:none!important}
-}
-@media(min-width:721px){#mobile-current-book{display:none!important}}
-</style><div id="eddi-mobile-notice" role="status" aria-label="Mobile beta notice"><p>🧪 <strong>E.D.D.i Mobile is beta… he’s still learning!</strong></p><button type="button" id="eddi-beta-dismiss" aria-label="Dismiss mobile beta notice">×</button></div><header><div class="brand"><a href="./" class="eddi-brand" aria-label="E.D.D.i. — Your FREE AI ePUB Reader. Back to home" title="Back to home"><img class="eddi-long-logo" src="images/eddi-reader-logo-long.png" alt="E.D.D.i. — Your FREE AI ePUB Reader" width="559" height="120"><span class="eddi-long-tagline"><span>Your FREE AI Book Reader</span><span id="eddi-mission-subtitle">His five-year mission: to take classic books to other worlds.</span></span></a><strong class="eddi-version-wrap"><small id="app-version">v1.12.136</small> <small id="eddi-edition" aria-label="Current E.D.D.i. edition"></small></strong></div><input hidden id="file" type="file" accept=".epub,application/epub+zip"><div id="mobile-navigation"><button id="mobile-menu-toggle" type="button" aria-label="Open page menu" aria-expanded="false" aria-controls="mobile-menu-items">☰</button><nav id="mobile-menu-items" aria-label="Mobile pages" hidden><a href="#library">📚 My Library</a><a href="#reading">📖 Now Reading</a><a href="#free-books">📚 Free Books</a><a href="#narrators">🎙 Meet the Narrators</a><a href="#sync">☁ Syncing Playback</a></nav></div></header><nav id="tabs" aria-label="Reader tabs"><button id="tab-library" class="selected" aria-selected="true">📚 My Library</button><button id="tab-book" aria-selected="false">📖 Now Reading</button><button id="tab-free" aria-selected="false">📚 Free Books</button><button id="tab-narrators" aria-selected="false">🎙 Meet the Narrators</button><button id="tab-sync" aria-selected="false">☁ Syncing Playback</button></nav><div id="page-columns"><div id="tab-pages"><section id="free-books-panel" hidden style="max-width:850px;margin:25px auto 210px;padding:0 16px">
+<style>/* v1.12.112: covers open reader; resource links appear below */#free-books-panel .eddi-classic-cover-open{cursor:pointer}#free-books-panel .eddi-classic-info{display:block;margin:9px auto 0;color:#e4d183;font-size:12px;text-decoration:underline;text-underline-offset:2px}#free-books-panel .eddi-classic-info:hover{color:#fff0ac}</style></style><div id="eddi-mobile-notice" role="status" aria-label="Mobile beta notice"><p>🧪 <strong>E.D.D.i Mobile Beta</strong> — The phone and tablet reader is still being tested. Some features may not work as expected.</p><button type="button" id="eddi-beta-dismiss" aria-label="Dismiss mobile beta notice">×</button></div><header><div class="brand"><a href="./" class="eddi-brand" aria-label="E.D.D.i. — Your FREE AI ePUB Reader. Back to home" title="Back to home"><img class="eddi-long-logo" src="images/eddi-reader-logo-long.png" alt="E.D.D.i. — Your FREE AI ePUB Reader" width="559" height="120"><span class="eddi-long-tagline"><span>Your FREE AI Book Reader</span><span id="eddi-mission-subtitle">His five-year mission: to take classic books to other worlds.</span></span></a><strong><small id="app-version">v1.12.112</small> <small id="eddi-edition" aria-label="Current E.D.D.i. edition"></small></strong></div><input hidden id="file" type="file" accept=".epub,application/epub+zip"><div id="mobile-navigation"><button id="mobile-menu-toggle" type="button" aria-label="Open page menu" aria-expanded="false" aria-controls="mobile-menu-items">☰</button><nav id="mobile-menu-items" aria-label="Mobile pages" hidden><a href="#library">📚 My Library</a><a href="#reading">📖 Now Reading</a><a href="#free-books">📚 Free Books</a><a href="#narrators">🎙 Meet the Narrators</a><a href="#sync">☁ Syncing Playback</a></nav></div></header><nav id="tabs" aria-label="Reader tabs"><button id="tab-library" class="selected" aria-selected="true">📚 My Library</button><button id="tab-book" aria-selected="false">📖 Now Reading</button><button id="tab-free" aria-selected="false">📚 Free Books</button><button id="tab-narrators" aria-selected="false">🎙 Meet the Narrators</button><button id="tab-sync" aria-selected="false">☁ Syncing Playback</button></nav><div id="page-columns"><div id="tab-pages"><section id="free-books-panel" hidden style="max-width:850px;margin:25px auto 210px;padding:0 16px">
 <h2>📚 Free Books</h2>
 <p>Thousands of wonderful books can be read for free. Many older works are in the <strong>public domain</strong>, which usually means their copyright has expired. Others are shared with the copyright holder’s permission. You can legally download and enjoy books that are free to use in your country.</p>
-
+<p><strong>A small note:</strong> copyright rules vary between countries, and a new translation or edition may have its own copyright. Check the information on each book’s download page. These are independent websites; EPub Reader does not host their books.</p>
+<h3>Already bought an ebook?</h3>
+<p><strong>Your books, your choice.</strong> EPub Reader isn't just for free classics. You can also listen to legally purchased <strong>DRM-free EPUB</strong> books, including modern titles that are still under copyright, for your own personal use where permitted by the book's licence and applicable law.</p>
+<p>Books you open here are kept in your browser on your device, not uploaded to a public library or shared with other readers. Some ebooks have digital rights management (DRM), which this app cannot unlock. Please respect copyright and the terms under which you obtained your books.</p>
 <style>
 /* Compact featured classics, scoped to the Free Books page */
 #free-books-panel .eddi-picks{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:12px;margin:12px 0 20px}
@@ -513,11 +448,7 @@ header>.upload{position:absolute!important;right:18px!important;left:auto!import
 </ul>
 <h3>How to read a free book</h3>
 <p>Choose a book, download its <strong>EPUB</strong> file, return to <strong>My Library</strong> and select <strong>Upload your own book</strong>. Then enjoy it with one of our AI narrators.</p>
-<div class="eddi-freebooks-info"><p><strong>A small note:</strong> copyright rules vary between countries, and a new translation or edition may have its own copyright. Check the information on each book’s download page. These are independent websites; EPub Reader does not host their books.</p>
-<h3>Already bought an ebook?</h3>
-<p><strong>Your books, your choice.</strong> EPub Reader isn't just for free classics. You can also listen to legally purchased <strong>DRM-free EPUB</strong> books, including modern titles that are still under copyright, for your own personal use where permitted by the book's licence and applicable law.</p>
-<p>Books you open here are kept in your browser on your device, not uploaded to a public library or shared with other readers. Some ebooks have digital rights management (DRM), which this app cannot unlock. Please respect copyright and the terms under which you obtained your books.</p></div>
-</section><section id="library-panel"><div id="mobile-current-book" class="eddi-current-book" hidden aria-live="polite"></div><h1 style="color:#D1F869;font-size:clamp(28px,4.2vw,48px);line-height:1.14;margin:0 0 12px;font-weight:800">E.D.D.i is ready...</h1><h2>Your FREE AI Book Reader that works right in your browser!</h2><p><small>Your books and reading progress are saved in this browser on this device. They do not automatically sync with other devices.</small></p><div id="lib-list" class="grid"></div><div id="lib-empty" hidden><img src="images/classics/dracula.jpg" alt="Dracula book cover" loading="lazy" onerror="this.onerror=null;this.src='images/book-cover-fallback.svg'"><div><p>Your library is empty.</p><a href="#free-books" id="first-book-link">Load your first book</a><p class="first-book-note">Explore the Free Books collection, including Dracula.</p></div></div><p><small id="lib-storage"></small></p><div class="library-upload-area"><label class="upload" for="file">＋ Upload your own book</label><p><small>Choose a DRM-free EPUB from your device.</small></p></div></section><section id="narrators-panel" hidden style="max-width:850px;margin:22px auto 210px;padding:22px;background:#1c2c25;border:1px solid #415a49;border-radius:14px">
+</section><section id="library-panel"><h1 style="color:#D1F869;font-size:clamp(28px,4.2vw,48px);line-height:1.14;margin:0 0 12px;font-weight:800">E.D.D.i is ready...</h1><h2>Your FREE AI Book Reader that works right in your browser!</h2><p><small>Your books and reading progress are saved in this browser on this device. They do not automatically sync with other devices.</small></p><div id="lib-list" class="grid"></div><div id="lib-empty" hidden><img src="images/classics/dracula.jpg" alt="Dracula book cover" loading="lazy" onerror="this.onerror=null;this.src='images/book-cover-fallback.svg'"><div><p>Your library is empty.</p><a href="#free-books" id="first-book-link">Load your first book</a><p class="first-book-note">Explore the Free Books collection, including Dracula.</p></div></div><p><small id="lib-storage"></small></p><div class="library-upload-area"><label class="upload" for="file">＋ Upload your own book</label><p><small>Choose a DRM-free EPUB from your device.</small></p></div></section><section id="narrators-panel" hidden style="max-width:850px;margin:22px auto 210px;padding:22px;background:#1c2c25;border:1px solid #415a49;border-radius:14px">
 <h2>🎙 Meet the Narrators</h2>
 <p>Choose a voice and listen to a little story before deciding who you'd like to read your book. The first sample may take a moment to prepare.</p>
 <p><label for="test-voice"><strong>Choose a narrator</strong></label> <select id="test-voice" aria-label="Narrator to preview"></select></p>
@@ -554,12 +485,10 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 $('bedtime-button').onclick=()=>{const overlay=$('bedtime-overlay'),img=$('candle');if(img&&!img.getAttribute('src'))img.src=img.dataset.src; /* the 8 MB candle animation loads only when wanted */overlay.hidden=false;overlay.focus({preventScroll:true});keepAwake(true)};$('bedtime-overlay').addEventListener('click',exitBedtime);document.addEventListener('keydown',e=>{if($('bedtime-overlay').hidden)return;if(e.key==='Escape'||e.key==='Enter'||e.code==='Space'){e.preventDefault();e.stopImmediatePropagation();exitBedtime()}},true);$('previous').onclick=()=>moveChapter(S.index-1);$('next').onclick=()=>moveChapter(S.index+1);$('back').onclick=()=>{stop();S.p=Math.max(0,S.p-1);highlight()};$('forward').onclick=()=>{stop();S.p=Math.min((S.chapters[S.index]?.paragraphs.length||1)-1,S.p+1);highlight()};$('rewind30').onclick=()=>window.chapterKokoro?.skipSeconds?.(-30,S,highlight);$('ahead30').onclick=()=>window.chapterKokoro?.skipSeconds?.(30,S,highlight);$('seek').onchange=()=>{if(!S.chapters.length)return;stop();S.p=Math.min(S.chapters[S.index].paragraphs.length-1,Math.floor(+$('seek').value/1000*S.chapters[S.index].paragraphs.length));highlight()};$('rate').oninput=()=>{$('speed').textContent=(+$('rate').value).toFixed(1)+'×';localStorage.setItem('cv-rate',$('rate').value)};$('rate').value=localStorage.getItem('cv-rate')||1;$('rate').oninput();$('small').onclick=()=>{$('text').style.fontSize=(S.font=Math.max(14,S.font-2))+'px'};$('large').onclick=()=>{$('text').style.fontSize=(S.font=Math.min(32,S.font+2))+'px'};
 window.CV_VOICES={bf_emma:'British Female — Emma',bf_isabella:'British Female — Isabella',bf_alice:'British Female — Alice',bf_lily:'British Female — Lily',bm_george:'British Male — George',bm_fable:'British Male — Fable',bm_lewis:'British Male — Lewis',bm_daniel:'British Male — Daniel',af_heart:'American Female — Heart',af_bella:'American Female — Bella',af_nicole:'American Female — Nicole',af_aoede:'American Female — Aoede',af_kore:'American Female — Kore',af_sarah:'American Female — Sarah',af_alloy:'American Female — Alloy',af_nova:'American Female — Nova',af_sky:'American Female — Sky',af_jessica:'American Female — Jessica',af_river:'American Female — River',am_michael:'American Male — Michael',am_fenrir:'American Male — Fenrir',am_puck:'American Male — Puck',am_eric:'American Male — Eric',am_echo:'American Male — Echo',am_liam:'American Male — Liam',am_onyx:'American Male — Onyx',am_adam:'American Male — Adam',am_santa:'American Male — Santa'}; /* every British and American Kokoro voice, best-rated first within each group */
 const voiceName=id=>(window.CV_VOICES[id]||'— George').split('— ')[1];
-if(!window.eddiTouchReader){
 $('voice').replaceChildren(...Object.entries(window.CV_VOICES).map(([id,label])=>new Option(label,id)));
 try{const isIPad=/iPad/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);$('voice').value=localStorage.getItem('br-narrator')||(isIPad?'bf_emma':'bm_george')}catch(_){$('voice').value='bm_george'}
 if(!$('voice').value)$('voice').value='bm_george';
 $('engine-narrator').textContent=voiceName($('voice').value);
-}
 const lsGet=k=>{try{return localStorage.getItem(k)}catch(_){return null}};
 const coresBox=$('cores-toggle');
 if(coresBox){coresBox.checked=lsGet('cv-lowmem-cores')==='1';
@@ -685,7 +614,7 @@ function startBeat(){
 })();
 function showCompatibilityNotice(message){const panel=$('device-notice');if(!panel)return;panel.hidden=false;$('device-notice-text').textContent=message||'This device could not load the AI narrator. It may not have enough free memory. Try a newer device, or update your browser if an update is available.'}
 window.addEventListener('kokoro-memory-failure',e=>showCompatibilityNotice(e.detail?.message));
-$('voice').onchange=()=>{stop();try{localStorage.setItem('br-narrator',$('voice').value)}catch(_){}const t=$('test-voice');if(t)t.value=$('voice').value;document.getElementById('engine-narrator').textContent=window.eddiTouchReader?'Kitten — '+($('voice').selectedOptions[0]?.textContent||'Rosie').replace('Kitten — ',''):voiceName($('voice').value);window.chapterKokoro?.refreshNarrator?.();window.bookOffline?.refresh?.()};
+$('voice').onchange=()=>{stop();try{localStorage.setItem('br-narrator',$('voice').value)}catch(_){}const t=$('test-voice');if(t)t.value=$('voice').value;document.getElementById('engine-narrator').textContent=voiceName($('voice').value);window.chapterKokoro?.refreshNarrator?.();window.bookOffline?.refresh?.()};
 const testSelect=$('test-voice');
 testSelect.replaceChildren(...Object.entries(window.CV_VOICES).map(([id,label])=>new Option(label,id)));
 testSelect.value=$('voice').value;
@@ -894,8 +823,7 @@ window.chapterApp={openFile,openFromLibrary,addFiles,stop,say,showTab,boot,rende
  dock.addEventListener('keydown',e=>{if(e.key==='Escape'){dock.classList.remove('dock-pinned');dock.classList.add('dock-closed');sync();handle.focus()}});
  sync();
 })();
-</script><script>/* Select narration engine; retain the same library and player UI. */
-(function(){const script=document.createElement('script');script.src=window.eddiTouchReader?'kitten-mobile.js?v=1.12.129':'kokoro.js?v=ipad-safe-1';script.async=false;document.head.appendChild(script)})();</script><script defer src="library.js?v=1.12.71"></script><script defer src="offline.js?v=1.12.66"></script><script defer src="read-along.js?v=1.12.96"></script><script>document.getElementById('eddi-beta-dismiss')?.addEventListener('click',()=>{document.getElementById('eddi-mobile-notice').hidden=true});</script><script>
+</script><script defer src="kokoro.js?v=ipad-safe-1"></script><script defer src="library.js?v=1.12.71"></script><script defer src="offline.js?v=1.12.66"></script><script defer src="read-along.js?v=1.12.96"></script><script>document.getElementById('eddi-beta-dismiss')?.addEventListener('click',()=>{document.getElementById('eddi-mobile-notice').hidden=true});</script><script>
 /* Check for updated offline shell without clearing saved books or narration data. */
 (()=>{const mobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 if(!('serviceWorker' in navigator))return;
@@ -904,6 +832,8 @@ if(mobile){
  navigator.serviceWorker.getRegistration().then(async reg=>{
   const hadController=!!navigator.serviceWorker.controller;
   if(reg&&reg.active?.scriptURL.includes('coi-sw.js'))await reg.unregister();
+  const banner=document.getElementById('eddi-mobile-notice');
+  if(banner){const p=banner.querySelector('p');if(p)p.insertAdjacentHTML('beforeend',' <small id="eddi-mobile-diagnostic" style="display:block;opacity:.85;font-size:11px">App v1.12.106 · offline worker '+(hadController?'previously active':'not controlling')+'</small>');}
   if(hadController){let done=false;try{done=sessionStorage.getItem('eddi-mobile-sw-reset-103')==='1';sessionStorage.setItem('eddi-mobile-sw-reset-103','1')}catch(_){}
    if(!done){const u=new URL(location.href);u.searchParams.set('mobile-beta','1.12.103');location.replace(u.href);}}
  }).catch(err=>console.warn('Mobile worker diagnostic:',err));
