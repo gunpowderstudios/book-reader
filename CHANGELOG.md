@@ -1,3 +1,7 @@
+## v1.12.124 — 30 October 2026
+
+- Positioned the hamburger at the top right of the phone/tablet header; removed its green background and border so only white menu lines appear. Navigation remains unchanged.
+
 ## v1.12.123 — 30 October 2026
 
 - Moved the version label from the header to the bottom Gunpowder Studios credits on all screen sizes.
