@@ -1,3 +1,9 @@
+## Eddi’s Lab v1.31 — 31 October 2026
+
+- Expanded the main Lab voice dropdown to all 28 Kokoro voices currently listed by the live reader (British and American voices), plus all eight existing Kitten Nano voices.
+- Selection continues to change with the engine dropdown. Default lab voice is George for Kokoro and Rosie for Kitten.
+- Live Eddi reader and narration are unchanged.
+
 ## v1.12.134 — 30 October 2026
 
 - Reading now carries on when you click the E.D.D.i. logo. It used to reload the whole page, which stopped the narration; it now just takes you to the home page (My Library) with the player still going. The About and Eddi’s Lab links now open in a new tab for the same reason, so the book keeps reading in the first tab.
