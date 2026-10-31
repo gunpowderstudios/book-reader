@@ -1,3 +1,7 @@
+## v1.12.172 — 31 October 2026
+
+- New private Bench Test page in the Lab (Lab → "🔬 Bench test"). It runs the real voice engine and times each step of loading George (speech library, download, preparing the voice), a repeat load, how fast he speaks five sentences, the second voice used for quoted speech, and a quick check of the connection and device. It writes a plain report with a Copy button to paste into a chat. It tests Low Memory and Fast separately, and warns before running Fast on a phone. It does not change your library, reading position or saved settings.
+
 ## v1.12.171 — 31 October 2026
 
 - Loading is easier to understand and a little quicker to start. Once George is ready, the line under the loading bar now shows where the time went (for example "Load time: library 1.2 s, download 3.0 s, voice 0.8 s"), so we can see which step is slow on each device.

@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>E.D.D.i. Bench Test</title>
+<style>
+:root{--bg:#0c1512;--card:#14271b;--line:#345341;--text:#e9f5ed;--mute:#bcd0c0;--accent:#cef579}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;padding:16px}
+main{max-width:860px;margin:0 auto}
+a{color:var(--accent)}
+h1{font-size:24px;margin:8px 0 2px}h2{font-size:16px;margin:0 0 8px;letter-spacing:.04em;color:var(--accent)}
+.sub,.muted{color:var(--mute);font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:14px 0}
+label{display:flex;gap:9px;align-items:flex-start;margin:7px 0;cursor:pointer}
+input[type=checkbox]{width:19px;height:19px;accent-color:var(--accent);margin-top:2px;flex:none}
+button{font:inherit;font-weight:700;background:#345341;color:#fff;border:1px solid #698570;border-radius:8px;padding:10px 14px;cursor:pointer}
+button.go{background:var(--accent);color:#142414;border-color:var(--accent)}
+button:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+#bar{height:10px;border-radius:6px;background:#0c1512;border:1px solid var(--line);overflow:hidden;margin:10px 0 4px}
+#fill{height:100%;width:0;background:var(--accent);transition:width .3s}
+#status{font-size:14px;color:var(--mute);min-height:21px}
+textarea{width:100%;min-height:340px;background:#0c1512;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px;font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.warn{color:#ffd37a;font-size:14px}
+</style></head><body><main>
+<a href="./">← Back to the Lab</a>
+<h1>🔬 E.D.D.i. Bench Test <span class="sub">v1.0 · private</span></h1>
+<p class="sub">Measures how this device really loads and speaks with George, then writes a plain report you can copy and paste to Claude or GPT. It uses the real voice engine from the main page, but it does not change your reading, your library or your saved settings.</p>
+
+<section class="card"><h2>1 / CHOOSE WHAT TO TEST</h2>
+<label><input type="checkbox" id="m-standard" checked><span><b>Low Memory</b> <span class="muted">(92 MB voice, one core)</span></span></label>
+<label><input type="checkbox" id="m-fast"><span><b>Fast</b> <span class="muted">(326 MB voice, several cores when the page allows)</span><br><span class="warn" id="fast-warn"></span></span></label>
+<label><input type="checkbox" id="m-repeat" checked><span><b>Also time a repeat load</b> <span class="muted">(shows how quickly George starts once he is saved on the device)</span></span></label>
+<label><input type="checkbox" id="m-net" checked><span><b>Check the connection</b> <span class="muted">(a few small downloads, about 1 MB in all)</span></span></label>
+<label id="phone-ok-row" hidden><input type="checkbox" id="phone-ok"><span class="warn">I understand Fast mode could make this phone or tablet run out of memory and restart the page.</span></label>
+<p class="muted">The first run of each voice may download a lot (the report says how much). Leave this page open and the screen awake until it finishes.</p>
+<div class="row"><button class="go" id="run">▶ Run the bench test</button><button id="stop" disabled>■ Stop</button></div>
+<div id="bar"><div id="fill"></div></div><div id="status">Ready.</div></section>
+
+<section class="card"><h2>2 / REPORT</h2>
+<p class="muted">Updates as it runs. Press Copy, then paste it into the chat.</p>
+<textarea id="report" readonly spellcheck="false">Nothing yet. Press Run.</textarea>
+<div class="row"><button id="copy">📋 Copy report</button><span id="copied" class="muted" style="align-self:center"></span></div></section>
+</main>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const BENCH_VERSION='1.0';
+const NARRATOR='bm_george',DIALOGUE='bm_fable';
+const MODEL_BASE='https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/main/';
+const SENTENCES=[
+ 'The old house stood at the end of a long, quiet road, and nobody had lived there for years.',
+ '"Come in," said the stranger, smiling. "You must be tired after such a journey."',
+ 'Rain tapped softly on the window while the fire burned low, and the whole room seemed to hold its breath.',
+ 'By the time the sun had climbed over the hills, the travellers had already reached the river and were looking for a place to cross.',
+ 'She opened the letter slowly, read it twice, and then folded it away without saying a word.'
+];
+const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const cancels=new Set();
+let out=[],worker=null,stopping=false,running=false,lagMax=0,lagTimer=null;
+const fmt=(ms)=>(ms/1000).toFixed(1)+' s';
+const mb=b=>(b/1048576).toFixed(1)+' MB';
+function put(line=''){out.push(line);$('report').value=out.join('\n');$('report').scrollTop=1e9}
+function status(t,p){$('status').textContent=t;if(typeof p==='number')$('fill').style.width=Math.max(0,Math.min(100,p))+'%'}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* keep a note of how late the page's own timer fires, so we can see if the screen froze while George worked */
+function startLag(){lagMax=0;let last=performance.now();clearInterval(lagTimer);lagTimer=setInterval(()=>{const n=performance.now(),d=n-last-100;if(d>lagMax)lagMax=d;last=n},100)}
+function stopLag(){clearInterval(lagTimer);return Math.round(lagMax)}
+
+if(isMobile){$('phone-ok-row').hidden=false;$('fast-warn').textContent='On a phone or tablet this is the heavy setting. Only test it if you want to.'}
+else{$('m-fast').checked=true}
+
+async function deviceInfo(){
+ put('E.D.D.i. BENCH TEST v'+BENCH_VERSION);
+ put('Run at: '+new Date().toString());
+ let site='unknown';try{const t=await (await fetch('../index.html',{cache:'no-store'})).text();const m=t.match(/v1\.12\.\d+(?=<)/);if(m)site=m[0]}catch(_){}
+ put('Reader version: '+site);
+ put('');put('— DEVICE —');
+ put('Browser: '+navigator.userAgent);
+ put('Platform: '+(navigator.userAgentData&&navigator.userAgentData.platform||navigator.platform)+' · touch points '+navigator.maxTouchPoints);
+ put('Phone or tablet: '+(isMobile?'yes':'no'));
+ put('CPU cores reported: '+(navigator.hardwareConcurrency||'not reported'));
+ put('Memory reported: '+(navigator.deviceMemory?navigator.deviceMemory+' GB (browsers round this and cap it at 8)':'not reported by this browser'));
+ put('Screen: '+screen.width+'x'+screen.height+' at '+devicePixelRatio+'x');
+ put('Multi-core ready on this page: '+(self.crossOriginIsolated===true?'yes':'no'));
+ try{put('Multi-core helper status: '+(sessionStorage.getItem('cv-coi')||'not started on this page'))}catch(_){}
+ put('Graphics chip (WebGPU): '+(navigator.gpu?'available':'not available'));
+ const c=navigator.connection;
+ put('Connection: '+(c?[c.effectiveType,c.downlink?c.downlink+' Mbit/s reported':'',c.rtt?c.rtt+' ms round trip':'',c.saveData?'data saver ON':''].filter(Boolean).join(', '):'not reported'));
+ try{
+  const e=await navigator.storage.estimate();let p='';try{p=await navigator.storage.persisted()?'kept (persistent)':'may be cleared by the browser'}catch(_){}
+  put('Storage: '+mb(e.usage||0)+' used of about '+mb(e.quota||0)+' · '+p);
+ }catch(_){put('Storage: not reported')}
+ try{put('Saved reader settings: mode choice='+(localStorage.getItem('cv-mode-choice')||'-')+', standard saved='+(localStorage.getItem('cv-ready-standard')||'-')+', fast saved='+(localStorage.getItem('cv-ready-fast')||'-'))}catch(_){}
+ put('Battery saver / low power: '+(await (async()=>{try{const b=await navigator.getBattery();return 'battery '+Math.round(b.level*100)+'%'+(b.charging?' charging':' not charging')}catch(_){return 'not reported'}})()));
+}
+
+async function netTest(){
+ put('');put('— CONNECTION CHECK —');
+ const targets=[
+  ['Speech library server (jsDelivr)','https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/package.json'],
+  ['Voice server (Hugging Face), small file',MODEL_BASE+'config.json'],
+  ['Voice server (Hugging Face), voice file',MODEL_BASE+'voices/'+NARRATOR+'.bin']
+ ];
+ for(const [name,url] of targets){
+  if(stopping)return;
+  const runs=[];let bytes=0,err='';
+  for(let i=0;i<2;i++){
+   try{const t0=performance.now();const r=await fetch(url+(url.includes('?')?'&':'?')+'bench='+Date.now()+i,{cache:'no-store'});const tFirst=performance.now()-t0;const b=await r.arrayBuffer();bytes=b.byteLength;runs.push({first:tFirst,total:performance.now()-t0})}catch(e){err=String(e.message||e);break}
+  }
+  if(err||!runs.length)put(name+': failed ('+err+')');
+  else{const best=runs.reduce((a,b)=>b.total<a.total?b:a);const speed=bytes>200000?' · about '+((bytes*8/1e6)/(best.total/1000)).toFixed(1)+' Mbit/s':'';put(name+': first byte '+Math.round(best.first)+' ms, '+mb(bytes)+' in '+fmt(best.total)+speed)}
+ }
+}
+
+function startWorker(){
+ const w=new Worker('../kokoro-worker.js?bench='+BENCH_VERSION,{type:'module'});
+ return w;
+}
+/* Load the voice in a brand-new worker and time each step, exactly as the main page does. */
+function loadVoice(mode){
+ return new Promise(resolve=>{
+  const w=startWorker();worker=w;const t0=performance.now(),tm={},res={mode,ok:false,net:0};
+  const mark=k=>{if(!(k in tm))tm[k]=performance.now()};
+  const timer=setTimeout(()=>{res.error='Gave up after 10 minutes';try{w.terminate()}catch(_){}resolve({res,w:null,tm,t0})},600000);
+  const c=()=>{clearTimeout(timer);res.error='Stopped';resolve({res,w:null,tm,t0})};cancels.add(c);
+  w.onmessage=ev=>{const m=ev.data||{};
+   if(m.type==='stage'){mark(m.stage==='model'?'model':m.stage==='voice'?'voice':'library');
+    status('Loading ('+(m.stage==='model'?'downloading the voice':m.stage==='voice'?'preparing the voice':'speech library')+')…')}
+   else if(m.type==='progress'){status('Downloading the voice: '+mb(m.loaded)+' of '+mb(m.total))}
+   else if(m.type==='net'){res.net=m.bytes}
+   else if(m.type==='ready'){mark('ready');clearTimeout(timer);Object.assign(res,{ok:true,ms:m.ms,threads:m.threads,isolated:m.isolated,cores:m.cores});resolve({res,w,tm,t0})}
+   else if(m.type==='init-error'){clearTimeout(timer);res.error=m.message;try{w.terminate()}catch(_){}resolve({res,w:null,tm,t0})}};
+  w.onerror=e=>{clearTimeout(timer);res.error='Worker error: '+(e.message||'could not start');try{w.terminate()}catch(_){}resolve({res,w:null,tm,t0})};
+  w.postMessage({type:'init',voice:NARRATOR,mode,extraCores:false});
+ });
+}
+function breakdown(tm,t0){
+ const parts=[],seg=[['speech library','model',t0],['download','voice','model'],['preparing the voice','ready','voice']];
+ let prevKey=null;
+ for(const [name,end,start] of seg){const s=typeof start==='number'?start:tm[start],e=tm[end];if(s!=null&&e!=null&&e>=s)parts.push(name+' '+fmt(e-s))}
+ return parts.join(', ');
+}
+function gen(w,text,voice,mode,id){
+ return new Promise(resolve=>{
+  const h=ev=>{const m=ev.data||{};if(m.id!==id)return;if(m.type==='audio'){w.removeEventListener('message',h);resolve({ok:true,ms:m.ms,cold:m.cold,sec:m.samples.length/m.rate})}else if(m.type==='error'){w.removeEventListener('message',h);resolve({ok:false,error:m.message})}};
+  const c=()=>{w.removeEventListener('message',h);resolve({ok:false,error:'Stopped'})};cancels.add(c);
+  w.addEventListener('message',h);w.postMessage({type:'generate',id,text,voice,speed:1,mode});
+ });
+}
+async function speedTest(w,mode){
+ put('  Speaking speed (George reading 5 sentences):');
+ let id=1000*(mode==='fast'?2:1);const rows=[];let audio=0,work=0,first=0;
+ for(let i=0;i<SENTENCES.length;i++){
+  if(stopping)return;
+  status('Speed test, sentence '+(i+1)+' of '+SENTENCES.length+'…');
+  const t0=performance.now();const r=await gen(w,SENTENCES[i],NARRATOR,mode,++id);const wall=performance.now()-t0;
+  if(!r.ok){put('    sentence '+(i+1)+': failed ('+r.error+')');return}
+  audio+=r.sec;work+=r.ms;if(i===0)first=wall;
+  rows.push('    sentence '+(i+1)+': '+r.sec.toFixed(1)+' s of speech made in '+fmt(r.ms)+' ('+(r.sec/(r.ms/1000)).toFixed(1)+'x faster than listening)');
+ }
+ rows.forEach(put);
+ const warm=rows.length>1?'':'';
+ put('    overall: '+audio.toFixed(1)+' s of speech in '+fmt(work)+' = '+(audio/(work/1000)).toFixed(1)+'x real time. Anything above 1x keeps up with listening; above about 2x leaves room to read ahead.');
+ put('    first sentence took '+fmt(first)+' from request to finished audio.');
+ if(stopping)return;
+ status('Speed test, second voice (quoted speech)…');
+ const t0=performance.now();const d=await gen(w,'"Why, that is quite impossible," said the doctor.',DIALOGUE,mode,++id);const wall=performance.now()-t0;
+ put(d.ok?'    second voice ('+DIALOGUE+') first use: '+fmt(wall)+(d.cold?' (includes fetching that voice)':''):'    second voice failed: '+d.error);
+ if(d.ok){const t1=performance.now();const d2=await gen(w,'"Why, that is quite impossible," said the doctor.',DIALOGUE,mode,++id);if(d2.ok)put('    second voice again: '+fmt(performance.now()-t1))}
+}
+
+async function testMode(mode,label,total,doneRef){
+ put('');put('— '+label.toUpperCase()+' —');
+ startLag();
+ status('Starting '+label+'…');
+ const a=await loadVoice(mode);
+ const r=a.res;
+ if(!r.ok){put('First load: FAILED — '+r.error);stopLag();return}
+ const wasSaved=r.net<1572864;
+ put('First load this visit: '+fmt(performance.now()-a.t0)+' ('+breakdown(a.tm,a.t0)+')');
+ put('  Downloaded: '+mb(r.net)+(wasSaved?' — nothing new, loaded from the browser\'s saved copy, so this is already a "repeat" timing':' — a real download'));
+ put('  Cores used by George: '+(r.threads||1)+' of '+(r.cores||'?')+' · multi-core active: '+(r.isolated?'yes':'no'));
+ if(performance.memory)put('  Page memory after loading: '+mb(performance.memory.usedJSHeapSize)+' of JavaScript heap (Chrome only; the voice engine itself is not included)');
+ if(mode==='fast'&&!r.isolated)put('  Note: Fast mode ran on ONE core because this page is not multi-core ready. The main reader page will reload itself once to get multi-core; this page does not, so Fast speed here may look worse than in the reader.');
+ try{await speedTest(a.w,mode)}catch(e){put('  Speed test stopped: '+e.message)}
+ const lag=stopLag();
+ put('  Longest freeze of this page while working: '+lag+' ms'+(lag>250?' (noticeable stutter)':' (smooth)'));
+ try{a.w.terminate()}catch(_){}worker=null;
+ if(stopping)return;
+ if($('m-repeat').checked){
+  status('Repeat load of '+label+'…');
+  await sleep(500);
+  const b=await loadVoice(mode);
+  if(b.res.ok){put('Repeat load (new start, voice already saved): '+fmt(performance.now()-b.t0)+' ('+breakdown(b.tm,b.t0)+'), downloaded '+mb(b.res.net));try{b.w.terminate()}catch(_){}}
+  else put('Repeat load: FAILED — '+b.res.error);
+  worker=null;
+ }
+}
+
+$('run').onclick=async()=>{
+ if(running)return;
+ const modes=[];
+ if($('m-standard').checked)modes.push(['standard','Low Memory (92 MB voice)']);
+ if($('m-fast').checked){
+  if(isMobile&&!$('phone-ok').checked){alert('Tick the box about Fast mode on a phone first, or untick Fast.');return}
+  modes.push(['fast','Fast (326 MB voice)']);
+ }
+ if(!modes.length&&!$('m-net').checked){alert('Choose at least one thing to test.');return}
+ running=true;stopping=false;out=[];$('run').disabled=true;$('stop').disabled=false;$('copied').textContent='';
+ const t00=performance.now();
+ try{
+  status('Collecting device details…',3);
+  await deviceInfo();
+  if($('m-net').checked){status('Checking the connection…',8);await netTest()}
+  for(let i=0;i<modes.length&&!stopping;i++){status('',10+i*(85/modes.length));await testMode(modes[i][0],modes[i][1])}
+  put('');put('— END —');
+  put(stopping?'Stopped early by the user after '+fmt(performance.now()-t00):'Finished in '+fmt(performance.now()-t00));
+  status(stopping?'Stopped.':'Finished. Press Copy report.',100);
+ }catch(e){put('');put('The bench test hit an error: '+(e&&e.message||e));status('Error — see the report.',100)}
+ finally{try{if(worker)worker.terminate()}catch(_){}worker=null;stopLag();running=false;$('run').disabled=false;$('stop').disabled=true}
+};
+$('stop').onclick=()=>{stopping=true;try{if(worker)worker.terminate()}catch(_){}cancels.forEach(f=>f());cancels.clear();status('Stopping…')};
+$('copy').onclick=async()=>{
+ const t=$('report').value;
+ try{await navigator.clipboard.writeText(t);$('copied').textContent='Copied.'}
+ catch(_){const ta=$('report');ta.removeAttribute('readonly');ta.select();ta.setSelectionRange(0,1e9);try{document.execCommand('copy');$('copied').textContent='Copied.'}catch(e){$('copied').textContent='Press and hold in the box, then choose Copy.'}ta.setAttribute('readonly','')}
+};
+</script></body></html>
