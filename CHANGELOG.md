@@ -1,3 +1,10 @@
+## v1.12.171 — 31 October 2026
+
+- Loading is easier to understand and a little quicker to start. Once George is ready, the line under the loading bar now shows where the time went (for example "Load time: library 1.2 s, download 3.0 s, voice 0.8 s"), so we can see which step is slow on each device.
+- The page now opens its connections to the two servers that supply the voice a moment earlier, which saves a little time on a first load. Nothing is downloaded early on a phone.
+- The first time George loads, the browser is asked once to keep the saved voice instead of clearing it when space runs low, so the big download is less likely to repeat.
+- Unchanged on purpose: which voice setting each device picks, the read-ahead and the playback behaviour.
+
 ## v1.12.170 — 31 October 2026
 
 - A proper loading bar. The voice-loading bar (player, Settings, the phone strip and the Meet the Narrators sample) no longer slides back and forth over and over. It now fills once from left to right with a percentage: the real download drives the first part, and the steps that cannot be measured (starting the engine, preparing the voice, the first passage) move steadily forward and never go backwards. It reaches 100% when the voice is ready.

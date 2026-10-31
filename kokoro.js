@@ -71,6 +71,23 @@ const isolated=()=>typeof crossOriginIsolated!=='undefined'&&crossOriginIsolated
 /* ───────── Engine state and the download bar ───────── */
 const eng={phase:'idle',loaded:0,total:0,net:0,used:null,sec:0,isolated:false,cores:0,note:startupNote,error:''};
 let awaitingNarration=false;
+/* v1.12.171: where the loading time goes (shown under the loading bar once the voice is ready) */
+let tim={};
+const stamp=k=>{if(!(k in tim))tim[k]=performance.now()};
+function timingText(){
+ const seg=[['library','model','library'],['download','voice','model'],['voice','ready','voice']],out=[];
+ for(const [name,end,start] of seg){if(tim[start]!=null&&tim[end]!=null&&tim[end]>=tim[start])out.push(name+' '+((tim[end]-tim[start])/1000).toFixed(1)+' s')}
+ return out.length?'Load time: '+out.join(', '):'';
+}
+/* v1.12.171: ask the browser once not to throw away the saved voice (it can otherwise be cleared when space runs low) */
+function keepVoiceSaved(){
+ try{
+  if(store.get('cv-persist-asked','')==='1'||!navigator.storage||!navigator.storage.persist)return;
+  store.set('cv-persist-asked','1');
+  const ask=()=>navigator.storage.persist().catch(()=>{});
+  if(navigator.storage.persisted)navigator.storage.persisted().then(ok=>{if(!ok)ask()},()=>{});else ask();
+ }catch(_){}
+}
 function spinner(on){const el=$('voice-spinner');if(el)el.hidden=!on;}
 const modeName=m=>(MODES[m]||MODES.standard).label;
 function describeEngine(){
@@ -138,6 +155,7 @@ function renderEngine(){
  if(netEl){
   let t='Downloaded by George this visit: '+fmtMB(eng.net);
   if(eng.phase==='ready'&&eng.net<1572864)t+=' — nothing new; he loaded from your browser’s saved copy';
+  if(eng.phase==='ready'){const tt=timingText();if(tt)t+=' · '+tt}
   netEl.textContent=named(t);
  }
 }
@@ -169,6 +187,7 @@ function onWorkerMessage(w,m){
  if(w!==worker)return;
  switch(m.type){
   case 'stage':
+   stamp(m.stage==='warmup'?'warmup':m.stage);
    if(m.stage==='library'){eng.phase='library'}
    else if(m.stage==='model'){eng.phase='downloading'}
    else if(m.stage==='warmup'){eng.phase='starting'}
@@ -184,6 +203,7 @@ function onWorkerMessage(w,m){
   case 'voice-start':if(m.voice===currentVoice()){eng.phase='voice';renderEngine();status('Preparing '+narratorName()+'’s voice…')}break;
   case 'voice-ready':if(m.voice===currentVoice()){eng.phase='ready';renderEngine()}break;
   case 'ready':{
+   stamp('ready');keepVoiceSaved();
    engineReady=true;eng.phase='ready';eng.used=m.mode||mode;eng.sec=(m.ms||0)/1000;eng.isolated=!!m.isolated;eng.cores=m.cores||0;eng.threads=m.threads||1;
    if(eng.used===mode)eng.note='';
    store.set('cv-ready-'+(m.mode||mode),'1');
@@ -223,7 +243,7 @@ function ready(){
  if(readyPromise)return readyPromise;
  if(!playbackDiagnostics.startedAt)playbackDiagnostics.startedAt=performance.now();
  let w;try{w=startWorker()}catch(e){return Promise.reject(e)}
- eng.phase='library';eng.error='';eng.loaded=0;eng.total=0;
+ eng.phase='library';eng.error='';eng.loaded=0;eng.total=0;tim={};stamp('t0');tim.library=tim.t0;
  if(mode==='fast'&&!isolated()){
   const st=(()=>{try{return sessionStorage.getItem('cv-coi')}catch(_){return null}})();
   eng.note=st==='failed'||st==='unsupported'?'multi-core is not available in this browser, so Fast mode runs on one core':'multi-core is not active on this page';
