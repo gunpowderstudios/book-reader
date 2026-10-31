@@ -1,3 +1,8 @@
+## Eddi’s Lab v1.36 — 31 October 2026
+
+- Added a separate Spanish speech experiment at lab/spanish.html, with a browser-native Spanish voice check and a link to an independently hosted browser-based multilingual Kokoro demonstration. This does not yet integrate Spanish Kokoro into Eddi and does not claim the third-party test is verified on user devices.
+- Live reader and Lab Kokoro/Kitten engines unchanged.
+
 ## Eddi’s Lab v1.35 — 31 October 2026
 
 - Removed 26 non-English Kokoro voice entries from the Lab picker after an actual Mandarin test confirmed the installed Kokoro-82M-v1.0-ONNX model supports only 28 English voices. The eight Kitten voices remain.
