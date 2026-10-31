@@ -1,3 +1,7 @@
+## v1.12.164 — 31 October 2026
+
+- Hide the yellow optional “Speech may pause…” Smooth Listening warning in the desktop player. Narration status, buffering and controls are unaffected. Mobile warning is unchanged.
+
 ## Eddi’s Lab v1.34 — 31 October 2026
 
 - Kokoro test failures now include each backend's actual loading error instead of only “No compatible speech engine could start.” This makes it possible to distinguish unsupported voices, unavailable backends and model/network failures.
