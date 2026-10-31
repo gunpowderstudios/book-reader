@@ -1,3 +1,8 @@
+## Eddi’s Lab v1.32 — 31 October 2026
+
+- Expanded the Lab Kokoro dropdown from 28 English voices to the full published catalog of 54 voices, including Spanish, French, Hindi, Italian, Japanese, Brazilian Portuguese and Mandarin. The eight Kitten voices remain separate.
+- Non-English voices are available for experiments; the Lab's existing English test passages are not translations and pronunciation or runtime support is not yet verified across all languages. No live reader or player changes.
+
 ## Eddi’s Lab v1.31 — 31 October 2026
 
 - Expanded the main Lab voice dropdown to all 28 Kokoro voices currently listed by the live reader (British and American voices), plus all eight existing Kitten Nano voices.
