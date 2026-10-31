@@ -1,3 +1,7 @@
+## v1.12.177 — 31 October 2026
+
+- Space now pauses (and resumes) the reading at any time: from any page, and even when a button was the last thing you clicked (before, it did nothing then, and could press that button instead). It is still ignored while you type in a box. In Bedtime, Space pauses (or resumes) and also returns to the normal screen; any other key or Esc just returns, and the reading carries on.
+
 ## v1.12.176 — 31 October 2026
 
 - The Bedtime button on the player strip now reads "Bedtime (B)" so the keyboard shortcut is easy to find. The phone's own Bedtime button is unchanged, since phones have no keyboard.
