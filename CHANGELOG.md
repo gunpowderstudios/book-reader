@@ -1,3 +1,7 @@
+## Eddi’s Lab v1.37 — 31 October 2026
+
+- Fixed the Lab's visible heading being stuck on v1.30 despite updates. Synchronized the page title, visible heading, and diagnostic report version to v1.37.
+
 ## Eddi’s Lab v1.36 — 31 October 2026
 
 - Added a separate Spanish speech experiment at lab/spanish.html, with a browser-native Spanish voice check and a link to an independently hosted browser-based multilingual Kokoro demonstration. This does not yet integrate Spanish Kokoro into Eddi and does not claim the third-party test is verified on user devices.
