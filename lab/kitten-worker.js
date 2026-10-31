@@ -1,4 +1,4 @@
-/* E.D.D.i. Kitten EPUB Lab worker v1.6 — experimental on iOS Safari. */
+/* E.D.D.i. Kitten EPUB Lab worker v1.7 — explicit ONNX wasm path. */
 'use strict';
 self.window=self;
 let tts=null;
@@ -7,7 +7,7 @@ async function init(){
  if(tts)return;
  importScripts(sdk);
  if(!self.KittenTTSWeb?.KittenTTS)throw Error('KittenTTSWeb not exposed in worker');
- tts=await self.KittenTTSWeb.KittenTTS.create({model:'nano-int8',analytics:false});
+ tts=await self.KittenTTSWeb.KittenTTS.create({model:'nano-int8',analytics:false,ortWasmPath:'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/'});
 }
 self.onmessage=async function(event){
  const {id,type,text,voice}=event.data||{};
