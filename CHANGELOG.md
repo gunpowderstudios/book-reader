@@ -1,3 +1,7 @@
+## v1.12.175 — 31 October 2026
+
+- Press B on the keyboard to turn Bedtime on (black screen with the candle). Any key, including B or Esc, brings you back. It is ignored while you are typing in a box, and with Ctrl, Cmd or Alt held.
+
 ## v1.12.174 — 31 October 2026
 
 - Bench Test: new optional Graphics chip test, so we can see whether speech on the graphics chip is faster than the processor. It is a test only; the reader itself is unchanged.
