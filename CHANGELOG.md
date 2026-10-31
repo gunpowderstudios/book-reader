@@ -1,3 +1,7 @@
+## v1.12.176 — 31 October 2026
+
+- The Bedtime button on the player strip now reads "Bedtime (B)" so the keyboard shortcut is easy to find. The phone's own Bedtime button is unchanged, since phones have no keyboard.
+
 ## v1.12.175 — 31 October 2026
 
 - Press B on the keyboard to turn Bedtime on (black screen with the candle). Any key, including B or Esc, brings you back. It is ignored while you are typing in a box, and with Ctrl, Cmd or Alt held.
