@@ -78,6 +78,38 @@ function describeEngine(){
  if(eng.used==='fast')return eng.isolated?(n=>'using '+n+(n===1?' core':' cores'))(Math.min(4,Math.ceil((eng.cores||2)/2))):'one core only (multi-core is not active on this page)';
  return eng.threads>1?'using '+eng.threads+' cores':(coresWanted()&&!eng.isolated?'one core (extra cores need a page that is isolated, which this browser did not allow)':'one core');
 }
+/* v1.12.170: one honest progress figure for loading the voice. Real bytes drive the download part; the parts that cannot be measured
+   (starting the engine, preparing the voice, the first passage) creep forward and never go backwards, so the bar fills once, left to right. */
+let phaseSeen='idle',phaseAt=performance.now(),loadPct=0,progTimer=null,testAt=performance.now();
+const creep=(from,span,tau,t)=>from+span*(1-Math.exp(-t/tau));
+const engBusy=()=>['library','downloading','starting','voice'].includes(eng.phase)||(awaitingNarration&&eng.phase==='ready');
+function overallPct(){
+ const ph=(awaitingNarration&&eng.phase==='ready')?'first':eng.phase;
+ if(ph!==phaseSeen){
+  if(['library','downloading'].includes(ph)&&['idle','ready','error','first'].includes(phaseSeen))loadPct=0;
+  if(ph==='idle')loadPct=0;
+  phaseSeen=ph;phaseAt=performance.now();
+ }
+ const t=performance.now()-phaseAt;let p=0;
+ switch(ph){
+  case 'library':p=creep(1,7,2500,t);break;
+  case 'downloading':p=eng.total?8+72*Math.min(1,eng.loaded/eng.total):creep(8,30,8000,t);break;
+  case 'starting':p=creep(80,12,5000,t);break;
+  case 'voice':p=creep(92,6,3000,t);break;
+  case 'first':p=creep(94,5,4000,t);break;
+  case 'ready':case 'error':p=100;break;
+ }
+ loadPct=Math.max(loadPct,Math.min(ph==='ready'||ph==='error'?100:99,p));
+ return loadPct;
+}
+function paintTest(){
+ const track=$('test-loading-track'),m=$('test-loading-motion');if(!track||track.hidden||!m)return;
+ const p=testState==='loading'?overallPct():creep(10,85,3500,performance.now()-testAt);
+ track.dataset.det='1';m.style.setProperty('--pct',p.toFixed(1)+'%');track.setAttribute('aria-valuemin','0');track.setAttribute('aria-valuemax','100');track.setAttribute('aria-valuenow',String(Math.round(p)));
+}
+const testBusyNow=()=>testState==='loading'||testState==='generating';
+function tickProgress(){renderEngine();paintTest();if(!engBusy()&&!testBusyNow()&&progTimer){clearInterval(progTimer);progTimer=null}}
+const ensureProgTimer=()=>{if(!progTimer)progTimer=setInterval(tickProgress,250)};
 function renderEngine(){
  spinner(awaitingNarration||['library','downloading','starting','voice'].includes(eng.phase));
  const text=$('eng-text'),fill=$('eng-fill'),bar=$('eng-bar'),netEl=$('net-text');
@@ -99,8 +131,10 @@ function renderEngine(){
  if(awaitingNarration&&state==='ready'){msg='Preparing the first passage for playback…';state='starting';pct=0}
  if(eng.note)msg+=' — '+eng.note;
  if(text)text.textContent=named(msg);
- if(fill){fill.style.width=pct.toFixed(1)+'%'}
- if(bar){bar.dataset.state=state;if(['library','starting','voice'].includes(state)||(state==='downloading'&&!eng.total)){bar.removeAttribute('aria-valuenow');bar.setAttribute('aria-valuetext',named(msg))}else{bar.setAttribute('aria-valuenow',String(Math.round(pct)));bar.removeAttribute('aria-valuetext')}}
+ if(['library','downloading','starting','voice'].includes(state))pct=overallPct();
+ if(fill)fill.style.setProperty('width',pct.toFixed(1)+'%','important');
+ if(bar){bar.dataset.state=state;bar.dataset.det='1';bar.setAttribute('aria-valuenow',String(Math.round(pct)));bar.removeAttribute('aria-valuetext')}
+ if(engBusy())ensureProgTimer();
  if(netEl){
   let t='Downloaded by George this visit: '+fmtMB(eng.net);
   if(eng.phase==='ready'&&eng.net<1572864)t+=' — nothing new; he loaded from your browser’s saved copy';
@@ -418,9 +452,10 @@ function stop(){
 const testActive=()=>testState==='loading'||testState==='generating'||testState==='playing';
 function setTest(state,msg){
  spinner(['loading','generating'].includes(state));
+ if(state!==testState)testAt=performance.now();
  testState=state;
  const progress=$('test-loading-track');
- if(progress){const busy=state==='loading'||state==='generating';progress.hidden=!busy;progress.setAttribute('aria-valuetext',state==='loading'?'Loading voice model':'Generating voice sample');}
+ if(progress){const busy=state==='loading'||state==='generating';progress.hidden=!busy;progress.setAttribute('aria-valuetext',state==='loading'?'Loading voice model':'Generating voice sample');if(busy){paintTest();ensureProgTimer()}}
  const btn=$('test-play');if(btn){btn.textContent=state==='idle'||state==='error'?'▶ Play sample':'■ Stop';btn.dataset.state=state}
  const el=$('test-status');if(el){el.textContent=named(msg);el.dataset.state=state}
  status(msg);

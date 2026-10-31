@@ -1,3 +1,7 @@
+## v1.12.170 — 31 October 2026
+
+- A proper loading bar. The voice-loading bar (player, Settings, the phone strip and the Meet the Narrators sample) no longer slides back and forth over and over. It now fills once from left to right with a percentage: the real download drives the first part, and the steps that cannot be measured (starting the engine, preparing the voice, the first passage) move steadily forward and never go backwards. It reaches 100% when the voice is ready.
+
 ## v1.12.169 — 31 October 2026
 
 - Bedtime is back on the player strip (the 🕯 Bedtime button next to the controls). Press it and the whole screen goes black with the looping candle in the middle while the narration carries on. Press any key (Esc included), or tap, to return to the normal screen. The screen stays awake while it is on.
