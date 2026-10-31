@@ -1,3 +1,8 @@
+## Eddi’s Lab v1.34 — 31 October 2026
+
+- Kokoro test failures now include each backend's actual loading error instead of only “No compatible speech engine could start.” This makes it possible to distinguish unsupported voices, unavailable backends and model/network failures.
+- No changes to live Eddi, shared Kokoro worker, models or player.
+
 ## Eddi’s Lab v1.33 — 31 October 2026
 
 - Right-hand test transcript now fills available vertical space and shows all paragraphs at once; users can swipe/scroll and tap a passage to restart from there.
