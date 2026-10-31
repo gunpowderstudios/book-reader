@@ -1,3 +1,9 @@
+## v1.12.169 — 31 October 2026
+
+- Bedtime is back on the player strip (the 🕯 Bedtime button next to the controls). Press it and the whole screen goes black with the looping candle in the middle while the narration carries on. Press any key (Esc included), or tap, to return to the normal screen. The screen stays awake while it is on.
+- The phone's simple player has its own 🕯 Bedtime button under the progress line.
+- Fixed a missing closing tag in the page that stopped one whole block of its code from running: the Conan cover loader, the Free Books cover sync and the simple mobile player controls (Play button and Voice loading line). They now run.
+
 ## v1.12.168 — 31 October 2026
 
 - The page text now keeps the words being read in view. Fixed three things: (1) while you were on another page the text was being scrolled back to the top, so coming back to the book showed the wrong place; it now only follows the voice when the book is on screen, and jumps to the current words when you return. (2) After you touched or scrolled the text on a phone, following stopped for good, because the Back to reading button is hidden there; following now picks up again by itself after 12 seconds, and a simple tap no longer counts as scrolling away. (3) Back to reading still works as before on desktop.
