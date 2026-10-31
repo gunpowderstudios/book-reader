@@ -1,3 +1,8 @@
+## Eddi’s Lab v1.38 — 31 October 2026
+
+- Kitten Nano worker now passes an explicit ONNX Runtime Web wasm asset directory to its SDK to address “cannot determine the script source URL” during backend initialization. Device test needed; no claim of confirmed playback yet.
+- Live Eddi and the Kokoro engine remain unchanged.
+
 ## Eddi’s Lab v1.37 — 31 October 2026
 
 - Fixed the Lab's visible heading being stuck on v1.30 despite updates. Synchronized the page title, visible heading, and diagnostic report version to v1.37.
