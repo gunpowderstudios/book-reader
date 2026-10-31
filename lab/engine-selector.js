@@ -46,6 +46,10 @@ start.addEventListener('click',async e=>{
  const sentences=sample==='mobile'
  ? ['Welcome aboard Eddi. We are testing the Kitten voice engine on this device.']
  : ['Welcome aboard Eddi, your free AI book reader.','The adventure begins with a single page, a quiet room, and an extraordinary story.','Now we are listening for clear pronunciation, natural pacing, and any silence between passages.','This experiment runs inside Eddi’s Lab and does not change the live reader.'];
+ const skip=Math.min(sentences.length-1,Math.max(0,Number(window.eddiLabStartAt)||0));window.eddiLabStartAt=0;
+ const testLines=sentences.slice(skip),transcript=$('spoken-transcript');transcript.replaceChildren();
+ testLines.forEach((line,i)=>{const p=document.createElement('p');p.className='lab-passage';p.dataset.passage=i;p.tabIndex=0;p.setAttribute('role','button');p.setAttribute('aria-label','Play from paragraph '+(i+1));line.split(/\s+/).forEach(word=>{const w=document.createElement('span');w.className='word';w.textContent=word+' ';p.appendChild(w)});transcript.appendChild(p)});
+ if(!transcript.dataset.kittenClick){transcript.dataset.kittenClick='1';transcript.addEventListener('click',e=>{if(family.value!=='kitten')return;const p=e.target.closest('.lab-passage');if(!p)return;window.eddiLabStartAt=Number(p.dataset.passage)||0;stop.click();start.click()})}
  try{
   note('Loading Kitten Nano model and '+voiceName+' voice…');
   worker=new Worker('./kitten-worker.js');
@@ -55,19 +59,19 @@ start.addEventListener('click',async e=>{
   if(s.cancelled)return;
   note('Model ready. Generating speech…');
   const clips=[];
-  for(let i=0;i<sentences.length&&!s.cancelled;i++){
-   const t=performance.now(),result=await call('generate',sentences[i],voiceName);
+  for(let i=0;i<testLines.length&&!s.cancelled;i++){
+   const t=performance.now(),result=await call('generate',testLines[i],voiceName);
    if(s.cancelled)return;
    const url=URL.createObjectURL(new Blob([result.data],{type:'audio/wav'}));
    s.urls.push(url);clips.push(url);
-   note('Generated passage '+(i+1)+'/'+sentences.length+' in '+((performance.now()-t)/1000).toFixed(1)+'s');
+   note('Generated passage '+(i+1)+'/'+testLines.length+' in '+((performance.now()-t)/1000).toFixed(1)+'s');
   }
   if(s.cancelled)return;
   let index=0;
   const playNext=async()=>{
    if(s.cancelled)return;
    if(index>=clips.length){note('Test complete. All '+clips.length+' passages played.');reset();return}
-   audio.src=clips[index++];
+   audio.src=clips[index++];const p=transcript.querySelector('[data-passage="'+(index-1)+'"]');transcript.querySelectorAll('.lab-passage.active').forEach(x=>x.classList.remove('active'));if(p){p.classList.add('active');p.scrollIntoView({block:'nearest'})}const words=p?[...p.querySelectorAll('.word')]:[];audio.ontimeupdate=()=>{if(!audio.duration)return;const n=Math.min(words.length-1,Math.floor(audio.currentTime/audio.duration*words.length));words.forEach((w,i)=>w.className='word'+(i===n?' current':i<n?' read':''))};
    try{await audio.play();note('Playing passage '+index+' of '+clips.length)}catch(err){audio.controls=true;audio.style.display='block';note('Audio ready; tap Play on the fallback player to allow sound.')}
   };
   audio.onended=()=>{if(active===s)playNext()};
