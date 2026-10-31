@@ -32,6 +32,7 @@ textarea{width:100%;min-height:340px;background:#0c1512;color:var(--text);border
 <label><input type="checkbox" id="m-repeat" checked><span><b>Also time a repeat load</b> <span class="muted">(shows how quickly George starts once he is saved on the device)</span></span></label>
 <label><input type="checkbox" id="m-net" checked><span><b>Check the connection</b> <span class="muted">(a few small downloads, about 1 MB in all)</span></span></label>
 <label id="phone-ok-row" hidden><input type="checkbox" id="phone-ok"><span class="warn">I understand Fast mode could make this phone or tablet run out of memory and restart the page.</span></label>
+<p class="warn">For a fair result: close every other E.D.D.i. tab, plug the device in, and leave it alone while it runs.</p>
 <p class="muted">The first run of each voice may download a lot (the report says how much). Leave this page open and the screen awake until it finishes.</p>
 <div class="row"><button class="go" id="run">▶ Run the bench test</button><button id="stop" disabled>■ Stop</button></div>
 <div id="bar"><div id="fill"></div></div><div id="status">Ready.</div></section>
@@ -157,7 +158,7 @@ async function speedTest(w,mode){
   const t0=performance.now();const r=await gen(w,SENTENCES[i],NARRATOR,mode,++id);const wall=performance.now()-t0;
   if(!r.ok){put('    sentence '+(i+1)+': failed ('+r.error+')');return}
   audio+=r.sec;work+=r.ms;if(i===0)first=wall;
-  rows.push('    sentence '+(i+1)+': '+r.sec.toFixed(1)+' s of speech made in '+fmt(r.ms)+' ('+(r.sec/(r.ms/1000)).toFixed(1)+'x faster than listening)');
+  rows.push('    sentence '+(i+1)+': '+r.sec.toFixed(1)+' s of speech made in '+fmt(r.ms)+' ('+(r.sec/(r.ms/1000)).toFixed(1)+'x listening speed)');
  }
  rows.forEach(put);
  const warm=rows.length>1?'':'';

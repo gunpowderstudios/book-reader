@@ -1,3 +1,7 @@
+## v1.12.173 — 31 October 2026
+
+- Bench Test: clearer speed wording ("0.6x listening speed") and a reminder to close other E.D.D.i. tabs and plug in before running.
+
 ## v1.12.172 — 31 October 2026
 
 - New private Bench Test page in the Lab (Lab → "🔬 Bench test"). It runs the real voice engine and times each step of loading George (speech library, download, preparing the voice), a repeat load, how fast he speaks five sentences, the second voice used for quoted speech, and a quick check of the connection and device. It writes a plain report with a Copy button to paste into a chat. It tests Low Memory and Fast separately, and warns before running Fast on a phone. It does not change your library, reading position or saved settings.
