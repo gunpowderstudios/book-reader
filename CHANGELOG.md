@@ -1,3 +1,8 @@
+## Eddi’s Lab v1.35 — 31 October 2026
+
+- Removed 26 non-English Kokoro voice entries from the Lab picker after an actual Mandarin test confirmed the installed Kokoro-82M-v1.0-ONNX model supports only 28 English voices. The eight Kitten voices remain.
+- Kept the detailed engine error reporting. No live reader, worker or playback changes.
+
 ## v1.12.166 — 31 October 2026
 
 - Fixed desktop chapter selector still appearing: the player-only picker is now hidden by default directly on its element, and the existing mobile-only display override reveals it on phones/tablets. Left sidebar chapter navigation is unaffected.
