@@ -1,3 +1,7 @@
+## v1.12.179 — 31 October 2026
+
+- In Bedtime, Space now pauses (or resumes) the reading and Bedtime stays on, with the screen still black. Any other key, Esc, or a tap still returns to the normal screen.
+
 ## v1.12.178 — 31 October 2026
 
 - Tidy-up, nothing changes for you. Removed leftover code that pointed at a cloud-sync feature that was never built (two places in the page), an old unused copy of the phone page (mobile-beta-104.html) and a stray Mac .DS_Store file. Kept on purpose: the Lab, the archive copies, the Kitten files, the recovery page and the v13 capsule page, which are experiments or safety copies.
