@@ -1,3 +1,7 @@
+## v1.12.174 — 31 October 2026
+
+- Bench Test: new optional Graphics chip test, so we can see whether speech on the graphics chip is faster than the processor. It is a test only; the reader itself is unchanged.
+
 ## v1.12.173 — 31 October 2026
 
 - Bench Test: clearer speed wording ("0.6x listening speed") and a reminder to close other E.D.D.i. tabs and plug in before running.

@@ -29,9 +29,10 @@ textarea{width:100%;min-height:340px;background:#0c1512;color:var(--text);border
 <section class="card"><h2>1 / CHOOSE WHAT TO TEST</h2>
 <label><input type="checkbox" id="m-standard" checked><span><b>Low Memory</b> <span class="muted">(92 MB voice, one core)</span></span></label>
 <label><input type="checkbox" id="m-fast"><span><b>Fast</b> <span class="muted">(326 MB voice, several cores when the page allows)</span><br><span class="warn" id="fast-warn"></span></span></label>
+<label><input type="checkbox" id="m-gpu"><span><b>Graphics chip</b> <span class="muted">(326 MB voice, runs on the graphics chip; a test only, the reader does not use it)</span><br><span class="warn" id="gpu-warn"></span></span></label>
 <label><input type="checkbox" id="m-repeat" checked><span><b>Also time a repeat load</b> <span class="muted">(shows how quickly George starts once he is saved on the device)</span></span></label>
 <label><input type="checkbox" id="m-net" checked><span><b>Check the connection</b> <span class="muted">(a few small downloads, about 1 MB in all)</span></span></label>
-<label id="phone-ok-row" hidden><input type="checkbox" id="phone-ok"><span class="warn">I understand Fast mode could make this phone or tablet run out of memory and restart the page.</span></label>
+<label id="phone-ok-row" hidden><input type="checkbox" id="phone-ok"><span class="warn">I understand Fast mode or the graphics chip test could make this phone or tablet run out of memory and restart the page.</span></label>
 <p class="warn">For a fair result: close every other E.D.D.i. tab, plug the device in, and leave it alone while it runs.</p>
 <p class="muted">The first run of each voice may download a lot (the report says how much). Leave this page open and the screen awake until it finishes.</p>
 <div class="row"><button class="go" id="run">▶ Run the bench test</button><button id="stop" disabled>■ Stop</button></div>
@@ -68,7 +69,8 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function startLag(){lagMax=0;let last=performance.now();clearInterval(lagTimer);lagTimer=setInterval(()=>{const n=performance.now(),d=n-last-100;if(d>lagMax)lagMax=d;last=n},100)}
 function stopLag(){clearInterval(lagTimer);return Math.round(lagMax)}
 
-if(isMobile){$('phone-ok-row').hidden=false;$('fast-warn').textContent='On a phone or tablet this is the heavy setting. Only test it if you want to.'}
+if(isMobile){$('phone-ok-row').hidden=false;$('fast-warn').textContent='On a phone or tablet this is the heavy setting. Only test it if you want to.';$('gpu-warn').textContent='Also heavy on a phone or tablet. Only test it if you want to.'}
+if(!navigator.gpu)$('gpu-warn').textContent=($('gpu-warn').textContent+' This browser says it has no graphics chip support, so this will probably fail.').trim();
 else{$('m-fast').checked=true}
 
 async function deviceInfo(){
@@ -151,7 +153,7 @@ function gen(w,text,voice,mode,id){
 }
 async function speedTest(w,mode){
  put('  Speaking speed (George reading 5 sentences):');
- let id=1000*(mode==='fast'?2:1);const rows=[];let audio=0,work=0,first=0;
+ let id=1000*({standard:1,fast:2,gpu:3}[mode]||4);const rows=[];let audio=0,work=0,first=0;
  for(let i=0;i<SENTENCES.length;i++){
   if(stopping)return;
   status('Speed test, sentence '+(i+1)+' of '+SENTENCES.length+'…');
@@ -183,6 +185,7 @@ async function testMode(mode,label,total,doneRef){
  put('  Downloaded: '+mb(r.net)+(wasSaved?' — nothing new, loaded from the browser\'s saved copy, so this is already a "repeat" timing':' — a real download'));
  put('  Cores used by George: '+(r.threads||1)+' of '+(r.cores||'?')+' · multi-core active: '+(r.isolated?'yes':'no'));
  if(performance.memory)put('  Page memory after loading: '+mb(performance.memory.usedJSHeapSize)+' of JavaScript heap (Chrome only; the voice engine itself is not included)');
+ if(mode==='gpu')put('  Note: on the graphics chip the first sentence includes some one-off set-up, so judge it by the later sentences.');
  if(mode==='fast'&&!r.isolated)put('  Note: Fast mode ran on ONE core because this page is not multi-core ready. The main reader page will reload itself once to get multi-core; this page does not, so Fast speed here may look worse than in the reader.');
  try{await speedTest(a.w,mode)}catch(e){put('  Speed test stopped: '+e.message)}
  const lag=stopLag();
@@ -206,6 +209,10 @@ $('run').onclick=async()=>{
  if($('m-fast').checked){
   if(isMobile&&!$('phone-ok').checked){alert('Tick the box about Fast mode on a phone first, or untick Fast.');return}
   modes.push(['fast','Fast (326 MB voice)']);
+ }
+ if($('m-gpu').checked){
+  if(isMobile&&!$('phone-ok').checked){alert('Tick the box about heavy modes on a phone first, or untick Graphics chip.');return}
+  modes.push(['gpu','Graphics chip (326 MB voice)']);
  }
  if(!modes.length&&!$('m-net').checked){alert('Choose at least one thing to test.');return}
  running=true;stopping=false;out=[];$('run').disabled=true;$('stop').disabled=false;$('copied').textContent='';
