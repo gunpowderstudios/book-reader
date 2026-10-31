@@ -1,3 +1,7 @@
+## v1.12.168 — 31 October 2026
+
+- The page text now keeps the words being read in view. Fixed three things: (1) while you were on another page the text was being scrolled back to the top, so coming back to the book showed the wrong place; it now only follows the voice when the book is on screen, and jumps to the current words when you return. (2) After you touched or scrolled the text on a phone, following stopped for good, because the Back to reading button is hidden there; following now picks up again by itself after 12 seconds, and a simple tap no longer counts as scrolling away. (3) Back to reading still works as before on desktop.
+
 ## v1.12.167 — 31 October 2026
 
 - Desktop voice loading: the voice no longer starts warming up in the background while the page is about to restart itself for multi-core speed (it does this on the first visit, after a hard refresh, or if the browser has cleared its saved helper). The restart used to throw away a half-finished voice download, so loading took twice as long. The voice now waits for the restart and then loads once. Phones and tablets are unchanged.
