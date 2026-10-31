@@ -1,3 +1,7 @@
+## v1.12.167 — 31 October 2026
+
+- Desktop voice loading: the voice no longer starts warming up in the background while the page is about to restart itself for multi-core speed (it does this on the first visit, after a hard refresh, or if the browser has cleared its saved helper). The restart used to throw away a half-finished voice download, so loading took twice as long. The voice now waits for the restart and then loads once. Phones and tablets are unchanged.
+
 ## Eddi’s Lab v1.38 — 31 October 2026
 
 - Kitten Nano worker now passes an explicit ONNX Runtime Web wasm asset directory to its SDK to address “cannot determine the script source URL” during backend initialization. Device test needed; no claim of confirmed playback yet.

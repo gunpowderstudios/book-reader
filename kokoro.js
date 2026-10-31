@@ -723,7 +723,12 @@ function showRecommendation(){
 try{const bar=document.getElementById('playback-panel'),hint=document.getElementById('speed-hint');if(bar&&hint&&!bar.contains(hint)){hint.style.cssText='text-align:center;margin:6px 12px 0;font-size:14px';bar.insertBefore(hint,bar.firstChild)}}catch(_){}
 window.addEventListener('pagehide',()=>store.set('cv-trying',''));
 /* v1.12.131: on computers (not phones or tablets) the voice engine warms up in the background when the page opens, if it is already installed, so Play is near-instant. Phones and tablets still wait for Play (v1.12.100). */
-setTimeout(()=>{try{if(!mobileDevice()&&installed()&&!worker&&!readyPromise&&!(navigator.connection&&navigator.connection.saveData))ready().catch(()=>{})}catch(_){}},1500);
+/* v1.12.167: but never while the page is about to reload for multi-core (Fast mode): a reload would throw away a half-finished voice download and start it again. */
+setTimeout(()=>{try{
+ let coi='';try{coi=sessionStorage.getItem('cv-coi')||''}catch(_){}
+ const reloadComing=mode==='fast'&&!isolated()&&coi!=='failed'&&coi!=='unsupported'&&!!window.cvIsolation;
+ if(!mobileDevice()&&installed()&&!reloadComing&&!worker&&!readyPromise&&!(navigator.connection&&navigator.connection.saveData))ready().catch(()=>{});
+}catch(_){}},1500);
 /* Compact skip controls: seek precisely within the current WAV clip.
    When a 30-second jump crosses a clip boundary, choose the closest
    paragraph using a reading-duration estimate and restart narration. */
