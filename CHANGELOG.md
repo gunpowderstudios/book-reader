@@ -1,3 +1,7 @@
+## v1.12.165 — 31 October 2026
+
+- Hid the duplicate chapter picker in the desktop playback strip. Desktop chapter navigation remains in the left sidebar; mobile chapter selection is unchanged.
+
 ## v1.12.164 — 31 October 2026
 
 - Hide the yellow optional “Speech may pause…” Smooth Listening warning in the desktop player. Narration status, buffering and controls are unaffected. Mobile warning is unchanged.
