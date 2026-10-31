@@ -1,3 +1,7 @@
+## v1.12.178 — 31 October 2026
+
+- Tidy-up, nothing changes for you. Removed leftover code that pointed at a cloud-sync feature that was never built (two places in the page), an old unused copy of the phone page (mobile-beta-104.html) and a stray Mac .DS_Store file. Kept on purpose: the Lab, the archive copies, the Kitten files, the recovery page and the v13 capsule page, which are experiments or safety copies.
+
 ## v1.12.177 — 31 October 2026
 
 - Space now pauses (and resumes) the reading at any time: from any page, and even when a button was the last thing you clicked (before, it did nothing then, and could press that button instead). It is still ignored while you type in a box. In Bedtime, Space pauses (or resumes) and also returns to the normal screen; any other key or Esc just returns, and the reading carries on.
