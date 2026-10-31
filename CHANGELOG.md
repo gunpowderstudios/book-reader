@@ -1,3 +1,9 @@
+## Eddi’s Lab v1.33 — 31 October 2026
+
+- Right-hand test transcript now fills available vertical space and shows all paragraphs at once; users can swipe/scroll and tap a passage to restart from there.
+- Approximate word highlighting follows the currently playing passage in Kokoro or Kitten. Manually scrolling suspends Kokoro auto-follow, without stopping audio.
+- Lab-only experimental update; live Eddi unchanged.
+
 ## Eddi’s Lab v1.32 — 31 October 2026
 
 - Expanded the Lab Kokoro dropdown from 28 English voices to the full published catalog of 54 voices, including Spanish, French, Hindi, Italian, Japanese, Brazilian Portuguese and Mandarin. The eight Kitten voices remain separate.
