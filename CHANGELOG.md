@@ -1,3 +1,7 @@
+## v1.12.166 — 31 October 2026
+
+- Fixed desktop chapter selector still appearing: the player-only picker is now hidden by default directly on its element, and the existing mobile-only display override reveals it on phones/tablets. Left sidebar chapter navigation is unaffected.
+
 ## v1.12.165 — 31 October 2026
 
 - Hid the duplicate chapter picker in the desktop playback strip. Desktop chapter navigation remains in the left sidebar; mobile chapter selection is unchanged.
