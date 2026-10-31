@@ -4,7 +4,7 @@
 const $=id=>document.getElementById(id);
 const family=$('lab-family'),voice=$('stream-voice'),mode=$('stream-engine'),start=$('stream-start'),stop=$('stream-stop'),audio=$('stream-player');
 if(!family||!voice||!start||!stop||!audio)return;
-const kokoro=[...voice.options].map(o=>[o.value,o.textContent]);
+const kokoro=[["bf_emma","British Female — Emma"],["bf_isabella","British Female — Isabella"],["bf_alice","British Female — Alice"],["bf_lily","British Female — Lily"],["bm_george","British Male — George"],["bm_fable","British Male — Fable"],["bm_lewis","British Male — Lewis"],["bm_daniel","British Male — Daniel"],["af_heart","American Female — Heart"],["af_bella","American Female — Bella"],["af_nicole","American Female — Nicole"],["af_aoede","American Female — Aoede"],["af_kore","American Female — Kore"],["af_sarah","American Female — Sarah"],["af_alloy","American Female — Alloy"],["af_nova","American Female — Nova"],["af_sky","American Female — Sky"],["af_jessica","American Female — Jessica"],["af_river","American Female — River"],["am_michael","American Male — Michael"],["am_fenrir","American Male — Fenrir"],["am_puck","American Male — Puck"],["am_eric","American Male — Eric"],["am_echo","American Male — Echo"],["am_liam","American Male — Liam"],["am_onyx","American Male — Onyx"],["am_adam","American Male — Adam"],["am_santa","American Male — Santa"]];
 const kitten=['bella','jasper','luna','bruno','rosie','hugo','kiki','leo'];
 const modeField=mode.closest('.test-field');
 const status=document.createElement('p');status.id='kitten-lab-status';status.className='muted';status.setAttribute('role','status');start.parentElement.after(status);
@@ -29,7 +29,7 @@ function choose(){
  reset();
  const selected=family.value;
  voice.replaceChildren(...(selected==='kitten'?kitten.map(v=>new Option(v[0].toUpperCase()+v.slice(1),v)):kokoro.map(([v,label])=>new Option(label,v))));
- voice.value=selected==='kitten'?'rosie':kokoro[0][0];
+ voice.value=selected==='kitten'?'rosie':'bm_george';
  if(modeField)modeField.hidden=selected==='kitten';
  note(selected==='kitten'?'Kitten Nano selected. Press Test Live E.D.D.i. to load the engine and hear its voice.':'Kokoro selected. Existing diagnostics and voice tests are available.');
 }
