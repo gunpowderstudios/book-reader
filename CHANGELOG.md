@@ -1,3 +1,7 @@
+## v1.12.206 — 1 November 2026
+
+- Mobile welcome: "Try anyway" now takes you to My Library.
+
 ## v1.12.205 — 1 November 2026
 
 - Mobile welcome message now says: "E.D.D.i is still learning about mobiles and he works better when plugged in…", with the button "Try anyway".
