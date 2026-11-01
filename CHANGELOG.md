@@ -1,3 +1,7 @@
+## v1.12.207 — 1 November 2026
+
+- Removed the Bedtime feature everywhere (the button on the player, the Bedtime button on the phone play strip, the B shortcut and the black candle screen). Space still pauses and resumes. The phone strip now just has the Back to E.D.D.i button.
+
 ## v1.12.206 — 1 November 2026
 
 - Mobile welcome: "Try anyway" now takes you to My Library.
