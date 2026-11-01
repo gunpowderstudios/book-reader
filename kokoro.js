@@ -229,15 +229,47 @@ function onWorkerMessage(w,m){
  }
  armWatchdog();
 }
+/* v1.12.187: some browsers (Safari on a Mac) refuse to load the worker script from the page when it is set up for multi-core.
+   A worker made from a copy of the same script inherits the page's settings and loads fine, so it is tried automatically. */
+let blobUrl=null,blobTried=false,lastInit=null;
+function leaveIsolation(){ /* last resort: give up multi-core on this browser, stay on Low Memory, and reload once */
+ try{
+  if(store.get('cv-no-coi','')==='1'||navigator.onLine===false||mobileDevice()||!('serviceWorker' in navigator))return false;
+  store.set('cv-no-coi','1');store.set('cv-auto-fallback','standard');
+  navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{}).then(()=>setTimeout(()=>location.reload(),300));
+  return true;
+ }catch(_){return false}
+}
+function wireWorker(w){
+ w.onmessage=ev=>onWorkerMessage(w,ev.data||{});
+ w.onerror=ev=>{
+  if(w!==worker)return;if(ev&&ev.preventDefault)ev.preventDefault();
+  if(!(ev&&ev.message)){ /* the script itself did not load */
+   if(!blobTried&&lastInit){blobTried=true;retryAsBlob();return}
+   if(isolated()&&leaveIsolation()){eng.note='multi-core is not available in this browser, so the page is restarting on Low Memory';renderEngine();return}
+  }
+  failWorker(new Error('George could not start'+(ev&&ev.message?': '+ev.message:' (the worker script failed to load).')));
+ };
+ w.onmessageerror=()=>{if(w===worker)failWorker(new Error('George sent data the page could not read.'))};
+}
+async function retryAsBlob(){
+ try{
+  if(!blobUrl){const src=await (await fetch('kokoro-worker.js?v='+VERSION)).text();blobUrl=URL.createObjectURL(new Blob([src],{type:'text/javascript'}))}
+  const old=worker,w2=new Worker(blobUrl,{type:'module'});
+  worker=w2;try{if(old)old.terminate()}catch(_){}
+  wireWorker(w2);w2.postMessage(lastInit);armWatchdog();
+ }catch(e){
+  if(isolated()&&leaveIsolation()){eng.note='multi-core is not available in this browser, so the page is restarting on Low Memory';renderEngine();return}
+  failWorker(new Error('George could not start (the worker script failed to load).'));
+ }
+}
 function startWorker(){
  if(worker)return worker;
  let w;
- try{w=new Worker('kokoro-worker.js?v='+VERSION,{type:'module'})}
+ try{w=new Worker(blobUrl||('kokoro-worker.js?v='+VERSION),{type:'module'})}
  catch(e){throw new Error('This browser cannot run George in the background (module Web Workers are not supported).')}
- w.onmessage=ev=>onWorkerMessage(w,ev.data||{});
- w.onerror=ev=>{if(w!==worker)return;if(ev&&ev.preventDefault)ev.preventDefault();failWorker(new Error('George could not start'+(ev&&ev.message?': '+ev.message:' (the worker script failed to load).')))};
- w.onmessageerror=()=>{if(w===worker)failWorker(new Error('George sent data the page could not read.'))};
- return worker=w;
+ worker=w;wireWorker(w);
+ return w;
 }
 function ready(){
  if(readyPromise)return readyPromise;
@@ -251,7 +283,7 @@ function ready(){
  renderEngine();
 if((runMode||mode)!=='standard')store.set('cv-trying',runMode||mode);
 else if(coresWanted())store.set('cv-cores-trying','1');
- readyPromise=new Promise((resolve,reject)=>{initWaiter={resolve,reject};w.postMessage({type:'init',voice:currentVoice(),mode:runMode||mode,extraCores:coresWanted()})});
+ readyPromise=new Promise((resolve,reject)=>{initWaiter={resolve,reject};lastInit={type:'init',voice:currentVoice(),mode:runMode||mode,extraCores:coresWanted()};w.postMessage(lastInit)});
  readyPromise.catch(()=>{});
  armWatchdog();
  return readyPromise;

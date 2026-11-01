@@ -1,3 +1,9 @@
+## v1.12.187 — 1 November 2026
+
+- Fix for Safari on a Mac showing "George could not start (the worker script failed to load)". When Safari refuses to load the voice's background script on a page set up for multi-core, E.D.D.i now loads a copy of the same script instead, which Safari accepts. If even that fails, it gives up on multi-core for that browser, switches to Low Memory and restarts the page once, instead of showing an error. Chrome is unchanged: its normal path is tried first.
+- Removed the manual "Low Memory: use extra processor cores (test…)" option from Settings, since the best setting is now chosen automatically. (It is hidden, not deleted, so anyone who had switched it on keeps what they had.)
+- Not tested in real Safari: the sandbox has only Chrome. Tested here by blocking the normal script load so the fallback has to be used.
+
 ## v1.12.186 — 1 November 2026
 
 - E.D.D.i can now read many more kinds of document. Besides EPUB, PDF and text files, you can upload Word (.docx), OpenDocument (.odt), Rich Text (.rtf), Markdown (.md), web pages (.html, .htm) and FictionBook (.fb2) files. Each is saved to My Library with a picture and a coloured label (PDF, DOCX, ODT, RTF, MD, HTML, FB2, TXT).
