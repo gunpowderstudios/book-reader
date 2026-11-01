@@ -1,3 +1,7 @@
+## v1.12.205 — 1 November 2026
+
+- Mobile welcome message now says: "E.D.D.i is still learning about mobiles and he works better when plugged in…", with the button "Try anyway".
+
 ## v1.12.204 — 1 November 2026
 
 - Phone play strip: "← Back to E.D.D.i" now sits on the left of "🕯 Bedtime", both on one line.
