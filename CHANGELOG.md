@@ -1,3 +1,7 @@
+## v1.12.188 — 1 November 2026
+
+- The line under Upload now says which kinds of file E.D.D.i can read (EPUB, PDF, Word .docx, text, Markdown, web page, RTF, ODT and FB2) and that scanned PDFs won't work.
+
 ## v1.12.187 — 1 November 2026
 
 - Fix for Safari on a Mac showing "George could not start (the worker script failed to load)". When Safari refuses to load the voice's background script on a page set up for multi-core, E.D.D.i now loads a copy of the same script instead, which Safari accepts. If even that fails, it gives up on multi-core for that browser, switches to Low Memory and restarts the page once, instead of showing an error. Chrome is unchanged: its normal path is tried first.
