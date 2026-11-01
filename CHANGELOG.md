@@ -1,3 +1,7 @@
+## v1.12.212 — 1 November 2026
+
+- Removed the private Voice Trial page from the Lab. Kokoro stays as the only voice. (The Bench test page is still there.)
+
 ## v1.12.211 — 1 November 2026
 
 - Phone: "Back to E.D.D.i" now returns to My Library without reloading the page, and stops the narration. (Reloading could show an empty library until you refreshed.)
