@@ -1,3 +1,7 @@
+## v1.12.211 — 1 November 2026
+
+- Phone: "Back to E.D.D.i" now returns to My Library without reloading the page, and stops the narration. (Reloading could show an empty library until you refreshed.)
+
 ## v1.12.210 — 1 November 2026
 
 - Phone reading screen: the book's name now shows at the top in small E.D.D.i green.
