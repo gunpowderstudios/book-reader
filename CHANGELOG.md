@@ -1,3 +1,7 @@
+## v1.12.210 — 1 November 2026
+
+- Phone reading screen: the book's name now shows at the top in small E.D.D.i green.
+
 ## v1.12.209 — 1 November 2026
 
 - Phones and tablets: the screen now stays awake while E.D.D.i is reading aloud, so it doesn't dim and lock and stop the voice. It lets go as soon as you pause. (Locking the phone yourself can still stop it on some phones.)
