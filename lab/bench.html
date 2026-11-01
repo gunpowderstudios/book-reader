@@ -23,7 +23,7 @@ textarea{width:100%;min-height:340px;background:#0c1512;color:var(--text);border
 .warn{color:#ffd37a;font-size:14px}
 </style></head><body><main>
 <a href="./">← Back to the Lab</a>
-<h1>🔬 E.D.D.i. Bench Test <span class="sub">v1.0 · private</span></h1>
+<h1>🔬 E.D.D.i. Bench Test <span class="sub">v1.1 · private</span></h1>
 <p class="sub">Measures how this device really loads and speaks with George, then writes a plain report you can copy and paste to Claude or GPT. It uses the real voice engine from the main page, but it does not change your reading, your library or your saved settings.</p>
 
 <section class="card"><h2>1 / CHOOSE WHAT TO TEST</h2>
@@ -38,6 +38,11 @@ textarea{width:100%;min-height:340px;background:#0c1512;color:var(--text);border
 <div class="row"><button class="go" id="run">▶ Run the bench test</button><button id="stop" disabled>■ Stop</button></div>
 <div id="bar"><div id="fill"></div></div><div id="status">Ready.</div></section>
 
+<section class="card"><h2>1b / SCREEN-LOCK TEST (phones and tablets)</h2>
+<p class="muted">Finds out whether George keeps talking when the screen goes dark. Press the button, wait for the voice to start, then <b>lock your phone</b> (side button), wait about 40 seconds, unlock it and come back to this page. It runs for 90 seconds in all.</p>
+<label><input type="checkbox" id="lock-wake"><span>Ask the phone to keep the screen awake (what the reader now does). Leave this <b>unticked</b> to test the plain screen-lock case.</span></label>
+<div class="row"><button class="go" id="run-lock">▶ Run the screen-lock test</button></div></section>
+
 <section class="card"><h2>2 / REPORT</h2>
 <p class="muted">Updates as it runs. Press Copy, then paste it into the chat.</p>
 <textarea id="report" readonly spellcheck="false">Nothing yet. Press Run.</textarea>
@@ -46,7 +51,7 @@ textarea{width:100%;min-height:340px;background:#0c1512;color:var(--text);border
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
-const BENCH_VERSION='1.0';
+const BENCH_VERSION='1.1';
 const NARRATOR='bm_george',DIALOGUE='bm_fable';
 const MODEL_BASE='https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/main/';
 const SENTENCES=[
@@ -227,6 +232,46 @@ $('run').onclick=async()=>{
   status(stopping?'Stopped.':'Finished. Press Copy report.',100);
  }catch(e){put('');put('The bench test hit an error: '+(e&&e.message||e));status('Error — see the report.',100)}
  finally{try{if(worker)worker.terminate()}catch(_){}worker=null;stopLag();running=false;$('run').disabled=false;$('stop').disabled=true}
+};
+
+/* Screen-lock test: does narration carry on when the page is hidden or the phone locks? */
+$('run-lock').onclick=async()=>{
+ if(running)return;
+ running=true;stopping=false;out=[];$('run').disabled=true;$('run-lock').disabled=true;$('stop').disabled=false;$('copied').textContent='';
+ const T=90000;let ctxA=null,wl=null,w=null;const ev=[],clips=[];let t0=0;
+ const at=()=>((performance.now()-t0)/1000).toFixed(0)+'s';
+ try{
+  await deviceInfo();put('');put('— SCREEN-LOCK TEST (Low Memory voice, 90 s) —');
+  put('Screen kept awake by the page: '+($('lock-wake').checked?'asked for':'no'));
+  status('Starting the voice… (keep this page open)',5);
+  const a=await loadVoice('standard');if(!a.res.ok)throw Error(a.res.error);w=a.w;
+  ctxA=new (window.AudioContext||window.webkitAudioContext)();await ctxA.resume().catch(()=>{});
+  if($('lock-wake').checked&&'wakeLock' in navigator){try{wl=await navigator.wakeLock.request('screen');put('Screen-awake request: granted')}catch(e){put('Screen-awake request: refused ('+e.name+')')}}
+  else if($('lock-wake').checked)put('Screen-awake request: not supported by this browser');
+  t0=performance.now();let nextT=ctxA.currentTime+0.2,id=9000,i=0,lastState=ctxA.state;
+  const onVis=()=>ev.push(at()+' page '+document.visibilityState);document.addEventListener('visibilitychange',onVis);
+  ctxA.onstatechange=()=>{ev.push(at()+' audio '+ctxA.state)};
+  status('Speaking… now lock the phone, wait about 40 seconds, then unlock.',20);
+  while(performance.now()-t0<T&&!stopping){
+   const text=SENTENCES[i++%SENTENCES.length];
+   const r=await new Promise(res=>{const h=m=>{const d=m.data||{};if(d.id!==id)return;if(d.type==='audio'){w.removeEventListener('message',h);res(d)}else if(d.type==='error'){w.removeEventListener('message',h);res(null)}};w.addEventListener('message',h);w.postMessage({type:'generate',id,text,voice:NARRATOR,speed:1,mode:'standard'})});
+   id++;if(!r)break;
+   const buf=ctxA.createBuffer(1,r.samples.length,r.rate);buf.copyToChannel(r.samples,0);const src=ctxA.createBufferSource();src.buffer=buf;src.connect(ctxA.destination);
+   nextT=Math.max(nextT,ctxA.currentTime+0.05);src.start(nextT);nextT+=buf.duration;
+   clips.push({t:performance.now()-t0,hidden:document.visibilityState==='hidden',state:ctxA.state,sec:buf.duration});
+   status('Speaking… '+at()+' of 90s',20+70*(performance.now()-t0)/T);
+   while(nextT-ctxA.currentTime>8&&performance.now()-t0<T&&!stopping)await sleep(300);
+  }
+  document.removeEventListener('visibilitychange',onVis);
+  const total=clips.length,hid=clips.filter(c=>c.hidden);
+  put('Passages made: '+total+' ('+clips.reduce((x,c)=>x+c.sec,0).toFixed(0)+' s of speech)');
+  put('Passages made while the page was hidden or locked: '+hid.length);
+  let gap=0;for(let k=1;k<clips.length;k++)gap=Math.max(gap,clips[k].t-clips[k-1].t);put('Longest wait between passages: '+(gap/1000).toFixed(1)+' s');
+  put('Audio state at the end: '+ctxA.state);
+  put('What happened, in order:');(ev.length?ev:['(the page was never hidden — did you lock the phone?)']).forEach(l=>put('  '+l));
+  put('Verdict: '+(hid.length===0&&ev.length===0?'no lock happened, so nothing to judge.':hid.length>0&&gap<15000&&ctxA.state==='running'?'George kept working while the page was hidden.':'George slowed or stopped while the page was hidden.'));
+ }catch(e){put('');put('The screen-lock test hit an error: '+(e&&e.message||e))}
+ finally{try{if(wl)await wl.release()}catch(_){}try{if(ctxA)await ctxA.close()}catch(_){}try{if(w)w.terminate()}catch(_){}try{if(worker)worker.terminate()}catch(_){}worker=null;put('');put('— END —');status('Finished. Press Copy report.',100);running=false;$('run').disabled=false;$('run-lock').disabled=false;$('stop').disabled=true}
 };
 $('stop').onclick=()=>{stopping=true;try{if(worker)worker.terminate()}catch(_){}cancels.forEach(f=>f());cancels.clear();status('Stopping…')};
 $('copy').onclick=async()=>{
