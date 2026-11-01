@@ -1,3 +1,7 @@
+## v1.12.185 — 1 November 2026
+
+- The green button in My Library now just says "Upload".
+
 ## v1.12.184 — 1 November 2026
 
 - The line under "Upload your own book" now says "Choose a book or document from your device." (it used to say DRM-free EPUB only, but PDF and text files work too).
