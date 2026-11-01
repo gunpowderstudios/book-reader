@@ -234,4 +234,4 @@ $('copy').onclick=async()=>{
  try{await navigator.clipboard.writeText(t);$('copied').textContent='Copied.'}
  catch(_){const ta=$('report');ta.removeAttribute('readonly');ta.select();ta.setSelectionRange(0,1e9);try{document.execCommand('copy');$('copied').textContent='Copied.'}catch(e){$('copied').textContent='Press and hold in the box, then choose Copy.'}ta.setAttribute('readonly','')}
 };
-</script></body></html>
+</script><script src="../site-footer.js" defer></script></body></html>
