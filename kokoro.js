@@ -12,7 +12,7 @@ const named=s=>String(s).replaceAll('George',narratorName());
 const MODES={
  standard:{label:'Low Memory',mb:92},
  fast:{label:'Fast',mb:326},
- gpu:{label:'Graphics chip (experimental)',mb:326}
+ gpu:{label:'Graphics chip',mb:326}
 };
 const MAX_TEST_CHARS=300;            /* keeps a sample well inside Kokoro's ~510-token limit */
 const CACHE_MAX_BYTES=(/iPad/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)?8:(/iPhone|iPod|Android/i.test(navigator.userAgent)?16:48))*1024*1024; /* temporary speech clips, not voice models */
@@ -334,6 +334,8 @@ function noteGen(audioSec,genSec){
  recent.push({a:audioSec,g:genSec});if(recent.length>8)recent.shift();
  let A=0,G=0;for(const r of recent){A+=r.a;G+=r.g}lastSpeed=G>0?A/G:0;
  try{store.set('cv-measured-'+(eng.used||mode),String(lastSpeed))}catch(_){}
+ /* v1.12.200: if the graphics chip turns out slower than listening speed on this device, Automatic uses Fast from the next visit */
+ if(eng.used==='gpu'&&preference==='auto'&&recent.length>=4&&lastSpeed<1&&store.get('cv-auto-fallback','')===''){store.set('cv-auto-fallback','fast')}
 }
 const cache=new Map();let cacheBytes=0;
 function cacheGet(k){const v=cache.get(k);if(v){cache.delete(k);cache.set(k,v)}return v}
