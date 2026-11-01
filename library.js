@@ -145,7 +145,7 @@ function renderMobileCurrentBook(){
   if(latest.author)details.append(el('p','eddi-current-author',latest.author));
   const go=el('button','','▶ Continue reading');
   go.type='button';
-  go.onclick=()=>window.chapterApp?.openFromLibrary(latest.id);
+  go.onclick=async()=>{const app=window.chapterApp;if(!app)return;go.disabled=true;try{await app.openFromLibrary(latest.id);if(app.state?.key===latest.id&&app.state.chapters?.length&&!app.state.playing)document.getElementById('play')?.click()}finally{go.disabled=false}};
   details.append(go);
   host.append(cover,details);
  }
