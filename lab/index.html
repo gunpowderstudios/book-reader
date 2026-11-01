@@ -15,7 +15,7 @@
 <p class="muted"><span class="hero-note">Recommended first test on any device.</span> Our main diagnostic: hear Emma or Lewis while the device prepares the next passage. Measures initial loading, generation speed and audible playback gaps. Uses E.D.D.i.'s welcome tour aboard The Norwood, rather than a loaded EPUB.</p>
 <div class="test-workspace">
  <div class="test-controls">
-  <div class="test-field"><label for="lab-family">Voice engine</label><select id="lab-family"><option value="kokoro">Kokoro (best for desktop and laptops)</option><option value="kitten">Kitten (best for mobile and tablets)</option></select></div>
+  
   <div class="test-field"><label for="stream-voice">Voice</label><select id="stream-voice"><option value="bf_emma">Emma</option><option value="bm_lewis">Lewis</option></select></div>
   <div class="test-field"><label for="stream-engine">Kokoro processing mode</label><select id="stream-engine"><option value="auto">Automatic (recommended)</option><option value="native">Device voice (older iPad · no AI download)</option><option value="standard">Standard (low memory · q8)</option><option value="q4">Q4 CPU (new experiment)</option><option value="compact">Compact CPU (q4f16 · broken audio, avoid)</option><option value="fast">Fast CPU</option><option value="gpu">GPU (unlimited look-ahead)</option><option value="gpu-limited">GPU (3 passages ahead · experiment)</option></select><small class="muted">On iPhone, test Q4 CPU with Mobile benchmark A. q4f16 produced invalid silent audio and should not be used. Standard remains the known-working option.</small></div>
   <div class="test-field"><label for="stream-chapter">Test chapter</label><select id="stream-chapter"><option value="long">The Norwood full tour · 12 passages (recommended)</option><option value="short">The Norwood welcome · 6 passages</option><option value="mobile">Mobile quick test · 1 short sentence</option><option value="bench-full">Mobile benchmark A · 1 full paragraph</option><option value="bench-chunks">Mobile benchmark B · same paragraph in short chunks</option></select></div>
@@ -112,7 +112,7 @@ $('offline').onclick=function(){if(!navigator.serviceWorker){$('manual').textCon
  function startStall(){if(!session||!session.playing||player.paused||player.ended||stallStart)return;stallStart=performance.now()}
  $('spoken-transcript').addEventListener('wheel',function(){browseTranscript=true},{passive:true});
  $('spoken-transcript').addEventListener('touchstart',function(){browseTranscript=true},{passive:true});
- $('spoken-transcript').addEventListener('click',function(e){if($('lab-family').value==='kitten')return;var p=e.target.closest('.lab-passage');if(!p)return;window.eddiLabStartAt=Number(p.dataset.passage)||0;$('stream-stop').click();$('stream-start').click()});
+ $('spoken-transcript').addEventListener('click',function(e){var p=e.target.closest('.lab-passage');if(!p)return;window.eddiLabStartAt=Number(p.dataset.passage)||0;$('stream-stop').click();$('stream-start').click()});
  player.addEventListener('timeupdate',function(){trackWords();if(session&&session.playing){if(player.currentTime>watchLastTime+.05){watchLastTime=player.currentTime;watchLastAt=performance.now();finishStall('playback resumed')}}});
  player.addEventListener('waiting',startStall);
  player.addEventListener('stalled',startStall);
