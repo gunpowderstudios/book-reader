@@ -1,11 +1,3 @@
-## v1.12.200 — 1 November 2026
-
-- Faster voice by default. On a computer with a graphics chip (and at least 4 cores and 8 GB of memory, where the browser says), Automatic now uses the graphics chip. On Tim's Mac in Chrome this made speech about 3.4x listening speed, against about 1.7x for Fast and 1.1x for Low Memory, and the first sentence started in about 2 s instead of 4–6 s. It is the same full-quality voice file as Fast.
-- Safe fall-backs: if the graphics chip cannot start, E.D.D.i switches to Fast (or Low Memory) by itself, says so, and remembers. If it starts but turns out slower than listening speed, Automatic uses Fast from the next visit. If a start ever stops the page (running out of memory), the existing crash marker drops to a lighter setting.
-- Android phones only get the graphics chip when they report 8 GB or more of memory, 8 or more cores and a graphics chip. iPhones and iPads stay on Low Memory, because they do not say how much memory they have.
-- The graphics chip needs no page restart, so it also avoids the multi-core reload and the Safari start-up problem.
-- Not tested with a real graphics chip in this build (the test machine has none); tested the fall-back paths, including a start that fails.
-
 ## v1.12.191 — 1 November 2026
 
 - Top banner heading is now "Your FREE AI Mobile Library Reader".
