@@ -1,3 +1,7 @@
+## v1.12.191 — 1 November 2026
+
+- Top banner heading is now "Your FREE AI Mobile Library Reader".
+
 ## v1.12.190 — 1 November 2026
 
 - The Syncing Playback page now explains in plain words what an EPUB is, how other documents (PDF, Word, text and so on) differ, and that this page is for EPUB books.
