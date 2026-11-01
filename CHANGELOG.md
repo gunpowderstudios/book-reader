@@ -1,3 +1,10 @@
+## v1.12.183 — 1 November 2026
+
+- PDF and text books now get a picture in My Library: the first page of a PDF, or a plain card for a text file, each with a red PDF or green TXT label.
+- Headings in a PDF (lines in clearly bigger type) are kept as their own line instead of being run into the text around them.
+- Words written in ALL CAPS (such as headings) are turned into ordinary words in PDF and text books so the voice reads them as words, not letter by letter. Short ones like USA or TV, and Roman numerals, are left alone. EPUB books are unchanged.
+- PDFs that draw the same text twice (outlines or shadows, as in the Countdown chart) are now read once.
+
 ## v1.12.182 — 1 November 2026
 
 - PDF and text books now read in whole sentences. In the first PDF/TXT version every printed line became its own paragraph, so the voice would have stopped in the middle of sentences at the end of each line. PDFs now rebuild real paragraphs from the gaps between lines (and join words split by a hyphen at a line end), leave out page numbers, and carry a sentence that runs over a page break into the next page. Text files that were typed with a line break at the end of every line are rejoined too.
