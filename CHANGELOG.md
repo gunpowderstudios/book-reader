@@ -1,3 +1,7 @@
+## v1.12.201 — 1 November 2026
+
+- Put the automatic voice setting back to how it was before v1.12.200 (Fast on a capable computer, Low Memory on phones and tablets). Choosing the graphics chip automatically made the browser lock up for Tim, so it is switched off again until it has been tested properly. The graphics chip is still available in the Lab Bench Test, as a test only.
+
 ## v1.12.191 — 1 November 2026
 
 - Top banner heading is now "Your FREE AI Mobile Library Reader".
