@@ -1,3 +1,9 @@
+## v1.12.182 — 1 November 2026
+
+- PDF and text books now read in whole sentences. In the first PDF/TXT version every printed line became its own paragraph, so the voice would have stopped in the middle of sentences at the end of each line. PDFs now rebuild real paragraphs from the gaps between lines (and join words split by a hyphen at a line end), leave out page numbers, and carry a sentence that runs over a page break into the next page. Text files that were typed with a line break at the end of every line are rejoined too.
+- Text books are now split into chapters at headings such as "Chapter 3" or "Part II", or into parts of about 80 paragraphs if there are none, instead of one huge chapter.
+- Tested: PDF.js loads, PDF and text import, saving to My Library and reopening after a reload, and playing with the narrator. EPUB reading is unchanged. Not tested: scanned PDFs (still need OCR), very large PDFs, or the real voice.
+
 ## v1.12.179 — 31 October 2026
 
 - In Bedtime, Space now pauses (or resumes) the reading and Bedtime stays on, with the screen still black. Any other key, Esc, or a tap still returns to the normal screen.
