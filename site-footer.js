@@ -18,6 +18,8 @@ function render(){
  const local=document.getElementById('eddi-site-version');
  const m=local?.textContent?.match(/v\d+\.\d+\.\d+/);
  if(m)version.textContent='Version '+m[0];
+ // Main reader already contains the canonical version: avoid fetching the entire homepage again.
+ if(m && (location.pathname==='/' || location.pathname==='/index.html'))return;
  fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.ok?r.text():Promise.reject(Error('version request failed'))).then(html=>{
   const match=html.match(/id=["']app-version["'][^>]*>\s*Version\s+(v\d+\.\d+\.\d+)/i);
   if(match)version.textContent='Version '+match[1];
