@@ -1,3 +1,8 @@
+## v1.12.190 — 1 November 2026
+
+- The Syncing Playback page now explains in plain words what an EPUB is, how other documents (PDF, Word, text and so on) differ, and that this page is for EPUB books.
+- "Save Book & Progress" now says so clearly if the open book is a PDF, Word or other document, instead of making a bundle that could not be opened again.
+
 ## v1.12.189 — 1 November 2026
 
 - Top banner text: "Your FREE Mobile Library Reader" and "Hi 5-year mission: To read every book in the universe!".
