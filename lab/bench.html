@@ -71,7 +71,7 @@ function stopLag(){clearInterval(lagTimer);return Math.round(lagMax)}
 
 if(isMobile){$('phone-ok-row').hidden=false;$('fast-warn').textContent='On a phone or tablet this is the heavy setting. Only test it if you want to.';$('gpu-warn').textContent='Also heavy on a phone or tablet. Only test it if you want to.'}
 if(!navigator.gpu)$('gpu-warn').textContent=($('gpu-warn').textContent+' This browser says it has no graphics chip support, so this will probably fail.').trim();
-else{$('m-fast').checked=true}
+else{$('m-fast').checked=true;$('m-gpu').checked=true}
 
 async function deviceInfo(){
  put('E.D.D.i. BENCH TEST v'+BENCH_VERSION);
