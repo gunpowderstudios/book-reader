@@ -1,3 +1,7 @@
+## v1.12.203 — 1 November 2026
+
+- A small "🔌 I’m faster with a plug!" reminder appears at the top right while the device is running on battery, and disappears by itself once it is plugged in. Tap it to hide it for the visit (on a small phone it shows as just the 🔌 icon; tap once to read the words, again to hide). Only browsers that can say whether they are plugged in (Chrome, Edge, Android Chrome) show it; Safari and Firefox cannot, so they never show it.
+
 ## v1.12.202 — 1 November 2026
 
 - Bench Test: on a computer, Low Memory, Fast and Graphics chip are now all ticked by default (on a phone or tablet only Low Memory is, with the warning box for the heavy ones).
