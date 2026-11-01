@@ -1,3 +1,7 @@
+## v1.12.209 — 1 November 2026
+
+- Phones and tablets: the screen now stays awake while E.D.D.i is reading aloud, so it doesn't dim and lock and stop the voice. It lets go as soon as you pause. (Locking the phone yourself can still stop it on some phones.)
+
 ## v1.12.208 — 1 November 2026
 
 - The main Upload button now recognises a zipped book and progress file from Syncing Playback and opens it (book and place), just like the Load Book & Progress button.
