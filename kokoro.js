@@ -513,9 +513,24 @@ function setTest(state,msg){
  status(msg);
 }
 const testVoiceId=()=>($('test-voice')&&$('test-voice').value)||DEFAULT_VOICE;
+/* Narrator preview: approximate word highlighting based on audio progress. */
+let previewWords=[],previewTimer=null;
+function clearPreview(){if(previewTimer!==null){clearInterval(previewTimer);previewTimer=null}const el=document.getElementById('test-sample');if(el){el.querySelectorAll('.eddi-preview-word').forEach(w=>w.classList.remove('eddi-preview-current'))}}
+function preparePreview(){
+ clearPreview();const el=document.getElementById('test-sample');if(!el)return;
+ const original=el.textContent,words=original.match(/\S+|\s+/g)||[];el.replaceChildren();
+ for(const token of words){if(/^\s+$/.test(token))el.append(document.createTextNode(token));else{const span=document.createElement('span');span.className='eddi-preview-word';span.textContent=token;el.append(span)}}
+ previewWords=[...el.querySelectorAll('.eddi-preview-word')];
+}
+function trackPreview(start,end){
+ if(previewTimer!==null)clearInterval(previewTimer);
+ const update=()=>{if(!previewWords.length)return;const duration=player.duration;const fraction=Number.isFinite(duration)&&duration>0?Math.min(1,player.currentTime/duration):0;const idx=Math.min(previewWords.length-1,Math.floor(start+(end-start)*fraction));previewWords.forEach((el,i)=>el.classList.toggle('eddi-preview-current',i===idx))};
+ previewTimer=setInterval(update,90);update();
+}
 async function testVoice(raw){
  stop();
  const token=serial,stale=()=>token!==serial,voice=testVoiceId(),text=norm(raw).slice(0,MAX_TEST_CHARS);
+ preparePreview();
  if(!text){setTest('error','Type some sample text first.');return}
  const ts=$('test-style'),style=ts&&STYLES.includes(ts.value)?ts.value:styleNow();
  const parts=(style==='classic'?[{say:text,voice,pad:0}]:plan([text],0,voice,style,false)).map(g=>({say:g.say,voice:g.voice,pad:g.pad===NAT_PARA_PAD?0:g.pad,speed:bake(style,g.mul),mul:g.mul,pitch:g.pitch}));
@@ -533,9 +548,15 @@ async function testVoice(raw){
    aud+=res.audioSec;if(!res.cached){cached=false;gen+=res.genSec}
    const info=cached?'cached, so it started instantly':'generated '+aud.toFixed(1)+' s of speech in '+gen.toFixed(1)+' s';
    setTest('playing','Playing — '+info+'.');
-   const finished=await playBlob(res.blob,res.speed,res.pitch);
+   const total=parts.reduce((n,p)=>n+p.say.length,0)||1;
+   const from=parts.slice(0,i).reduce((n,p)=>n+p.say.length,0);
+   const to=from+parts[i].say.length;
+   const playing=playBlob(res.blob,res.speed,res.pitch);
+   trackPreview(previewWords.length*from/total,previewWords.length*to/total);
+   const finished=await playing;
+   if(previewTimer!==null){clearInterval(previewTimer);previewTimer=null}
    if(stale()||!finished)return;
-   if(i===jobs.length-1)setTest('idle','Finished — '+info+'. Press Play again to hear it from the cache.');
+   if(i===jobs.length-1){clearPreview();setTest('idle','Finished — '+info+'. Press Play again to hear it from the cache.');}
   }
  }catch(e){
   if(e===CANCELLED||stale())return;
@@ -552,7 +573,7 @@ function chapterClips(chapter){
  });
  return out;
 }
-function stopTest(){stop();if(testState==='error')setTest('idle','Ready.')}
+function stopTest(){clearPreview();stop();if(testState==='error')setTest('idle','Ready.')}
 
 /* ───────── Book narration ───────── */
 const NAT_MAX=320,NAT_FIRST_MAX=160,NAT_PARA_PAD=0.45; /* natural style: longer passages give the voice more context, so it sounds less choppy */
