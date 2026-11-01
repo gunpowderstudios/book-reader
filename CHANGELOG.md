@@ -1,3 +1,7 @@
+## v1.12.189 — 1 November 2026
+
+- Top banner text: "Your FREE Mobile Library Reader" and "Hi 5-year mission: To read every book in the universe!".
+
 ## v1.12.188 — 1 November 2026
 
 - The line under Upload now says which kinds of file E.D.D.i can read (EPUB, PDF, Word .docx, text, Markdown, web page, RTF, ODT and FB2) and that scanned PDFs won't work.
