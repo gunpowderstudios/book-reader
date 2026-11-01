@@ -1,4 +1,4 @@
-/* E.D.D.i optional PDF and plain-text imports. EPUB parsing is unchanged. */
+/* E.D.D.i optional document imports: PDF, text, Word (.docx), OpenDocument (.odt), RTF, Markdown, web pages and FictionBook (.fb2). EPUB parsing is unchanged. */
 (function(){
  'use strict';
  const PDF_JS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
@@ -38,7 +38,13 @@
  }
  /* ALL-CAPS words (usually headings) are read out letter by letter, so make them ordinary words. Short ones (USA, TV) and numerals (XVII) stay as they are. */
  function softCaps(t){
-  return String(t).replace(/\b[A-Z][A-Z'’-]{3,}\b/g,w=>(/^[IVXLCDM]+$/.test(w)||!/[AEIOUY]/.test(w))?w:w[0]+w.slice(1).toLowerCase());
+  t=String(t);
+  const shout=!/[a-z]/.test(t)&&t.length<=100; // a whole heading in capitals: every real word becomes an ordinary word
+  return t.replace(/\b[A-Z][A-Z'’-]{1,}\b/g,w=>{
+   if(/^[IVXLCDM]+$/.test(w)||!/[AEIOUY]/.test(w))return w;
+   if(w.length>=4||(shout&&w.length>=3))return w[0]+w.slice(1).toLowerCase();
+   return w;
+  });
  }
  function wrapLines(ctx,text,maxW,maxLines){
   const words=String(text).split(/\s+/),lines=[];let cur='';
@@ -64,7 +70,7 @@
    const label=kind.toUpperCase();
    g.font='bold 20px system-ui,sans-serif';g.textAlign='center';
    const bw=g.measureText(label).width+26;
-   g.fillStyle=kind==='pdf'?'#c0392b':'#5f8f6e';g.beginPath();
+   g.fillStyle=({pdf:'#c0392b',docx:'#2b579a',odt:'#1f8a70',rtf:'#6b5b95',md:'#7d3c98',html:'#d35400',fb2:'#8d6e3f'})[kind]||'#5f8f6e';g.beginPath();
    if(g.roundRect)g.roundRect(W-bw-10,H-42,bw,30,8);else g.rect(W-bw-10,H-42,bw,30);
    g.fill();g.fillStyle='#fff';g.fillText(label,W-bw/2-10,H-20);
    return c.toDataURL('image/jpeg',0.75);
@@ -133,30 +139,249 @@
    return {title:file.name.replace(/\.pdf$/i,''),author:'PDF document',cover,chapters};
   }finally{if(pdf)await pdf.destroy().catch(()=>{});else await task.destroy().catch(()=>{})}
  }
+ /* ───── Shared: turn a list of {t:text, h:heading level (0 = body text)} into chapters ───── */
+ function buildChapters(blocks){
+  blocks=blocks.map(b=>({t:softCaps(clean(b.t)),h:b.h||0})).filter(b=>b.t);
+  if(!blocks.length)return [];
+  let level=0;
+  for(const L of [1,2,3]){if(blocks.filter(b=>b.h>0&&b.h<=L).length>=2){level=L;break}}
+  if(level){
+   const chapters=[];let cur=null;
+   for(const b of blocks){
+    if(b.h>0&&b.h<=level){cur={title:b.t.slice(0,120),paragraphs:[b.t]};chapters.push(cur);continue}
+    if(!cur){cur={title:'Beginning',paragraphs:[]};chapters.push(cur)}
+    cur.paragraphs.push(b.t);
+   }
+   const out=chapters.filter(c=>c.paragraphs.length);
+   if(out.length)return out;
+  }
+  // No usable headings: parts of about 80 paragraphs, so a long document is still easy to move around in.
+  const size=80,out=[];
+  for(let i=0;i<blocks.length;i+=size)out.push({title:blocks.length>size*1.5?'Part '+(out.length+1):'Text',paragraphs:blocks.slice(i,i+size).map(b=>b.t)});
+  return out;
+ }
  const HEADING=/^(chapter|part|book|section|act|canto|prologue|epilogue|preface|foreword|introduction)\b[\s\w.:'’-]{0,60}$/i;
+ const LABEL={pdf:'PDF document',txt:'Text document',docx:'Word document',odt:'OpenDocument text',rtf:'Rich text document',md:'Markdown document',html:'Web page',fb2:'FictionBook'};
+ const baseName=(f,re)=>f.name.replace(re,'');
+ function done(file,re,kind,author,title,chapters){
+  if(!chapters.length)throw new Error('No readable text was found in this '+LABEL[kind].toLowerCase()+'.');
+  return {title:clean(title)||baseName(file,re),author:clean(author)||LABEL[kind],cover:badgeCover(kind,clean(title)||baseName(file,re),null),chapters};
+ }
  async function readTxt(file){
   const raw=await file.text();
-  const paragraphs=splitText(raw.replace(/^﻿/,''));
-  if(!paragraphs.length)throw new Error('The text file is empty.');
-  // A whole book in one chapter is hard to move around in, so split at chapter headings, or into parts.
-  const chapters=[];let cur=null;
-  for(const p of paragraphs){
-   if(p.length<=70&&HEADING.test(p)){cur={title:p,paragraphs:[]};chapters.push(cur);continue}
-   if(!cur){cur={title:'Beginning',paragraphs:[]};chapters.push(cur)}
-   cur.paragraphs.push(p);
-  }
-  let result=chapters.filter(c=>c.paragraphs.length);
-  const headed=chapters.filter(c=>c.title!=='Beginning').length;
-  if(headed<2){
-   result=[];const size=80;
-   for(let i=0;i<paragraphs.length;i+=size)result.push({title:paragraphs.length>size*1.5?'Part '+(result.length+1):'Text',paragraphs:paragraphs.slice(i,i+size)});
-  }
-  return {title:file.name.replace(/\.txt$/i,''),author:'Text document',cover:badgeCover('txt',file.name.replace(/\.txt$/i,''),null),chapters:result};
+  const paras=splitText(raw.replace(/^﻿/,''));
+  if(!paras.length)throw new Error('The text file is empty.');
+  const blocks=paras.map(p=>({t:p,h:(p.length<=70&&HEADING.test(p))?1:0}));
+  return done(file,/\.te?xt$/i,'txt','',baseName(file,/\.te?xt$/i),buildChapters(blocks));
  }
+
+ /* ───── Word (.docx) and OpenDocument (.odt): both are zip files holding XML ───── */
+ async function openZip(file,what){
+  if(!window.JSZip)throw new Error(what+' support library unavailable. Check your internet connection.');
+  try{return await window.JSZip.loadAsync(file)}catch(_){throw new Error('This does not look like a valid '+what+' file.')}
+ }
+ const xml=(t)=>{const d=new DOMParser().parseFromString(t,'application/xml');if(d.getElementsByTagName('parsererror').length)throw new Error('The document could not be read.');return d};
+ const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+ function docxText(p){
+  let t='';
+  const walk=n=>{
+   for(const c of n.childNodes){
+    if(c.nodeType!==1)continue;
+    const ln=c.localName;
+    if(ln==='Fallback'||ln==='pPr'||ln==='rPr')continue;
+    if(ln==='t')t+=c.textContent;
+    else if(ln==='tab'||ln==='br'||ln==='cr')t+=' ';
+    else if(ln==='noBreakHyphen')t+='-';
+    else walk(c);
+   }
+  };
+  walk(p);return t;
+ }
+ async function readDocx(file){
+  const zip=await openZip(file,'Word');
+  const f=zip.file('word/document.xml');if(!f)throw new Error('This does not look like a Word (.docx) file.');
+  const doc=xml(await f.async('string'));
+  const styleName={};
+  const sf=zip.file('word/styles.xml');
+  if(sf){try{for(const st of xml(await sf.async('string')).getElementsByTagNameNS(W,'style')){const id=st.getAttributeNS(W,'styleId'),nm=st.getElementsByTagNameNS(W,'name')[0];if(id&&nm)styleName[id]=nm.getAttributeNS(W,'val')||''}}catch(_){}}
+  const blocks=[];
+  for(const p of doc.getElementsByTagNameNS(W,'p')){
+   const t=clean(docxText(p));if(!t)continue;
+   let h=0;
+   const ps=p.getElementsByTagNameNS(W,'pStyle')[0];
+   if(ps){const id=ps.getAttributeNS(W,'val'),nm=(styleName[id]||id||'').toLowerCase();let m=nm.match(/^heading\s*(\d)/);if(m)h=Math.min(6,+m[1]);else if(/^title$/.test(nm))h=1;}
+   if(!h){const ol=p.getElementsByTagNameNS(W,'outlineLvl')[0];if(ol){const v=parseInt(ol.getAttributeNS(W,'val'),10);if(v>=0&&v<6)h=v+1}}
+   blocks.push({t,h});
+  }
+  let title='',author='';
+  const cf=zip.file('docProps/core.xml');
+  if(cf){try{const c=xml(await cf.async('string'));title=(c.getElementsByTagName('dc:title')[0]||{}).textContent||'';author=(c.getElementsByTagName('dc:creator')[0]||{}).textContent||''}catch(_){}}
+  return done(file,/\.docx$/i,'docx',author,title,buildChapters(blocks));
+ }
+ const T='urn:oasis:names:tc:opendocument:xmlns:text:1.0';
+ function odtText(p){
+  let t='';
+  const walk=n=>{
+   for(const c of n.childNodes){
+    if(c.nodeType===3){t+=c.nodeValue;continue}
+    if(c.nodeType!==1)continue;
+    const ln=c.localName;
+    if(ln==='note'||ln==='tracked-changes')continue;
+    if(ln==='s')t+=' ';else if(ln==='tab'||ln==='line-break')t+=' ';else walk(c);
+   }
+  };
+  walk(p);return t;
+ }
+ async function readOdt(file){
+  const zip=await openZip(file,'OpenDocument');
+  const f=zip.file('content.xml');if(!f)throw new Error('This does not look like an OpenDocument (.odt) file.');
+  const doc=xml(await f.async('string'));
+  const blocks=[];
+  const all=doc.getElementsByTagNameNS(T,'*');
+  for(const el of all){
+   const ln=el.localName;if(ln!=='h'&&ln!=='p')continue;
+   if(el.parentNode&&el.parentNode.localName==='note-body')continue;
+   const t=clean(odtText(el));if(!t)continue;
+   blocks.push({t,h:ln==='h'?Math.min(6,parseInt(el.getAttributeNS(T,'outline-level'),10)||1):0});
+  }
+  let title='',author='';
+  const mf=zip.file('meta.xml');
+  if(mf){try{const m=xml(await mf.async('string'));title=(m.getElementsByTagName('dc:title')[0]||{}).textContent||'';author=(m.getElementsByTagName('dc:creator')[0]||{}).textContent||(m.getElementsByTagName('meta:initial-creator')[0]||{}).textContent||''}catch(_){}}
+  return done(file,/\.odt$/i,'odt',author,title,buildChapters(blocks));
+ }
+
+ /* ───── Rich text (.rtf) ───── */
+ const RTF_SKIP=new Set(['fonttbl','colortbl','stylesheet','info','header','footer','headerl','headerr','headerf','footerl','footerr','footerf','pict','object','listtable','listoverridetable','rsidtbl','generator','themedata','datastore','colorschememapping','latentstyles','fldinst','xmlnstbl','revtbl','private','filetbl','footnote']);
+ const RTF_CHARS={emdash:'—',endash:'–',lquote:'‘',rquote:'’',ldblquote:'“',rdblquote:'”',bullet:'•',emspace:' ',enspace:' ',tab:' ',line:'\n',par:'\n',page:'\n',sect:'\n'};
+ function rtfToText(src){
+  const cp=new TextDecoder('windows-1252');
+  let out='',stack=[],skip=false,i=0;const n=src.length;
+  while(i<n){
+   const c=src[i];
+   if(c==='{'){stack.push(skip);i++;continue}
+   if(c==='}'){skip=stack.length?stack.pop():false;i++;continue}
+   if(c==='\\'){
+    i++;const d=src[i];
+    if(d==='\\'||d==='{'||d==='}'){if(!skip)out+=d;i++;continue}
+    if(d==="'"){const h=src.substr(i+1,2);i+=3;if(!skip&&/^[0-9a-f]{2}$/i.test(h))out+=cp.decode(new Uint8Array([parseInt(h,16)]));continue}
+    if(d==='*'){skip=true;i++;continue}
+    if(d==='~'){if(!skip)out+=' ';i++;continue}
+    if(d==='-'||d==='_'){i++;continue}
+    const m=/^([a-zA-Z]+)(-?\d+)?\s?/.exec(src.slice(i,i+40));
+    if(!m){i++;continue}
+    i+=m[0].length;
+    const w=m[1];
+    if(RTF_SKIP.has(w)){skip=true;continue}
+    if(skip)continue;
+    if(w==='u'&&m[2]!==undefined){let v=parseInt(m[2],10);if(v<0)v+=65536;out+=String.fromCharCode(v);if(src[i]==='\\'&&src[i+1]==="'")i+=4;else if(src[i]&&src[i]!=='\\'&&src[i]!=='{'&&src[i]!=='}')i++;continue}
+    if(w in RTF_CHARS)out+=RTF_CHARS[w];
+    continue;
+   }
+   if(c==='\r'||c==='\n'){i++;continue}
+   if(!skip)out+=c;
+   i++;
+  }
+  return out;
+ }
+ async function readRtf(file){
+  const raw=await file.text();
+  if(!/^\s*\{\\rtf/.test(raw))throw new Error('This does not look like a valid RTF file.');
+  const lines=rtfToText(raw).split('\n').map(clean).filter(Boolean);
+  const blocks=lines.map(t=>({t,h:(t.length<=70&&HEADING.test(t))?1:0}));
+  return done(file,/\.rtf$/i,'rtf','',baseName(file,/\.rtf$/i),buildChapters(blocks));
+ }
+
+ /* ───── Markdown (.md) ───── */
+ function mdInline(t){
+  return t.replace(/!\[([^\]]*)\]\([^)]*\)/g,'$1').replace(/\[([^\]]+)\]\([^)]*\)/g,'$1').replace(/<https?:[^>]*>/g,'')
+   .replace(/<\/?[a-zA-Z][^>]*>/g,'').replace(/(\*\*|__)(.+?)\1/g,'$2').replace(/(^|[\s(])[*_]([^*_\s][^*_]*?)[*_](?=[\s).,;:!?]|$)/g,'$1$2').replace(/`([^`]*)`/g,'$1').replace(/~~(.+?)~~/g,'$1');
+ }
+ async function readMd(file){
+  let raw=(await file.text()).replace(/^﻿/,'').replace(/\r\n?/g,'\n');
+  raw=raw.replace(/^---\n[\s\S]*?\n---\n/,''); // front matter
+  const blocks=[];let buf=[],inCode=false;
+  const flush=()=>{if(buf.length){blocks.push({t:mdInline(joinLines(buf)),h:0});buf=[]}};
+  for(const line of raw.split('\n')){
+   if(/^\s*(```|~~~)/.test(line)){flush();inCode=!inCode;continue}
+   if(inCode){if(line.trim())blocks.push({t:line.trim(),h:0});continue}
+   const hm=/^(#{1,6})\s+(.*?)\s*#*\s*$/.exec(line);
+   if(hm){flush();blocks.push({t:mdInline(hm[2]),h:hm[1].length});continue}
+   if(!line.trim()){flush();continue}
+   if(/^\s*([-*_]\s*){3,}$/.test(line)||/^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(line)){flush();continue}
+   if(/^\s*([=-])\1+\s*$/.test(line)&&buf.length){ // setext underline: the line above is a heading
+    const t=mdInline(joinLines(buf));buf=[];blocks.push({t,h:line.trim()[0]==='='?1:2});continue}
+   let l=line.replace(/^\s*>+\s?/,'');
+   const li=/^\s*(?:[-*+]|\d+[.)])\s+(.*)$/.exec(l);
+   if(li){flush();blocks.push({t:mdInline(li[1]),h:0});continue}
+   if(l.includes('|')&&/^\s*\|/.test(l)){flush();blocks.push({t:mdInline(l.split('|').map(x=>x.trim()).filter(Boolean).join(', ')),h:0});continue}
+   buf.push(l);
+  }
+  flush();
+  const first=blocks.find(b=>b.h===1);
+  return done(file,/\.(md|markdown)$/i,'md','',first?first.t:baseName(file,/\.(md|markdown)$/i),buildChapters(blocks));
+ }
+
+ /* ───── Web pages (.html, .htm, .xhtml) ───── */
+ async function readHtml(file){
+  const raw=await file.text();
+  const doc=new DOMParser().parseFromString(raw,'text/html');
+  const ttl=clean((doc.querySelector('title')||{}).textContent),au=(doc.querySelector('meta[name="author" i]')||{}).content||'';
+  doc.querySelectorAll('script,style,noscript,template,iframe,svg,nav,form,button,select,head').forEach(e=>e.remove());
+  doc.querySelectorAll('br').forEach(b=>b.replaceWith(doc.createTextNode(' ')));
+  const sel='h1,h2,h3,h4,h5,h6,p,li,blockquote,pre,dd,dt,figcaption,td,th';
+  const blocks=[];
+  for(const el of doc.body?doc.body.querySelectorAll(sel):[]){
+   if(el.querySelector(sel))continue; // read the inner pieces instead
+   const t=clean(el.textContent);if(!t)continue;
+   const m=/^H([1-6])$/.exec(el.tagName);
+   blocks.push({t,h:m?+m[1]:0});
+  }
+  if(!blocks.length&&doc.body)splitText(doc.body.textContent||'').forEach(t=>blocks.push({t,h:0}));
+  const h1=blocks.find(b=>b.h===1);
+  return done(file,/\.(x?html?)$/i,'html',au,ttl||(h1&&h1.t)||'',buildChapters(blocks));
+ }
+
+ /* ───── FictionBook (.fb2), a common ebook format ───── */
+ async function readFb2(file){
+  const buf=await file.arrayBuffer();
+  const head=new TextDecoder('latin1').decode(buf.slice(0,200));
+  const enc=((/encoding=["']([^"']+)["']/i.exec(head)||[])[1]||'utf-8').toLowerCase();
+  let text;try{text=new TextDecoder(enc).decode(buf)}catch(_){text=new TextDecoder('utf-8').decode(buf)}
+  const doc=xml(text.replace(/^﻿/,''));
+  const kids=(n,name)=>[...n.children].filter(c=>c.localName===name);
+  const body=[...doc.getElementsByTagName('body')].find(b=>b.getAttribute('name')!=='notes')||doc.getElementsByTagName('body')[0];
+  if(!body)throw new Error('This does not look like a valid FictionBook (.fb2) file.');
+  const paraText=n=>clean(n.textContent);
+  const gather=sec=>{const out=[];for(const c of sec.children){const ln=c.localName;if(ln==='section'){out.push(...gather(c));continue}if(ln==='title'||ln==='epigraph'||ln==='cite'||ln==='poem'||ln==='stanza'){const inner=[...c.getElementsByTagName('p'),...c.getElementsByTagName('v')].map(paraText).filter(Boolean);if(inner.length)out.push(...inner);continue}if(ln==='p'||ln==='subtitle'||ln==='text-author')out.push(paraText(c))}return out.filter(Boolean)};
+  let secs=kids(body,'section');
+  while(secs.length===1&&kids(secs[0],'section').length)secs=kids(secs[0],'section');
+  let chapters=[];
+  if(secs.length){
+   for(let i=0;i<secs.length;i++){
+    const t=kids(secs[i],'title')[0];const title=t?clean(t.textContent):'Section '+(i+1);
+    const paragraphs=gather(secs[i]).map(softCaps);
+    if(paragraphs.length)chapters.push({title:title.slice(0,120)||'Section '+(i+1),paragraphs});
+   }
+  }else chapters=buildChapters([...body.getElementsByTagName('p')].map(p=>({t:paraText(p),h:0})));
+  const ti=doc.getElementsByTagName('title-info')[0];
+  const bt=ti&&ti.getElementsByTagName('book-title')[0];
+  const au=ti&&ti.getElementsByTagName('author')[0];
+  const author=au?clean(['first-name','middle-name','last-name'].map(k=>(au.getElementsByTagName(k)[0]||{}).textContent||'').join(' ')):'';
+  return done(file,/\.fb2$/i,'fb2',author,bt?bt.textContent:'',chapters);
+ }
+ const EXT=/\.(pdf|txt|text|docx?|odt|rtf|md|markdown|x?html?|fb2)$/i;
+ window.eddiIsDocument=name=>EXT.test(String(name||''));
  window.eddiParseDocument=async function(file){
   const name=(file?.name||'').toLowerCase();
   if(name.endsWith('.pdf'))return readPdf(file);
-  if(name.endsWith('.txt'))return readTxt(file);
-  throw new Error('Unsupported format. Choose an EPUB, PDF or TXT file.');
+  if(/\.te?xt$/.test(name))return readTxt(file);
+  if(name.endsWith('.docx'))return readDocx(file);
+  if(name.endsWith('.odt'))return readOdt(file);
+  if(name.endsWith('.rtf'))return readRtf(file);
+  if(/\.(md|markdown)$/.test(name))return readMd(file);
+  if(/\.(x?html?)$/.test(name))return readHtml(file);
+  if(name.endsWith('.fb2'))return readFb2(file);
+  if(name.endsWith('.doc'))throw new Error('Old Word (.doc) files cannot be read. Open it in Word and choose Save As → .docx, then upload that.');
+  throw new Error('This file type is not supported. Choose an EPUB, PDF, Word (.docx), text, Markdown, web page, RTF, ODT or FB2 file.');
  };
 })();

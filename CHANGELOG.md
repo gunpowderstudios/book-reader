@@ -1,3 +1,11 @@
+## v1.12.186 — 1 November 2026
+
+- E.D.D.i can now read many more kinds of document. Besides EPUB, PDF and text files, you can upload Word (.docx), OpenDocument (.odt), Rich Text (.rtf), Markdown (.md), web pages (.html, .htm) and FictionBook (.fb2) files. Each is saved to My Library with a picture and a coloured label (PDF, DOCX, ODT, RTF, MD, HTML, FB2, TXT).
+- Chapters follow the document's own headings where it has them (Word and OpenDocument heading styles, Markdown # headings, web page headings, FB2 sections), and the heading itself is read out. Documents with no headings are split into parts of about 80 paragraphs.
+- Footnotes, menus, scripts and styling are left out of what is read aloud. Headings written in ALL CAPS are read as words.
+- Old Word (.doc) files cannot be read; E.D.D.i says so and suggests Save As .docx. Scanned PDFs still need OCR, which is not supported.
+- Tested in a browser with a stand-in voice: every new format opens, saves to My Library, reopens after a reload and plays. EPUB reading is unchanged.
+
 ## v1.12.185 — 1 November 2026
 
 - The green button in My Library now just says "Upload".
