@@ -1,3 +1,7 @@
+## v1.12.184 — 1 November 2026
+
+- The line under "Upload your own book" now says "Choose a book or document from your device." (it used to say DRM-free EPUB only, but PDF and text files work too).
+
 ## v1.12.183 — 1 November 2026
 
 - PDF and text books now get a picture in My Library: the first page of a PDF, or a plain card for a text file, each with a red PDF or green TXT label.
