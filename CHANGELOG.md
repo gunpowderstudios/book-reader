@@ -1,3 +1,7 @@
+## v1.12.238 — 2 November 2026
+
+- More human pacing: rests now depend on how a sentence ends (question, exclamation, colon, dash, quote), vary very slightly so it doesn't sound like a metronome, and the last sentence of a paragraph is spoken a touch slower. New Settings option: Pause length (Shorter / Normal / Longer / Much longer).
+
 ## v1.12.237 — 2 November 2026
 
 - A slightly longer rest after each full stop. On computers George now speaks one sentence at a time (very short ones join the next) with a small pause between them; phones keep their longer passages with the same small pause where a passage ends.

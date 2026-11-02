@@ -608,6 +608,9 @@ function chunks(str,max=CHUNK_MAX){ /* sentence-aware: passages end where a sent
  if(buf.trim())out.push(buf.trim());
  return out;
 }
+const PAUSE_SCALE=()=>{try{const v=parseFloat(localStorage.getItem('cv-pause-scale'));return v>=0.3&&v<=3?v:1}catch(_){return 1}}; /* the 'Pause length' setting */
+const wobble=t=>{let h=0;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;return 0.88+((h>>>0)%25)/100}; /* 0.88-1.12, the same every time for the same words (so saved speech still matches) */
+const restAfter=t=>{const m=/([.!?\u2026:;,\u2014\u2013-]+)(["'\u201d\u2019)]*)\s*$/.exec(t);if(!m)return 0;const c=m[1];let p=/[?!]/.test(c)?0.32:/\u2026|\.\.\./.test(c)?0.3:/\./.test(c)?0.22:/[:;]/.test(c)?0.16:/[\u2014\u2013-]/.test(c)?0.14:0.1;if(m[2]&&/["\u201d]/.test(m[2]))p+=0.08;return p};
 const SENT_PAD=0.22; /* seconds of extra quiet after a sentence that ends a spoken passage */
 function sentenceChunks(str,max){ /* one passage per sentence (very short ones join the next), so every full stop gets its own rest */
  const out=[];let buf='';
@@ -667,8 +670,9 @@ function plan(paras,p,narr,style,first){
   for(const t of (slowish?chunks(r.t,max):sentenceChunks(r.t,max))){const say=spoken(t);if(sayable(say))out.push({text:t,say,voice:r.d?dlg:narr,d:r.d,mul:r.d&&style==='pace'?PACE_MUL:1,pitch:r.d&&style==='pace'?PACE_PITCH:1,last:false,pad:0})}
  }
  for(let i=0;i<out.length;i++)if(i<out.length-1&&style!=='single'&&out[i].d!==out[i+1].d)out[i].pad=0.12;
- for(let i=0;i<out.length-1;i++)if(!out[i].pad&&/[.!?\u2026]["'\u201d\u2019)]*$/.test(out[i].text))out[i].pad=SENT_PAD; /* a little extra rest after each full stop */
- if(out.length){const l=out[out.length-1];l.last=true;l.pad=scene?1.4:heading?1.0:NAT_PARA_PAD}
+ for(let i=0;i<out.length-1;i++)out[i].pad=Math.max(out[i].pad,restAfter(out[i].text)); /* rest after each passage depends on how it ends */
+ if(style!=='classic'&&out.length>1)for(const o of out)o.pad=+(o.pad*PAUSE_SCALE()*wobble(o.text)).toFixed(2);
+ if(out.length){const l=out[out.length-1];l.last=true;l.pad=+((scene?1.4:heading?1.0:NAT_PARA_PAD)*PAUSE_SCALE()*wobble(l.text)).toFixed(2);if(!scene&&!heading&&style!=='pace'&&!l.d)l.mul=0.97} /* last sentence of a paragraph is spoken a touch slower, as a reader eases off */
  return out;
 }
 function* segments(S,narr=currentVoice(),style=styleNow()){ /* lazily walks the book from the current position */
