@@ -1,3 +1,7 @@
+## v1.12.234 — 2 November 2026
+
+- Long book titles in the left panel now shrink and wrap instead of running over the edge.
+
 ## v1.12.233 — 2 November 2026
 
 - PDFs with a fancy font that hid scrambled text (such as "5IFO MfuAT...") are now read properly, both in the text view and out loud.
