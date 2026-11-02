@@ -1,3 +1,7 @@
+## v1.12.230 — 2 November 2026
+
+- The dimmed-screen message now reads "E.D.D.i is scanning..." and stays on screen until George actually starts reading (it also covers the voice loading and the first passage being prepared after you press Play). It goes away when speech starts, when you pause or stop, or if you tap the dimmed screen.
+
 ## v1.12.229 — 2 November 2026
 
 - While a book or document is being opened, the whole screen dims and a green "Scanning..." message shows until it is ready. (Very quick opens skip it, so it doesn't flash.)

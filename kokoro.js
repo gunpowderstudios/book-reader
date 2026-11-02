@@ -88,7 +88,7 @@ function keepVoiceSaved(){
   if(navigator.storage.persisted)navigator.storage.persisted().then(ok=>{if(!ok)ask()},()=>{});else ask();
  }catch(_){}
 }
-function spinner(on){const el=$('voice-spinner');if(el)el.hidden=!on;}
+function spinner(on){const el=$('voice-spinner');if(el)el.hidden=!on;try{window.eddiScan&&window.eddiScan(!!awaitingNarration,'play')}catch(_){}} /* the screen dims with "Scanning..." until George starts reading */
 const modeName=m=>(MODES[m]||MODES.standard).label;
 function describeEngine(){
  if(eng.used==='gpu')return 'on your graphics chip';
