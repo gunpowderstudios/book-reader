@@ -45,7 +45,7 @@
  const mk=(t,title,fn)=>{const b=document.createElement('button');b.type='button';b.innerHTML=t;b.title=title;b.setAttribute('aria-label',title);b.onclick=fn;return b};
  const bPrev=mk('◀','Previous page',()=>go(-1)),bNext=mk('▶','Next page',()=>go(1)),bPlay=mk('▶','Play or pause the reading',()=>$('play')?.click()),bFs=mk('⛶','Full screen',()=>setFs(!fs));
  const lbl=document.createElement('span');lbl.className='lbl';lbl.innerHTML='<span class="long">Page</span><span class="short"></span>';
- bPrev.innerHTML='◀<span class="w"> Back</span>';bNext.innerHTML='<span class="w">Next </span>▶';
+ bPrev.innerHTML='⏮<span class="w"> Back</span>';bNext.innerHTML='<span class="w">Next </span>⏭';
  ctrl.append(lbl,bPrev,bNext,bPlay,bFs);
  panel.append(ctrl,wrap,note);
  text.before(bar);text.before(panel);
