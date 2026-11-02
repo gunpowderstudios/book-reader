@@ -8,7 +8,10 @@
  if(!text||!main)return;
  const style=document.createElement('style');
  style.textContent=`
-#eddi-pdf-bar{display:flex;justify-content:flex-end;margin:0 0 8px}
+#eddi-pdf-bar{float:right;margin:2px 0 6px 12px}
+#book-main #heading{font-size:clamp(22px,2.6vw,30px);line-height:1.2;margin:2px 0 10px}
+#book-main #text{clear:both}
+@media(min-width:721px){body:not(.eddi-mobile-reading) #book-main>article{padding-top:18px!important}}
 #eddi-pdf-bar[hidden],#eddi-pdf-view[hidden]{display:none!important}
 #eddi-pdf-bar button{font:700 14px system-ui,sans-serif;background:#2b5a3d;color:#fff;border:1px solid #6e9a7e;border-radius:9px;padding:8px 14px;min-height:40px;cursor:pointer}
 #eddi-pdf-bar button[aria-pressed=true]{background:#d1f869;color:#08150c;border-color:#d1f869}
@@ -48,7 +51,7 @@
  bPrev.innerHTML='⏮<span class="w"> Back</span>';bNext.innerHTML='<span class="w">Next </span>⏭';
  ctrl.append(lbl,bPrev,bNext,bPlay,bFs);
  panel.append(ctrl,wrap,note);
- text.before(bar);text.before(panel);
+ (document.getElementById('heading')||text).before(bar);text.before(panel);
 
  const st=()=>window.chapterApp&&window.chapterApp.state;
  const cur=()=>{const s=st();if(!s)return null;const c=s.chapters[s.index];return c?{c,s,rects:(c.rects&&c.rects[s.p])||[]}:null};

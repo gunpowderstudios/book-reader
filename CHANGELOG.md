@@ -1,3 +1,7 @@
+## v1.12.222 — 2 November 2026
+
+- Text view tidied to match Page view: smaller chapter/page heading with tighter gaps, and the Page view button now sits on the same line at the top right (PDFs only).
+
 ## v1.12.221 — 2 November 2026
 
 - PDF Page view tidied up: one neat row with the page number (small, left), Back / Next / play / full screen, and the Text view button at the far right. The big page heading is hidden in Page view and the gaps are closed up. On a phone the buttons shrink to icons.
