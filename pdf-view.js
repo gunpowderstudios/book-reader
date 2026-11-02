@@ -117,7 +117,9 @@
  let tx=0,ty=0;wrap.addEventListener('touchstart',e=>{const t=e.changedTouches[0];tx=t.clientX;ty=t.clientY},{passive:true});
  wrap.addEventListener('touchend',e=>{const t=e.changedTouches[0],dx=t.clientX-tx,dy=t.clientY-ty;if(Math.abs(dx)>70&&Math.abs(dy)<60){go(dx<0?1:-1)}},{passive:true});
  const playBtn=$('play');if(playBtn)new MutationObserver(()=>{bPlay.textContent=/Pause/.test(playBtn.textContent)?'⏸':'▶'}).observe(playBtn,{childList:true,characterData:true,subtree:true});
+ let auto=false;
  btn.onclick=()=>{
+  if(!auto){try{localStorage.setItem('cv-pdf-mode',on?'text':'page')}catch(_){}} /* the choice being made now: on=true means switching to Text view */
   if(on&&fs)setFs(false);on=!on;btn.setAttribute('aria-pressed',String(on));btn.textContent=on?'📖 Text view':'🖼 Page view';panel.hidden=!on;main.classList.toggle('eddi-pdf-on',on);
   if(on){ctrl.appendChild(btn);bar.hidden=true;note.textContent='Loading the page…';update()}else{bar.appendChild(btn);bar.hidden=!file}
  };
@@ -129,6 +131,10 @@
  window.eddiPdfView={setBook(f){
   token++;if(doc){try{doc.destroy()}catch(_){}}doc=null;docLoading=null;vp=null;shownPage=0;file=f||null;
   if(!file){on=false;bar.appendChild(btn);bar.hidden=true;panel.hidden=true;btn.setAttribute('aria-pressed','false');btn.textContent='🖼 Page view';main.classList.remove('eddi-pdf-on');return}
-  bar.hidden=on;if(on)update();
+  bar.hidden=on;
+  /* PDFs open in Page view unless the reader last chose Text view */
+  let pref='page';try{pref=localStorage.getItem('cv-pdf-mode')||'page'}catch(_){}
+  if(pref!=='text'&&!on){auto=true;try{btn.onclick()}finally{auto=false}}
+  else if(on)update();
  }};
 })();

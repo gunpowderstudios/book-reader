@@ -1,3 +1,7 @@
+## v1.12.225 — 2 November 2026
+
+- PDFs now open straight into Page view. If you switch to Text view, E.D.D.i remembers that choice for next time (and Page view again resets it).
+
 ## v1.12.224 — 2 November 2026
 
 - PDFs in columns: E.D.D.i now spots clear column gaps on a page and reads each column top to bottom (left to right), instead of across the page. Full-width headings and intro text stay in their place, a sentence that runs from one column into the next stays together, and Page view highlights just the column being read. Pages with no clear columns read exactly as before.
