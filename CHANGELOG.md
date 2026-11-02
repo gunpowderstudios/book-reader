@@ -1,3 +1,7 @@
+## v1.12.221 — 2 November 2026
+
+- PDF Page view tidied up: one neat row with the page number (small, left), Back / Next / play / full screen, and the Text view button at the far right. The big page heading is hidden in Page view and the gaps are closed up. On a phone the buttons shrink to icons.
+
 ## v1.12.220 — 2 November 2026
 
 - PDF Page view: **Full screen** button (⛶) that fits the whole page on the screen, whether it is a single page or a two-page spread, exactly as designed. Back / Next page buttons, left and right arrow keys, and a swipe on a phone move between pages; there is also a play/pause button. Esc or ✕ leaves full screen (F toggles it).

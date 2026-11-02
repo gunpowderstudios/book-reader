@@ -12,19 +12,25 @@
 #eddi-pdf-bar[hidden],#eddi-pdf-view[hidden]{display:none!important}
 #eddi-pdf-bar button{font:700 14px system-ui,sans-serif;background:#2b5a3d;color:#fff;border:1px solid #6e9a7e;border-radius:9px;padding:8px 14px;min-height:40px;cursor:pointer}
 #eddi-pdf-bar button[aria-pressed=true]{background:#d1f869;color:#08150c;border-color:#d1f869}
-#eddi-pdf-view{margin:0 auto 16px;max-width:900px}
+#eddi-pdf-view{margin:0 auto 12px;max-width:900px}
 #eddi-pdf-view .wrap{position:relative;margin:0 auto;background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.5);line-height:0}
 #eddi-pdf-view canvas{display:block;width:100%;height:auto}
 #eddi-pdf-view .hl{position:absolute;pointer-events:none;background:rgba(209,248,105,.30);border:2px solid #d1f869;border-radius:4px;box-sizing:border-box;transition:top .25s,left .25s,width .25s,height .25s}
 #eddi-pdf-view .note{font:13px/1.4 system-ui,sans-serif;color:#c1d7c6;padding:6px 2px;text-align:center}
 #book-main.eddi-pdf-on #text{display:none!important}
-#eddi-pdf-ctrl{display:flex;gap:8px;align-items:center;justify-content:center;margin:0 auto 8px;flex-wrap:nowrap}
-#eddi-pdf-ctrl button{font:700 16px system-ui,sans-serif;background:#2b5a3d;color:#fff;border:1px solid #6e9a7e;border-radius:9px;min-width:44px;min-height:44px;padding:6px 10px;cursor:pointer}
+#eddi-pdf-ctrl{display:flex;gap:6px;align-items:center;justify-content:flex-end;margin:0 0 6px;flex-wrap:nowrap}
+#eddi-pdf-ctrl button{font:700 14px system-ui,sans-serif;background:#2b5a3d;color:#fff;border:1px solid #6e9a7e;border-radius:8px;min-width:38px;min-height:38px;padding:4px 10px;cursor:pointer;white-space:nowrap}
 #eddi-pdf-ctrl button:disabled{opacity:.35}
-#eddi-pdf-ctrl .lbl{font:600 14px system-ui,sans-serif;color:#e9f5ed;min-width:96px;text-align:center}
+#eddi-pdf-ctrl #eddi-pdf-toggle{background:#d1f869;color:#08150c;border-color:#d1f869;margin-left:8px}
+#eddi-pdf-ctrl .lbl{font:500 12px system-ui,sans-serif;color:#c1d7c6;margin-right:auto;white-space:nowrap}
+#eddi-pdf-ctrl .short{display:none}
+@media(max-width:560px){#eddi-pdf-ctrl .long,#eddi-pdf-ctrl .w{display:none}#eddi-pdf-ctrl .short{display:inline}#eddi-pdf-ctrl button{padding:4px 8px}#eddi-pdf-ctrl #eddi-pdf-toggle{margin-left:4px}}
+#book-main.eddi-pdf-on #heading{display:none!important}
 #eddi-pdf-view.fs{position:fixed;inset:0;z-index:2147483000;margin:0;max-width:none;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden}
 #eddi-pdf-view.fs .wrap{margin:0;flex:0 0 auto}
-#eddi-pdf-view.fs #eddi-pdf-ctrl{position:absolute;left:0;right:0;bottom:0;margin:0;padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px));background:rgba(0,0,0,.72);z-index:2}
+#eddi-pdf-view.fs #eddi-pdf-ctrl{position:absolute;left:0;right:0;bottom:0;margin:0;padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px));background:rgba(0,0,0,.72);z-index:2;justify-content:center}
+#eddi-pdf-view.fs #eddi-pdf-ctrl .lbl{margin-right:0}
+#eddi-pdf-view.fs #eddi-pdf-ctrl #eddi-pdf-toggle{display:none}
 #eddi-pdf-view.fs .note{position:absolute;top:6px;left:0;right:0;color:#c1d7c6;z-index:2;pointer-events:none}
 @media(prefers-reduced-motion:reduce){#eddi-pdf-view .hl{transition:none}}`;
  document.head.appendChild(style);
@@ -36,11 +42,11 @@
  const cv=document.createElement('canvas');const hlBox=document.createElement('div');hlBox.style.cssText='position:absolute;inset:0;pointer-events:none';
  wrap.append(cv,hlBox);const note=document.createElement('div');note.className='note';
  const ctrl=document.createElement('div');ctrl.id='eddi-pdf-ctrl';
- const mk=(t,title,fn)=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.title=title;b.setAttribute('aria-label',title);b.onclick=fn;return b};
+ const mk=(t,title,fn)=>{const b=document.createElement('button');b.type='button';b.innerHTML=t;b.title=title;b.setAttribute('aria-label',title);b.onclick=fn;return b};
  const bPrev=mk('◀','Previous page',()=>go(-1)),bNext=mk('▶','Next page',()=>go(1)),bPlay=mk('▶','Play or pause the reading',()=>$('play')?.click()),bFs=mk('⛶','Full screen',()=>setFs(!fs));
- const lbl=document.createElement('span');lbl.className='lbl';lbl.textContent='Page';
- bPrev.textContent='◀ Back';bNext.textContent='Next ▶';
- ctrl.append(bPrev,lbl,bNext,bPlay,bFs);
+ const lbl=document.createElement('span');lbl.className='lbl';lbl.innerHTML='<span class="long">Page</span><span class="short"></span>';
+ bPrev.innerHTML='◀<span class="w"> Back</span>';bNext.innerHTML='<span class="w">Next </span>▶';
+ ctrl.append(lbl,bPrev,bNext,bPlay,bFs);
  panel.append(ctrl,wrap,note);
  text.before(bar);text.before(panel);
 
@@ -80,7 +86,7 @@
    const w=fs?Math.floor(Math.min(innerWidth,Math.max(200,innerHeight-76)*aspect)):(wrap.clientWidth||panel.clientWidth);
    if(p!==shownPage||Math.abs(w-shownW)>8||!vp)await showPage(p);
    draw(k.rects,p);
-   const total=doc?doc.numPages:'';lbl.textContent='Page '+p+(total?' of '+total:'');
+   const total=doc?doc.numPages:'';lbl.querySelector('.long').textContent='Page '+p+(total?' of '+total:'');lbl.querySelector('.short').textContent=p+(total?' / '+total:'');
    bPrev.disabled=k.s.index<=0;bNext.disabled=k.s.index>=k.s.chapters.length-1;
   }catch(e){note.textContent='The page picture could not be shown: '+(e&&e.message||e);}
  }
@@ -110,7 +116,7 @@
  const playBtn=$('play');if(playBtn)new MutationObserver(()=>{bPlay.textContent=/Pause/.test(playBtn.textContent)?'⏸':'▶'}).observe(playBtn,{childList:true,characterData:true,subtree:true});
  btn.onclick=()=>{
   if(on&&fs)setFs(false);on=!on;btn.setAttribute('aria-pressed',String(on));btn.textContent=on?'📖 Text view':'🖼 Page view';panel.hidden=!on;main.classList.toggle('eddi-pdf-on',on);
-  if(on){note.textContent='Loading the page…';update()}
+  if(on){ctrl.appendChild(btn);bar.hidden=true;note.textContent='Loading the page…';update()}else{bar.appendChild(btn);bar.hidden=!file}
  };
  /* tap a highlighted paragraph on the page to start reading from there */
  wrap.addEventListener('click',e=>{
@@ -119,7 +125,7 @@
  });
  window.eddiPdfView={setBook(f){
   token++;if(doc){try{doc.destroy()}catch(_){}}doc=null;docLoading=null;vp=null;shownPage=0;file=f||null;
-  if(!file){on=false;bar.hidden=true;panel.hidden=true;btn.setAttribute('aria-pressed','false');btn.textContent='🖼 Page view';main.classList.remove('eddi-pdf-on');return}
-  bar.hidden=false;if(on)update();
+  if(!file){on=false;bar.appendChild(btn);bar.hidden=true;panel.hidden=true;btn.setAttribute('aria-pressed','false');btn.textContent='🖼 Page view';main.classList.remove('eddi-pdf-on');return}
+  bar.hidden=on;if(on)update();
  }};
 })();
