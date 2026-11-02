@@ -1,3 +1,7 @@
+## v1.12.226 — 2 November 2026
+
+- PDF charts: when a page has a chart of rows (a name on the left, pictures such as dots in the middle, a short number on the right), each row is now read as "Buy/Sell resources, section 4.2" and highlighted on its own in Page view. The sideways column headings (DEFCON, Green, Yellow, Amber, Section) are no longer read out. The dots themselves cannot be read aloud.
+
 ## v1.12.225 — 2 November 2026
 
 - PDFs now open straight into Page view. If you switch to Text view, E.D.D.i remembers that choice for next time (and Page view again resets it).

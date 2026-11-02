@@ -127,30 +127,58 @@
    // Some PDFs draw the same text twice (outlines, shadows). Read it once.
    if(item.str.trim()&&item.transform){const x=item.transform[4],y=item.transform[5];if(seen.some(q=>q.s===item.str&&Math.abs(q.x-x)<2&&Math.abs(q.y-y)<2))continue;seen.push({s:item.str,x,y})}
    const y=item.transform?item.transform[5]:0,h=Math.abs(item.height||item.transform&&item.transform[3]||10)||10;
-   items.push({s:item.str,x:item.transform?item.transform[4]:0,w:item.width||0,y,h,eol:!!item.hasEOL});
+   const t=item.transform||[1,0,0,1,0,0];items.push({s:item.str,x:t[4],w:item.width||0,y,h,eol:!!item.hasEOL,rot:Math.abs(t[1])>0.1*Math.hypot(t[0],t[1])});
   }
   // Columns: if the page has clear gutters, read each column top to bottom (full-width headings stay in place), instead of across the page.
-  const real=items.filter(i=>i.s.trim());
-  const gutters=findGutters(real);
-  const segments=[];
-  if(gutters){
-   const crosses=it=>gutters.some(g=>it.x<g-1&&it.x+it.w>g+1);
-   const spanners=real.filter(crosses).sort((p,q)=>q.y-p.y),rest=real.filter(i=>!crosses(i));
-   // Full-width lines that sit together (a heading, an intro paragraph) stay together as one piece.
-   const groups=[];for(const sp of spanners){const last=groups[groups.length-1];if(last&&!rest.some(it=>it.y<last[last.length-1].y-1&&it.y>sp.y+1))last.push(sp);else groups.push([sp])}
-   const bandOf=it=>groups.filter(g=>g[0].y>it.y+it.h*0.3).length;
-   const colOf=it=>{const m=it.x+it.w/2;let c=0;for(const g of gutters)if(m>g)c++;return c};
-   const cells=new Map();
-   for(const it of rest){const key=bandOf(it)*10+colOf(it);if(!cells.has(key))cells.set(key,[]);cells.get(key).push(it)}
-   for(let b=0;b<=groups.length;b++){
-    for(let c=0;c<=gutters.length;c++){const cell=cells.get(b*10+c);if(cell&&cell.length)segments.push(cell)}
-    if(b<groups.length)segments.push(groups[b]);
-   }
-  }else segments.push(items);
-  const rows=[];
-  segments.forEach((seg,si)=>{
-   for(const l of itemsToLines(seg,!!gutters)){const t=clean(l.text);if(t)rows.push({y:l.y,h:l.h,x0:l.x0,x1:l.x1,text:t,seg:si})}
-  });
+  const rowsFrom=(list,noCols)=>{
+   const real=list.filter(i=>i.s.trim());
+   const gutters=noCols?null:findGutters(real);
+   const segments=[];
+   if(gutters){
+    const crosses=it=>gutters.some(g=>it.x<g-1&&it.x+it.w>g+1);
+    const spanners=real.filter(crosses).sort((p,q)=>q.y-p.y),rest=real.filter(i=>!crosses(i));
+    // Full-width lines that sit together (a heading, an intro paragraph) stay together as one piece.
+    const groups=[];for(const sp of spanners){const last=groups[groups.length-1];if(last&&!rest.some(it=>it.y<last[last.length-1].y-1&&it.y>sp.y+1))last.push(sp);else groups.push([sp])}
+    const bandOf=it=>groups.filter(g=>g[0].y>it.y+it.h*0.3).length;
+    const colOf=it=>{const m=it.x+it.w/2;let c=0;for(const g of gutters)if(m>g)c++;return c};
+    const cells=new Map();
+    for(const it of rest){const key=bandOf(it)*10+colOf(it);if(!cells.has(key))cells.set(key,[]);cells.get(key).push(it)}
+    for(let b=0;b<=groups.length;b++){
+     for(let c=0;c<=gutters.length;c++){const cell=cells.get(b*10+c);if(cell&&cell.length)segments.push(cell)}
+     if(b<groups.length)segments.push(groups[b]);
+    }
+   }else segments.push(list);
+   const rows=[];
+   segments.forEach((seg,si)=>{
+    for(const l of itemsToLines(seg,!!gutters)){const t=clean(l.text);if(t)rows.push({y:l.y,h:l.h,x0:l.x0,x1:l.x1,text:t,seg:si,parts:l.parts.filter(p=>p.s.trim())})}
+   });
+   return {rows,gutters};
+  };
+  /* Charts: a run of rows with a name on the left, a gap of pictures (dots, ticks) and a short number on the right.
+     Read each row as "name, section 4.2" (the pictures cannot be read) and leave out the sideways column headings. */
+  const rotated=items.filter(i=>i.rot&&i.s.trim());
+  const upright=rotated.length?items.filter(i=>!i.rot):items;
+  const tableRow=r=>{
+   const ps=r.parts.slice().sort((p,q)=>p.x-q.x);if(ps.length<2)return null;
+   let gi=-1,gap=0;for(let k=1;k<ps.length;k++){const g=ps[k].x-(ps[k-1].x+ps[k-1].w);if(g>gap){gap=g;gi=k}}
+   if(gi<1||gap<Math.max(40,r.h*6))return null;
+   const right=ps.slice(gi).map(p=>p.s).join('').trim(),left=clean(ps.slice(0,gi).map(p=>p.s).join('')).replace(/^[+•·\-–—*]\s*/,'');
+   if(!/^\d{1,3}(\.\d{1,2})?$/.test(right)||!/[A-Za-z]{3}/.test(left))return null;
+   return {left,right};
+  };
+  const flat=rowsFrom(upright,true).rows,tr0=flat.map(tableRow);
+  const inRun=i=>tr0[i]&&((i>0&&tr0[i-1])||(i+1<tr0.length&&tr0[i+1]));
+  let tblCount=0;for(let i=0;i<tr0.length;i++)if(inRun(i))tblCount++;
+  let rows,gutters;
+  if(tblCount>=3){
+   const word=(rotated.map(i=>i.s).join(' ').match(/section|page|rule|chapter/i)||[''])[0].toLowerCase();
+   const drop=new Set(),first=new Map();
+   flat.forEach((r,i)=>{if(!inRun(i))return;r.parts.forEach(p=>drop.add(p));
+    first.set(r.parts[0],{s:tr0[i].left+', '+(word?word+' ':'')+tr0[i].right,x:r.x0,w:Math.max(1,r.x1-r.x0),y:r.y,h:r.h,eol:true,rot:false,tbl:true})});
+   const list=[];for(const p of upright){if(first.has(p))list.push(first.get(p));else if(!drop.has(p))list.push(p)}   // each chart row takes the place of its first piece, so reading order is kept
+   ({rows,gutters}=rowsFrom(list));
+   for(const r of rows){if(r.parts.length===1&&r.parts[0].tbl)r.tbl=r.parts[0].s}
+  }else({rows,gutters}=rowsFrom(items));
   while(rows.length&&isPageNumber(rows[0].text))rows.shift();      // page numbers at the top or bottom are not read aloud
   while(rows.length&&isPageNumber(rows[rows.length-1].text))rows.pop();
   if(!rows.length)return {paras:[],rects:[]};
@@ -164,7 +192,8 @@
   const box=rs=>{const out=[],bySeg=new Map();for(const q of rs){if(!(q.x1>q.x0))continue;if(!bySeg.has(q.seg))bySeg.set(q.seg,[]);bySeg.get(q.seg).push(q)}
    for(const r of bySeg.values())out.push({p:pageNo,x0:Math.min(...r.map(q=>q.x0))-2,x1:Math.max(...r.map(q=>q.x1))+2,y0:Math.min(...r.map(q=>q.y-q.h*0.3)),y1:Math.max(...r.map(q=>q.y+q.h*0.95))});return out};
   for(let i=0;i<rows.length;i++){
-   const head=isHead(rows[i]),prevHead=i>0&&isHead(rows[i-1]);
+   if(rows[i].tbl){if(buf.length){paras.push(joinLines(buf));rects.push(box(bufRows))}buf=[];bufRows=[];paras.push(rows[i].tbl);rects.push(box([rows[i]]));continue}
+   const head=isHead(rows[i]),prevHead=i>0&&isHead(rows[i-1])&&!rows[i-1].tbl;
    let brk=false;
    if(i>0){
     if(rows[i].seg!==rows[i-1].seg){ brk=!( !head&&!prevHead&&!END.test(rows[i-1].text)&&/^[a-z]/.test(rows[i].text) ) } // a sentence running from one column into the next stays together
