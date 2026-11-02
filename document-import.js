@@ -127,8 +127,17 @@
  async function pageParagraphs(page,pageNo){
   const data=await page.getTextContent();
   const items=[],seen=[];
+  // Some PDFs use a fancy font with no proper text map, so the hidden text comes out scrambled (it looks fine on the page).
+  // Spot those fonts and turn each letter back (the letters are all shifted by the same amount).
+  const BAD=/[\u0000-\u0002\u0004-\u001f\u0245\u0268\u0269\u026a]/;
+  const badFonts=new Set(data.items.filter(i=>typeof i.str==='string'&&BAD.test(i.str)).map(i=>i.fontName));
+  const unscramble=str=>str.length<2?str:[...str].map(ch=>{const c=ch.charCodeAt(0);
+   if(c===0x20)return ',';
+   if(c===3)return ' ';if(ch==='\u0245')return '\u2019';if(ch==='\u0268')return 'fi';if(ch==='\u0269')return 'fl';if(ch==='\u026a')return 'D';
+   if(c>=4&&c<=0x60)return String.fromCharCode(c+31);return ch}).join('');
   for(const item of data.items){
    if(typeof item.str!=='string')continue;
+   if(badFonts.has(item.fontName))item.str=unscramble(item.str);
    // Some PDFs draw the same text twice (outlines, shadows). Read it once.
    if(item.str.trim()&&item.transform){const x=item.transform[4],y=item.transform[5];if(seen.some(q=>q.s===item.str&&Math.abs(q.x-x)<2&&Math.abs(q.y-y)<2))continue;seen.push({s:item.str,x,y})}
    const y=item.transform?item.transform[5]:0,h=Math.abs(item.height||item.transform&&item.transform[3]||10)||10;

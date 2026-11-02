@@ -1,3 +1,7 @@
+## v1.12.233 — 2 November 2026
+
+- PDFs with a fancy font that hid scrambled text (such as "5IFO MfuAT...") are now read properly, both in the text view and out loud.
+
 ## v1.12.232 — 2 November 2026
 
 - The "E.D.D.i is scanning..." dimming now also shows in full screen PDF reading (it was hidden behind real full screen mode).
