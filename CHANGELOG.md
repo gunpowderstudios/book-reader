@@ -1,3 +1,7 @@
+## v1.12.220 — 2 November 2026
+
+- PDF Page view: **Full screen** button (⛶) that fits the whole page on the screen, whether it is a single page or a two-page spread, exactly as designed. Back / Next page buttons, left and right arrow keys, and a swipe on a phone move between pages; there is also a play/pause button. Esc or ✕ leaves full screen (F toggles it).
+
 ## v1.12.219 — 2 November 2026
 
 - PDFs: new **Page view** button. It shows the PDF page as it was designed, with a soft green box moving over the paragraph being read (and a switch back to Text view). Tap a paragraph on the page to start reading from there. Only PDFs get the button; other formats are unchanged.
