@@ -608,6 +608,16 @@ function chunks(str,max=CHUNK_MAX){ /* sentence-aware: passages end where a sent
  if(buf.trim())out.push(buf.trim());
  return out;
 }
+const SENT_PAD=0.22; /* seconds of extra quiet after a sentence that ends a spoken passage */
+function sentenceChunks(str,max){ /* one passage per sentence (very short ones join the next), so every full stop gets its own rest */
+ const out=[];let buf='';
+ for(const sent of sentences(norm(str)))for(const piece of splitLong(sent,max)){
+  buf+=(buf?' ':'')+piece.trim();
+  if(buf.length>=45&&/[.!?\u2026]["'\u201d\u2019)]*$/.test(buf)){out.push(buf);buf=''}
+ }
+ if(buf.trim())out.push(buf.trim());
+ return out;
+}
 const SCENE=/^[\s*#~=_\-\u2022\u00b7.\u2014\u2013\u2022\u25cf\u2766\u2042]{3,}$/;
 const sayable=t=>/[\p{L}\p{N}]/u.test(t);
 /* ALL-CAPS words are often read out letter by letter. Make real words ordinary words (BUY -> Buy), but keep acronyms (USA, FBI, TV) and Roman numerals (XVII). */
@@ -654,9 +664,10 @@ function plan(paras,p,narr,style,first){
  const slowish=mobileDevice()||mode==='standard',max=first?(slowish?FIRST_CHUNK_MAX:NAT_FIRST_MAX):(slowish?CHUNK_MAX:NAT_MAX),dlg=style==='natural'&&DIALOGUE[narr]?DIALOGUE[narr]:narr,out=[];
  const next=paras[p+1],scene=next!=null&&SCENE.test(next),heading=!/[.!?\u2026"\u201d]$/.test(norm(para))&&norm(para).length<80&&(p===0||SCENE.test(paras[p-1]||''));
  for(const r of dialogueRuns(para,style==='pace'?5:14)){
-  for(const t of chunks(r.t,max)){const say=spoken(t);if(sayable(say))out.push({text:t,say,voice:r.d?dlg:narr,d:r.d,mul:r.d&&style==='pace'?PACE_MUL:1,pitch:r.d&&style==='pace'?PACE_PITCH:1,last:false,pad:0})}
+  for(const t of (slowish?chunks(r.t,max):sentenceChunks(r.t,max))){const say=spoken(t);if(sayable(say))out.push({text:t,say,voice:r.d?dlg:narr,d:r.d,mul:r.d&&style==='pace'?PACE_MUL:1,pitch:r.d&&style==='pace'?PACE_PITCH:1,last:false,pad:0})}
  }
  for(let i=0;i<out.length;i++)if(i<out.length-1&&style!=='single'&&out[i].d!==out[i+1].d)out[i].pad=0.12;
+ for(let i=0;i<out.length-1;i++)if(!out[i].pad&&/[.!?\u2026]["'\u201d\u2019)]*$/.test(out[i].text))out[i].pad=SENT_PAD; /* a little extra rest after each full stop */
  if(out.length){const l=out[out.length-1];l.last=true;l.pad=scene?1.4:heading?1.0:NAT_PARA_PAD}
  return out;
 }

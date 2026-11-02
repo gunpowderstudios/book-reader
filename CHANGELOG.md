@@ -1,3 +1,7 @@
+## v1.12.237 — 2 November 2026
+
+- A slightly longer rest after each full stop. On computers George now speaks one sentence at a time (very short ones join the next) with a small pause between them; phones keep their longer passages with the same small pause where a passage ends.
+
 ## v1.12.234 — 2 November 2026
 
 - Long book titles in the left panel now shrink and wrap instead of running over the edge.
