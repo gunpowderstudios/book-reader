@@ -1,3 +1,7 @@
+## v1.12.219 — 2 November 2026
+
+- PDFs: new **Page view** button. It shows the PDF page as it was designed, with a soft green box moving over the paragraph being read (and a switch back to Text view). Tap a paragraph on the page to start reading from there. Only PDFs get the button; other formats are unchanged.
+
 ## v1.12.212 — 1 November 2026
 
 - Removed the private Voice Trial page from the Lab. Kokoro stays as the only voice. (The Bench test page is still there.)

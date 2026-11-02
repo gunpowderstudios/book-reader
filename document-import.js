@@ -77,7 +77,7 @@
   }catch(_){return null}
  }
  function isPageNumber(l){return /^(page\s*)?\d{1,4}$/i.test(l)||/^[-–—]\s*\d{1,4}\s*[-–—]$/.test(l)}
- async function pageParagraphs(page){
+ async function pageParagraphs(page,pageNo){
   const data=await page.getTextContent();
   // Group text pieces into lines using their position, so we know where the real paragraph gaps are.
   const lines=[];let cur=null;
@@ -87,29 +87,33 @@
    // Some PDFs draw the same text twice (outlines, shadows). Read it once.
    if(item.str.trim()&&item.transform){const x=item.transform[4],y=item.transform[5];if(seen.some(q=>q.s===item.str&&Math.abs(q.x-x)<2&&Math.abs(q.y-y)<2))continue;seen.push({s:item.str,x,y})}
    const y=item.transform?item.transform[5]:0,h=Math.abs(item.height||item.transform&&item.transform[3]||10)||10;
-   if(!cur||Math.abs(y-cur.y)>h*0.5){cur={y,h,text:''};lines.push(cur)}
+   if(!cur||Math.abs(y-cur.y)>h*0.5){cur={y,h,text:'',x0:1e9,x1:-1e9};lines.push(cur)}
    cur.text+=item.str;
+   if(item.str.trim()&&item.transform){const ix=item.transform[4];cur.x0=Math.min(cur.x0,ix);cur.x1=Math.max(cur.x1,ix+(item.width||0))}
    if(item.hasEOL){cur.eol=true;cur=null}
   }
-  const rows=lines.map(l=>({y:l.y,h:l.h,text:clean(l.text)})).filter(l=>l.text);
+  const rows=lines.map(l=>({y:l.y,h:l.h,x0:l.x0,x1:l.x1,text:clean(l.text)})).filter(l=>l.text);
   while(rows.length&&isPageNumber(rows[0].text))rows.shift();      // page numbers at the top or bottom are not read aloud
   while(rows.length&&isPageNumber(rows[rows.length-1].text))rows.pop();
-  if(!rows.length)return [];
+  if(!rows.length)return {paras:[],rects:[]};
   const gaps=[];for(let i=1;i<rows.length;i++){const g=Math.abs(rows[i-1].y-rows[i].y);if(g>0)gaps.push(g)}
   gaps.sort((a,b)=>a-b);const normal=gaps.length?gaps[Math.floor(gaps.length/2)]:0;
   // Lines set in clearly larger type than the rest are headings: keep each one as its own paragraph.
   const hs=rows.map(r=>r.h).sort((a,b)=>a-b),bodyH=hs[Math.floor(hs.length/2)]||10;
   const isHead=r=>r.h>=bodyH*1.3&&r.text.length<=100;
-  const paras=[];let buf=[];
+  const paras=[],rects=[];let buf=[],bufRows=[];
+  /* where on the page a paragraph sits (PDF page units), so Page view can highlight it */
+  const box=rs=>{const r=rs.filter(q=>q.x1>q.x0);if(!r.length)return [];return [{p:pageNo,x0:Math.min(...r.map(q=>q.x0))-2,x1:Math.max(...r.map(q=>q.x1))+2,y0:Math.min(...r.map(q=>q.y-q.h*0.3)),y1:Math.max(...r.map(q=>q.y+q.h*0.95))}]};
   for(let i=0;i<rows.length;i++){
    const head=isHead(rows[i]),prevHead=i>0&&isHead(rows[i-1]);
-   if(i>0&&(head||prevHead||(normal&&Math.abs(rows[i-1].y-rows[i].y)>normal*1.45))){if(buf.length)paras.push(joinLines(buf));buf=[]}
-   buf.push(rows[i].text);
+   if(i>0&&(head||prevHead||(normal&&Math.abs(rows[i-1].y-rows[i].y)>normal*1.45))){if(buf.length){paras.push(joinLines(buf));rects.push(box(bufRows))}buf=[];bufRows=[]}
+   buf.push(rows[i].text);bufRows.push(rows[i]);
   }
-  if(buf.length)paras.push(joinLines(buf));
+  if(buf.length){paras.push(joinLines(buf));rects.push(box(bufRows))}
   // Pages with no clear gaps at all (one huge block): fall back to sentence-ending short lines.
-  if(paras.length===1&&rows.length>6)return reflowWrapped(rows.map(r=>r.text)).map(softCaps);
-  return paras.filter(Boolean).map(softCaps);
+  if(paras.length===1&&rows.length>6){const rf=reflowWrapped(rows.map(r=>r.text)).map(softCaps);return {paras:rf,rects:rf.map(()=>[])}}
+  const keep=paras.map((t,i)=>t?i:-1).filter(i=>i>=0);
+  return {paras:keep.map(i=>softCaps(paras[i])),rects:keep.map(i=>rects[i])};
  }
  async function readPdf(file){
   const pdfLib=await pdfjs();
@@ -117,26 +121,26 @@
   let pdf;
   try{
    pdf=await task.promise;
-   const chapters=[];let carry='';
+   const chapters=[];let carry='',carryRects=[];
    let cover=null;
    try{const p1=await pdf.getPage(1),v0=p1.getViewport({scale:1}),vp=p1.getViewport({scale:Math.min(2,400/v0.width)}),cv=document.createElement('canvas');cv.width=Math.ceil(vp.width);cv.height=Math.ceil(vp.height);await p1.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;cover=badgeCover('pdf',file.name,cv)}catch(_){cover=badgeCover('pdf',file.name.replace(/\.pdf$/i,''),null)}
    for(let pageNo=1;pageNo<=pdf.numPages;pageNo++){
     const page=await pdf.getPage(pageNo);
-    const paragraphs=await pageParagraphs(page);
+    const pp=await pageParagraphs(page,pageNo),paragraphs=pp.paras,rects=pp.rects;
     // A sentence that runs over the page break is read as one piece: move the start of it to the next page.
-    if(carry&&paragraphs.length&&/^[a-z]/.test(paragraphs[0])){paragraphs[0]=carry+' '+paragraphs[0]}
-    else if(carry){const last=chapters[chapters.length-1];if(last)last.paragraphs.push(carry)}
-    carry='';
+    if(carry&&paragraphs.length&&/^[a-z]/.test(paragraphs[0])){paragraphs[0]=carry+' '+paragraphs[0];rects[0]=carryRects.concat(rects[0])}
+    else if(carry){const last=chapters[chapters.length-1];if(last){last.paragraphs.push(carry);last.rects.push(carryRects)}}
+    carry='';carryRects=[];
     if(paragraphs.length){
      const last=paragraphs[paragraphs.length-1];
-     if(pageNo<pdf.numPages&&last&&!END.test(last)&&paragraphs.length>0){carry=paragraphs.pop()}
+     if(pageNo<pdf.numPages&&last&&!END.test(last)&&paragraphs.length>0){carry=paragraphs.pop();carryRects=rects.pop()||[]}
     }
-    if(paragraphs.length)chapters.push({title:'Page '+pageNo,paragraphs});
+    if(paragraphs.length)chapters.push({title:'Page '+pageNo,paragraphs,rects,page:pageNo});
     else if(carry){/* whole page was one unfinished paragraph: keep carrying it */}
    }
-   if(carry){const last=chapters[chapters.length-1];if(last)last.paragraphs.push(carry);else chapters.push({title:'Page 1',paragraphs:[carry]})}
+   if(carry){const last=chapters[chapters.length-1];if(last){last.paragraphs.push(carry);last.rects.push(carryRects)}else chapters.push({title:'Page 1',paragraphs:[carry],rects:[carryRects],page:1})}
    if(!chapters.length)throw new Error('No selectable text found. Scanned PDFs need OCR, which is not supported yet.');
-   return {title:file.name.replace(/\.pdf$/i,''),author:'PDF document',cover,chapters};
+   return {title:file.name.replace(/\.pdf$/i,''),author:'PDF document',cover,chapters,pdfFile:file};
   }finally{if(pdf)await pdf.destroy().catch(()=>{});else await task.destroy().catch(()=>{})}
  }
  /* ───── Shared: turn a list of {t:text, h:heading level (0 = body text)} into chapters ───── */
@@ -371,6 +375,7 @@
  }
  const EXT=/\.(pdf|txt|text|docx?|odt|rtf|md|markdown|x?html?|fb2)$/i;
  window.eddiIsDocument=name=>EXT.test(String(name||''));
+ window.eddiPdfjs=pdfjs;
  window.eddiParseDocument=async function(file){
   const name=(file?.name||'').toLowerCase();
   if(name.endsWith('.pdf'))return readPdf(file);
