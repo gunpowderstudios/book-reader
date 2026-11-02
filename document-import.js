@@ -77,41 +77,105 @@
   }catch(_){return null}
  }
  function isPageNumber(l){return /^(page\s*)?\d{1,4}$/i.test(l)||/^[-–—]\s*\d{1,4}\s*[-–—]$/.test(l)}
+ /* Finds clear vertical gutters (columns) on a page from where the text actually sits. Returns the x positions of the gutters, or null for a single column. */
+ function findGutters(items){
+  if(items.length<12)return null;
+  let minX=1e9,maxX=-1e9;for(const it of items){minX=Math.min(minX,it.x);maxX=Math.max(maxX,it.x+it.w)}
+  const W=maxX-minX;if(W<200)return null;
+  const narrow=items.filter(it=>it.w<=W*0.55);if(narrow.length<10)return null;
+  const hs=narrow.map(i=>i.h).sort((p,q)=>p-q),bodyH=hs[Math.floor(hs.length/2)]||10;
+  const bin=2,n=Math.ceil(W/bin)+2,cov=new Array(n).fill(0);
+  for(const it of narrow){const a=Math.floor((it.x-minX)/bin),b=Math.ceil((it.x+it.w-minX)/bin);for(let k=a;k<=b&&k<n;k++)cov[k]++}
+  const minGap=Math.max(10,bodyH*1.2)/bin,gaps=[];let start=-1;
+  const lo=Math.floor(n*0.15),hi=Math.ceil(n*0.85);
+  for(let k=lo;k<=hi+1;k++){
+   const empty=k<=hi&&cov[k]===0;
+   if(empty&&start<0)start=k;
+   else if(!empty&&start>=0){if(k-start>=minGap)gaps.push({w:k-start,x:minX+((start+k)/2)*bin});start=-1}
+  }
+  if(!gaps.length)return null;
+  const xs=gaps.sort((p,q)=>q.w-p.w).slice(0,2).map(g=>g.x).sort((p,q)=>p-q);
+  const edges=[-1e9,...xs,1e9];
+  for(let c=0;c<edges.length-1;c++){
+   const cnt=narrow.filter(it=>{const m=it.x+it.w/2;return m>=edges[c]&&m<edges[c+1]}).length;
+   if(cnt<Math.max(5,narrow.length*0.2))return null;
+  }
+  return xs;
+ }
+ /* Group text pieces into lines by position. */
+ function itemsToLines(items,sorted){
+  const lines=[];let cur=null;
+  const list=sorted?items.slice().sort((p,q)=>(q.y-p.y)||(p.x-q.x)):items;
+  for(const it of list){
+   if(!cur||Math.abs(it.y-cur.y)>it.h*0.5){cur={y:it.y,h:it.h,text:'',x0:1e9,x1:-1e9,parts:[]};lines.push(cur)}
+   cur.parts.push(it);
+   if(!sorted&&it.eol){cur.eolAfter=true}
+   if(!sorted&&it.eol){cur=null}
+  }
+  for(const l of lines){
+   if(sorted)l.parts.sort((p,q)=>p.x-q.x);
+   l.text=l.parts.map(p=>p.s).join('');
+   for(const p of l.parts)if(p.s.trim()){l.x0=Math.min(l.x0,p.x);l.x1=Math.max(l.x1,p.x+p.w)}
+  }
+  return lines;
+ }
  async function pageParagraphs(page,pageNo){
   const data=await page.getTextContent();
-  // Group text pieces into lines using their position, so we know where the real paragraph gaps are.
-  const lines=[];let cur=null;
-  const seen=[];
+  const items=[],seen=[];
   for(const item of data.items){
    if(typeof item.str!=='string')continue;
    // Some PDFs draw the same text twice (outlines, shadows). Read it once.
    if(item.str.trim()&&item.transform){const x=item.transform[4],y=item.transform[5];if(seen.some(q=>q.s===item.str&&Math.abs(q.x-x)<2&&Math.abs(q.y-y)<2))continue;seen.push({s:item.str,x,y})}
    const y=item.transform?item.transform[5]:0,h=Math.abs(item.height||item.transform&&item.transform[3]||10)||10;
-   if(!cur||Math.abs(y-cur.y)>h*0.5){cur={y,h,text:'',x0:1e9,x1:-1e9};lines.push(cur)}
-   cur.text+=item.str;
-   if(item.str.trim()&&item.transform){const ix=item.transform[4];cur.x0=Math.min(cur.x0,ix);cur.x1=Math.max(cur.x1,ix+(item.width||0))}
-   if(item.hasEOL){cur.eol=true;cur=null}
+   items.push({s:item.str,x:item.transform?item.transform[4]:0,w:item.width||0,y,h,eol:!!item.hasEOL});
   }
-  const rows=lines.map(l=>({y:l.y,h:l.h,x0:l.x0,x1:l.x1,text:clean(l.text)})).filter(l=>l.text);
+  // Columns: if the page has clear gutters, read each column top to bottom (full-width headings stay in place), instead of across the page.
+  const real=items.filter(i=>i.s.trim());
+  const gutters=findGutters(real);
+  const segments=[];
+  if(gutters){
+   const crosses=it=>gutters.some(g=>it.x<g-1&&it.x+it.w>g+1);
+   const spanners=real.filter(crosses).sort((p,q)=>q.y-p.y),rest=real.filter(i=>!crosses(i));
+   // Full-width lines that sit together (a heading, an intro paragraph) stay together as one piece.
+   const groups=[];for(const sp of spanners){const last=groups[groups.length-1];if(last&&!rest.some(it=>it.y<last[last.length-1].y-1&&it.y>sp.y+1))last.push(sp);else groups.push([sp])}
+   const bandOf=it=>groups.filter(g=>g[0].y>it.y+it.h*0.3).length;
+   const colOf=it=>{const m=it.x+it.w/2;let c=0;for(const g of gutters)if(m>g)c++;return c};
+   const cells=new Map();
+   for(const it of rest){const key=bandOf(it)*10+colOf(it);if(!cells.has(key))cells.set(key,[]);cells.get(key).push(it)}
+   for(let b=0;b<=groups.length;b++){
+    for(let c=0;c<=gutters.length;c++){const cell=cells.get(b*10+c);if(cell&&cell.length)segments.push(cell)}
+    if(b<groups.length)segments.push(groups[b]);
+   }
+  }else segments.push(items);
+  const rows=[];
+  segments.forEach((seg,si)=>{
+   for(const l of itemsToLines(seg,!!gutters)){const t=clean(l.text);if(t)rows.push({y:l.y,h:l.h,x0:l.x0,x1:l.x1,text:t,seg:si})}
+  });
   while(rows.length&&isPageNumber(rows[0].text))rows.shift();      // page numbers at the top or bottom are not read aloud
   while(rows.length&&isPageNumber(rows[rows.length-1].text))rows.pop();
   if(!rows.length)return {paras:[],rects:[]};
-  const gaps=[];for(let i=1;i<rows.length;i++){const g=Math.abs(rows[i-1].y-rows[i].y);if(g>0)gaps.push(g)}
+  const gaps=[];for(let i=1;i<rows.length;i++){if(rows[i].seg!==rows[i-1].seg)continue;const g=Math.abs(rows[i-1].y-rows[i].y);if(g>0)gaps.push(g)}
   gaps.sort((a,b)=>a-b);const normal=gaps.length?gaps[Math.floor(gaps.length/2)]:0;
   // Lines set in clearly larger type than the rest are headings: keep each one as its own paragraph.
   const hs=rows.map(r=>r.h).sort((a,b)=>a-b),bodyH=hs[Math.floor(hs.length/2)]||10;
   const isHead=r=>r.h>=bodyH*1.3&&r.text.length<=100;
   const paras=[],rects=[];let buf=[],bufRows=[];
-  /* where on the page a paragraph sits (PDF page units), so Page view can highlight it */
-  const box=rs=>{const r=rs.filter(q=>q.x1>q.x0);if(!r.length)return [];return [{p:pageNo,x0:Math.min(...r.map(q=>q.x0))-2,x1:Math.max(...r.map(q=>q.x1))+2,y0:Math.min(...r.map(q=>q.y-q.h*0.3)),y1:Math.max(...r.map(q=>q.y+q.h*0.95))}]};
+  /* where on the page a paragraph sits (PDF page units), so Page view can highlight it: one box per column piece */
+  const box=rs=>{const out=[],bySeg=new Map();for(const q of rs){if(!(q.x1>q.x0))continue;if(!bySeg.has(q.seg))bySeg.set(q.seg,[]);bySeg.get(q.seg).push(q)}
+   for(const r of bySeg.values())out.push({p:pageNo,x0:Math.min(...r.map(q=>q.x0))-2,x1:Math.max(...r.map(q=>q.x1))+2,y0:Math.min(...r.map(q=>q.y-q.h*0.3)),y1:Math.max(...r.map(q=>q.y+q.h*0.95))});return out};
   for(let i=0;i<rows.length;i++){
    const head=isHead(rows[i]),prevHead=i>0&&isHead(rows[i-1]);
-   if(i>0&&(head||prevHead||(normal&&Math.abs(rows[i-1].y-rows[i].y)>normal*1.45))){if(buf.length){paras.push(joinLines(buf));rects.push(box(bufRows))}buf=[];bufRows=[]}
+   let brk=false;
+   if(i>0){
+    if(rows[i].seg!==rows[i-1].seg){ brk=!( !head&&!prevHead&&!END.test(rows[i-1].text)&&/^[a-z]/.test(rows[i].text) ) } // a sentence running from one column into the next stays together
+    else brk=head||prevHead||(normal&&Math.abs(rows[i-1].y-rows[i].y)>normal*1.45);
+   }
+   if(brk){if(buf.length){paras.push(joinLines(buf));rects.push(box(bufRows))}buf=[];bufRows=[]}
    buf.push(rows[i].text);bufRows.push(rows[i]);
   }
   if(buf.length){paras.push(joinLines(buf));rects.push(box(bufRows))}
   // Pages with no clear gaps at all (one huge block): fall back to sentence-ending short lines.
-  if(paras.length===1&&rows.length>6){const rf=reflowWrapped(rows.map(r=>r.text)).map(softCaps);return {paras:rf,rects:rf.map(()=>[])}}
+  if(!gutters&&paras.length===1&&rows.length>6){const rf=reflowWrapped(rows.map(r=>r.text)).map(softCaps);return {paras:rf,rects:rf.map(()=>[])}}
   const keep=paras.map((t,i)=>t?i:-1).filter(i=>i>=0);
   return {paras:keep.map(i=>softCaps(paras[i])),rects:keep.map(i=>rects[i])};
  }

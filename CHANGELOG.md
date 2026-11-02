@@ -1,3 +1,7 @@
+## v1.12.224 — 2 November 2026
+
+- PDFs in columns: E.D.D.i now spots clear column gaps on a page and reads each column top to bottom (left to right), instead of across the page. Full-width headings and intro text stay in their place, a sentence that runs from one column into the next stays together, and Page view highlights just the column being read. Pages with no clear columns read exactly as before.
+
 ## v1.12.223 — 2 November 2026
 
 - Bookmarks: a 🔖 Bookmark button at the top right of the reading page (and in the Page view toolbar). Press it to save your place, press again to remove it. A Bookmarks list under the chapter menu jumps back to any saved place. Bookmarks are saved in this browser for each book, and are included in Save Book & Progress zips so they come with the book to your other devices.
