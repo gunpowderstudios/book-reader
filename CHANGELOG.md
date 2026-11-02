@@ -1,3 +1,7 @@
+## v1.12.229 — 2 November 2026
+
+- While a book or document is being opened, the whole screen dims and a green "Scanning..." message shows until it is ready. (Very quick opens skip it, so it doesn't flash.)
+
 ## v1.12.228 — 2 November 2026
 
 - ALL-CAPS words are now read as words much more reliably, in every format (EPUBs too): BUY, STEAL, DON'T, HE SAID NO, chapter headings and so on. Short and unusual ones that were being spelled out letter by letter are fixed. Acronyms (USA, FBI, BBC, TV, DNA), Roman numerals (XVII) and letter-only names (SHTF) are still spelled out, as before. The page text still shows the original capitals.
