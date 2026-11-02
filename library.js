@@ -105,6 +105,7 @@ function card(b){
  const art=b.cover||(/^Conan_Original_Stories/i.test(b.name||'')||/^Conan: Original/i.test(b.title||'')?'books/conan-cover.svg':''); /* the free book ships with its own cover */
  if(art){const img=el('img');img.src=art;img.alt='';cover.append(img)}
  else cover.append(el('span','ph',(b.title||'?').trim().charAt(0).toUpperCase()||'?'));
+ if(/\.epub$/i.test(b.name||''))cover.append(el('span','eddi-epub-badge','EPUB'));
  const info=el('div','info');
  info.append(el('h3','',b.title||b.name||'Untitled'));
  info.append(el('p','by',b.author||'Unknown author'));
@@ -140,6 +141,7 @@ function renderMobileCurrentBook(){
   cover.src=latest.cover||(/Conan/i.test(latest.title||latest.name||'')?'books/conan-cover.svg':'images/book-cover-fallback.svg');
   cover.alt='Cover of '+(latest.title||latest.name||'current book');
   cover.onerror=()=>{cover.onerror=null;cover.src='images/book-cover-fallback.svg'};
+  const coverWrap=el('div','eddi-current-cover-wrap');coverWrap.append(cover);if(/\.epub$/i.test(latest.name||''))coverWrap.append(el('span','eddi-epub-badge','EPUB'));
   const details=el('div','eddi-current-details');
   details.append(el('div','eddi-current-title',latest.title||latest.name||'Your current book'));
   if(latest.author)details.append(el('p','eddi-current-author',latest.author));
@@ -147,7 +149,7 @@ function renderMobileCurrentBook(){
   go.type='button';
   go.onclick=async()=>{const app=window.chapterApp;if(!app)return;go.disabled=true;try{await app.openFromLibrary(latest.id);if(app.state?.key===latest.id&&app.state.chapters?.length&&!app.state.playing)document.getElementById('play')?.click()}finally{go.disabled=false}};
   details.append(go);
-  host.append(cover,details);
+  host.append(coverWrap,details);
  }
  host.hidden=false;
 }
