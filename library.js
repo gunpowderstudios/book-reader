@@ -99,13 +99,14 @@ function when(ts){
  if(!ts)return '';
  try{return new Date(ts).toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}catch(_){return ''}
 }
+function bookFormat(name){const m=String(name||'').toLowerCase().match(/\.([a-z0-9]+)$/);const ext=m?.[1];return ({epub:'EPUB',pdf:'PDF',docx:'DOCX',doc:'DOC',txt:'TXT',md:'MD',markdown:'MD',html:'HTML',htm:'HTML',xhtml:'HTML',rtf:'RTF',odt:'ODT',fb2:'FB2'})[ext]||''}
 function card(b){
  const c=el('article','book');c.dataset.id=b.id;
  const cover=el('div','cover');
  const art=b.cover||(/^Conan_Original_Stories/i.test(b.name||'')||/^Conan: Original/i.test(b.title||'')?'books/conan-cover.svg':''); /* the free book ships with its own cover */
  if(art){const img=el('img');img.src=art;img.alt='';cover.append(img)}
  else cover.append(el('span','ph',(b.title||'?').trim().charAt(0).toUpperCase()||'?'));
- if(/\.epub$/i.test(b.name||''))cover.append(el('span','eddi-epub-badge','EPUB'));
+ const format=bookFormat(b.name);if(format)cover.append(el('span','eddi-epub-badge',format));
  const info=el('div','info');
  info.append(el('h3','',b.title||b.name||'Untitled'));
  info.append(el('p','by',b.author||'Unknown author'));
@@ -141,7 +142,7 @@ function renderMobileCurrentBook(){
   cover.src=latest.cover||(/Conan/i.test(latest.title||latest.name||'')?'books/conan-cover.svg':'images/book-cover-fallback.svg');
   cover.alt='Cover of '+(latest.title||latest.name||'current book');
   cover.onerror=()=>{cover.onerror=null;cover.src='images/book-cover-fallback.svg'};
-  const coverWrap=el('div','eddi-current-cover-wrap');coverWrap.append(cover);if(/\.epub$/i.test(latest.name||''))coverWrap.append(el('span','eddi-epub-badge','EPUB'));
+  const coverWrap=el('div','eddi-current-cover-wrap');coverWrap.append(cover);const format=bookFormat(latest.name);if(format)coverWrap.append(el('span','eddi-epub-badge',format));
   const details=el('div','eddi-current-details');
   details.append(el('div','eddi-current-title',latest.title||latest.name||'Your current book'));
   if(latest.author)details.append(el('p','eddi-current-author',latest.author));
