@@ -1,3 +1,7 @@
+## v1.12.232 — 2 November 2026
+
+- The "E.D.D.i is scanning..." dimming now also shows in full screen PDF reading (it was hidden behind real full screen mode).
+
 ## v1.12.231 — 2 November 2026
 
 - The three dots in "E.D.D.i is scanning..." now animate: . then .. then ... on a loop (static dots if the device asks for reduced motion).
