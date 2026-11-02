@@ -1,3 +1,7 @@
+## v1.12.228 — 2 November 2026
+
+- ALL-CAPS words are now read as words much more reliably, in every format (EPUBs too): BUY, STEAL, DON'T, HE SAID NO, chapter headings and so on. Short and unusual ones that were being spelled out letter by letter are fixed. Acronyms (USA, FBI, BBC, TV, DNA), Roman numerals (XVII) and letter-only names (SHTF) are still spelled out, as before. The page text still shows the original capitals.
+
 ## v1.12.226 — 2 November 2026
 
 - PDF charts: when a page has a chart of rows (a name on the left, pictures such as dots in the middle, a short number on the right), each row is now read as "Buy/Sell resources, section 4.2" and highlighted on its own in Page view. The sideways column headings (DEFCON, Green, Yellow, Amber, Section) are no longer read out. The dots themselves cannot be read aloud.

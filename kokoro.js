@@ -610,10 +610,27 @@ function chunks(str,max=CHUNK_MAX){ /* sentence-aware: passages end where a sent
 }
 const SCENE=/^[\s*#~=_\-\u2022\u00b7.\u2014\u2013\u2022\u25cf\u2766\u2042]{3,}$/;
 const sayable=t=>/[\p{L}\p{N}]/u.test(t);
+/* ALL-CAPS words are often read out letter by letter. Make real words ordinary words (BUY -> Buy), but keep acronyms (USA, FBI, TV) and Roman numerals (XVII). */
+const CAPS_KEEP=new Set('US USA UK UN EU TV OK AI PC ID DJ MP PM DNA FBI CIA BBC NYC UFO USB CEO GPS PDF NHS DIY VIP ATM SOS FAQ RSVP NATO'.split(' '));
+const CAPS_SMALL=new Set('AM AN AS AT BE BY DO GO HE IF IN IS IT ME MY NO OF ON OR SO TO UP WE'.split(' '));
+const ROMAN=/^M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/,ROMAN_WORDS=new Set('MIX DIM MID DID LID MILD MILL CIVIL VIM LIL'.split(' '));
+function readableCaps(t){
+ const s=String(t),shout=!/[a-z]/.test(s)&&s.length<=140;
+ return s.replace(/\b[A-Z][A-Z'’-]{1,}\b/g,w=>{
+  const core=w.replace(/['’-]/g,'');
+  if(CAPS_KEEP.has(core))return w;
+  if(ROMAN.test(core)&&!ROMAN_WORDS.has(core))return w;
+  if(!/[AEIOUY]/.test(core))return w;
+  if(core.length>=3||(shout&&CAPS_SMALL.has(core))||(CAPS_SMALL.has(core)&&/[a-z]/.test(s)))return w[0]+w.slice(1).toLowerCase();
+  return w;
+ });
+}
+
 function spoken(t){ /* what is sent to the voice (the page keeps showing the original text) */
  const out=t.replace(/\s*\u2014\s*/g,', ').replace(/\s+\u2013\s+/g,', ').replace(/\.{3,}/g,'\u2026').replace(/\s*\[\d{1,3}\]/g,'').replace(/\*+/g,'')
   .replace(/,\s*,/g,',').replace(/([.!?\u2026]["\u201d\u2019']?),\s/g,'$1 ').replace(/^[,\s]+/,'').replace(/\s+/g,' ').trim();
- return sayable(out)?out:norm(t);
+
+ return sayable(out)?readableCaps(out):readableCaps(norm(t));
 }
 function dialogueRuns(para,minLetters=14){ /* splits a paragraph into narration and quoted speech; anything unclear stays narration */
  const t=norm(para),whole=[{t,d:false}];
@@ -633,7 +650,7 @@ function dialogueRuns(para,minLetters=14){ /* splits a paragraph into narration 
 /* One paragraph -> the passages to speak, each with its voice, spoken text and the pause after it. */
 function plan(paras,p,narr,style,first){
  const para=paras[p];
- if(style==='classic')return chunks(para,first?FIRST_CHUNK_MAX:CHUNK_MAX).map((t,k,a)=>({text:t,say:t,voice:narr,last:k===a.length-1,pad:k===a.length-1?PARA_PAD:0}));
+ if(style==='classic')return chunks(para,first?FIRST_CHUNK_MAX:CHUNK_MAX).map((t,k,a)=>({text:t,say:readableCaps(t),voice:narr,last:k===a.length-1,pad:k===a.length-1?PARA_PAD:0}));
  const slowish=mobileDevice()||mode==='standard',max=first?(slowish?FIRST_CHUNK_MAX:NAT_FIRST_MAX):(slowish?CHUNK_MAX:NAT_MAX),dlg=style==='natural'&&DIALOGUE[narr]?DIALOGUE[narr]:narr,out=[];
  const next=paras[p+1],scene=next!=null&&SCENE.test(next),heading=!/[.!?\u2026"\u201d]$/.test(norm(para))&&norm(para).length<80&&(p===0||SCENE.test(paras[p-1]||''));
  for(const r of dialogueRuns(para,style==='pace'?5:14)){

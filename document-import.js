@@ -36,13 +36,18 @@
   if(!pdfModule)pdfModule=import(PDF_JS).then(mod=>{mod.GlobalWorkerOptions.workerSrc=PDF_WORKER;return mod}).catch(err=>{pdfModule=null;throw new Error('PDF reader could not load. Check your internet connection: '+err.message)});
   return pdfModule;
  }
- /* ALL-CAPS words (usually headings) are read out letter by letter, so make them ordinary words. Short ones (USA, TV) and numerals (XVII) stay as they are. */
+ /* ALL-CAPS words are often read out letter by letter. Make real words ordinary words (BUY -> Buy), but keep acronyms (USA, FBI, TV) and Roman numerals (XVII). */
+ const CAPS_KEEP=new Set('US USA UK UN EU TV OK AI PC ID DJ MP PM DNA FBI CIA BBC NYC UFO USB CEO GPS PDF NHS DIY VIP ATM SOS FAQ RSVP NATO'.split(' '));
+ const CAPS_SMALL=new Set('AM AN AS AT BE BY DO GO HE IF IN IS IT ME MY NO OF ON OR SO TO UP WE'.split(' '));
+ const ROMAN=/^M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/,ROMAN_WORDS=new Set('MIX DIM MID DID LID MILD MILL CIVIL VIM LIL'.split(' '));
  function softCaps(t){
-  t=String(t);
-  const shout=!/[a-z]/.test(t)&&t.length<=100; // a whole heading in capitals: every real word becomes an ordinary word
-  return t.replace(/\b[A-Z][A-Z'’-]{1,}\b/g,w=>{
-   if(/^[IVXLCDM]+$/.test(w)||!/[AEIOUY]/.test(w))return w;
-   if(w.length>=4||(shout&&w.length>=3))return w[0]+w.slice(1).toLowerCase();
+  const s=String(t),shout=!/[a-z]/.test(s)&&s.length<=140;
+  return s.replace(/\b[A-Z][A-Z'’-]{1,}\b/g,w=>{
+   const core=w.replace(/['’-]/g,'');
+   if(CAPS_KEEP.has(core))return w;
+   if(ROMAN.test(core)&&!ROMAN_WORDS.has(core))return w;
+   if(!/[AEIOUY]/.test(core))return w;
+   if(core.length>=3||(shout&&CAPS_SMALL.has(core))||(CAPS_SMALL.has(core)&&/[a-z]/.test(s)))return w[0]+w.slice(1).toLowerCase();
    return w;
   });
  }
