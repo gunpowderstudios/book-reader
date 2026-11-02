@@ -1,3 +1,7 @@
+## v1.12.223 — 2 November 2026
+
+- Bookmarks: a 🔖 Bookmark button at the top right of the reading page (and in the Page view toolbar). Press it to save your place, press again to remove it. A Bookmarks list under the chapter menu jumps back to any saved place. Bookmarks are saved in this browser for each book, and are included in Save Book & Progress zips so they come with the book to your other devices.
+
 ## v1.12.222 — 2 November 2026
 
 - Text view tidied to match Page view: smaller chapter/page heading with tighter gaps, and the Page view button now sits on the same line at the top right (PDFs only).
