@@ -1,3 +1,7 @@
+## v1.12.231 — 2 November 2026
+
+- The three dots in "E.D.D.i is scanning..." now animate: . then .. then ... on a loop (static dots if the device asks for reduced motion).
+
 ## v1.12.230 — 2 November 2026
 
 - The dimmed-screen message now reads "E.D.D.i is scanning..." and stays on screen until George actually starts reading (it also covers the voice loading and the first passage being prepared after you press Play). It goes away when speech starts, when you pause or stop, or if you tap the dimmed screen.
