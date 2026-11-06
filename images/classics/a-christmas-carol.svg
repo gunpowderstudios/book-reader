@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 900" role="img" aria-label="A Christmas Carol book cover">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0.8" y2="1"><stop stop-color="#385c4f"/><stop offset="1" stop-color="#132b28"/></linearGradient></defs>
+<rect width="600" height="900" fill="url(#g)"/><rect x="25" y="25" width="550" height="850" fill="none" stroke="#ead49b" stroke-width="3"/>
+<rect x="42" y="42" width="516" height="816" fill="none" stroke="#ead49b" stroke-width="1" opacity=".6"/>
+<text x="300" y="126" text-anchor="middle" fill="#ead49b" font-size="27" letter-spacing="8" font-family="Georgia,serif">CHARLES DICKENS</text>
+<circle cx="300" cy="373" r="170" fill="#d9c89f" opacity=".09"/><circle cx="300" cy="366" r="115" stroke="#ead49b" stroke-width="4" fill="#c4a766" opacity=".08"/><g stroke="#e7ce94" fill="none" stroke-linecap="round"><path d="M300 245v125l75 46" stroke-width="8"/><path d="M300 245v-25M300 510v-25M155 365h25M420 365h25" stroke-width="5"/></g><g fill="#091f1d"><path d="M125 580V435l65-45 65 45v145ZM345 580V443l68-57 67 57v137Z"/><path d="M235 580V480l65-60 65 60v100Z"/></g><g fill="#ffd991"><rect x="170" y="475" width="26" height="46"/><rect x="395" y="473" width="26" height="46"/><rect x="285" y="490" width="27" height="48"/></g><path d="M65 585Q190 550 310 585T535 580" stroke="#ead49b" fill="none" stroke-width="4"/>
+<text x="300" y="715" text-anchor="middle" fill="#fff4d6" font-weight="bold" font-family="Georgia,serif" font-size="55">A CHRISTMAS</text>
+<text x="300" y="783" text-anchor="middle" fill="#fff4d6" font-weight="bold" font-family="Georgia,serif" font-size="77">CAROL</text>
+<path d="M190 824h220" stroke="#ead49b" stroke-width="2"/><text x="300" y="843" text-anchor="middle" fill="#ead49b" font-size="16" font-family="Georgia,serif" letter-spacing="3">A GHOST STORY OF CHRISTMAS</text></svg>
