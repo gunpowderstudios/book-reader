@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.253';
+const VERSION='1.12.254';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -779,20 +779,22 @@ function toggle({S,update,render}){
     showNextPassage(ahead.length?(ahead[0].done?'ready':'working'):(exhausted?'idle':'working'));
    };
    async function holdForHeadStart(firstSec){
-    const deadline=Date.now()+(mobileDevice()?2500:5000); /* short head-start: avoid holding speech for up to 30 seconds */
-    while(!stale()&&!s.startNow&&Date.now()<deadline){
-     await unpause(s);if(stale())return;
-     const need=needNow();s.need=need;fill();
-     const have=readySec()+firstSec,known=recent.length>=2;
-     if((known&&have>=need)||have>=Math.min(mobileDevice()?3:6,need||6)||exhausted||ahead.length>=MAX_AHEAD)break;
-     if(known){
-      s.holding=true;bufInfo.target=Math.max(bufInfo.target,need);bufInfo.ready=have;
-      status('Getting ahead so George can read without stopping: '+fmtDur(have)+' of '+fmtDur(need)+' ready (about '+fmtDur(Math.max(0,need-have)/Math.max(0.1,lastSpeed))+' to go)');
+    /* Current clip is about to play; only completed NEXT clips count toward ready-ahead. */
+    const slow=recent.length>=2&&lastSpeed>0&&lastSpeed<effRate();
+    const target=slow?Math.min(24,Math.max(10,Math.round((effRate()-lastSpeed)*24))):(mobileDevice()?5:8);
+    const deadline=Date.now()+(slow?(mobileDevice()?12000:16000):(mobileDevice()?5000:7000));
+    try{
+     while(!stale()&&!s.startNow&&Date.now()<deadline){
+      await unpause(s);if(stale())return;
+      fill();
+      const have=readySec();
+      if(have>=target||(exhausted&&ahead.every(i=>i.done)))break;
+      s.holding=true;bufInfo.target=Math.max(bufInfo.target,target);bufInfo.ready=have;
+      status('Preparing smooth playback: '+fmtDur(have)+' of '+fmtDur(target)+' ready ahead');
+      renderBuffer();
+      await new Promise(r=>setTimeout(r,250));
      }
-     renderBuffer();
-     await new Promise(r=>setTimeout(r,300));
-    }
-    s.holding=false;renderBuffer();
+    }finally{s.holding=false;renderBuffer()}
    }
    fill();
    while(!stale()){
