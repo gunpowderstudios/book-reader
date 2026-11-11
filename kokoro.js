@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.254';
+const VERSION='1.12.255';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -149,6 +149,11 @@ function renderEngine(){
  if(eng.note)msg+=' — '+eng.note;
  if(text)text.textContent=named(msg);
  if(['library','downloading','starting','voice'].includes(state))pct=overallPct();
+ const activeReading=!!(session&&!session.cancelled&&!session.paused&&playerURL&&!player.paused&&!player.ended);
+ const heading=$('eddi-engine-label'),value=$('eddi-engine-value');
+ if(heading)heading.textContent=eng.phase==='error'?'Error':activeReading?'Reading':session?.paused?'Paused':eng.phase==='ready'&&!awaitingNarration?'Ready':'Loading…';
+ if(value)value.textContent=eng.phase==='error'?'See details':activeReading?'Audio playing':session?.paused?'Paused':eng.phase==='ready'&&!awaitingNarration?'Voice ready':Math.round(pct)+'%';
+ if(activeReading)pct=100;
  if(fill)fill.style.setProperty('width',pct.toFixed(1)+'%','important');
  if(bar){bar.dataset.state=state;bar.dataset.det='1';bar.setAttribute('aria-valuenow',String(Math.round(pct)));bar.removeAttribute('aria-valuetext')}
  if(engBusy())ensureProgTimer();
@@ -465,6 +470,9 @@ function renderBuffer(){
  }
  if(text)text.textContent=named(msg);
  if(fill)fill.style.width=pct.toFixed(1)+'%';
+ const bLabel=$('eddi-buffer-label'),bValue=$('eddi-buffer-value');
+ if(bLabel)bLabel.textContent=active&&session.paused?'Buffered audio':'Buffering…';
+ if(bValue)bValue.textContent=active?fmtDur(bufInfo.ready)+' ready':'0s ready';
  if(bar){bar.dataset.state=state;bar.dataset.playbackWaiting=String(!!(bufInfo.waiting&&active&&!session.paused&&(!playerURL||player.paused||player.ended)));bar.setAttribute('aria-valuenow',String(Math.round(pct)))}
  if(hintEl){
   const h=hint();
@@ -480,7 +488,7 @@ function renderBuffer(){
 }
 function tick(){
  if(bufInfo.waiting&&session&&!session.cancelled&&!session.holding)status('George is catching up… '+Math.round((Date.now()-bufInfo.waiting)/1000)+' s');
- renderBuffer();
+ renderBuffer();renderEngine();
 }
 function startMeter(){stopMeter();bufInfo={ready:0,target:bufferTarget(),waiting:0,waits:0,waitSec:0};meterTimer=setInterval(tick,500);renderBuffer()}
 function stopMeter(){if(meterTimer){clearInterval(meterTimer);meterTimer=null}bufInfo.waiting=0;renderBuffer()}
@@ -496,7 +504,7 @@ function stop(){
  sink=null;
  if(endPlay)endPlay(false);
  releasePlayer();
- stopMeter();
+ stopMeter();renderEngine();
  if(testActive())setTest('idle','Stopped.');
 }
 
