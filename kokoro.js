@@ -869,6 +869,13 @@ setTimeout(()=>{try{
  const reloadComing=mode==='fast'&&!isolated()&&coi!=='failed'&&coi!=='unsupported'&&!!window.cvIsolation;
  if(!mobileDevice()&&installed()&&!reloadComing&&!worker&&!readyPromise&&!(navigator.connection&&navigator.connection.saveData))ready().catch(()=>{});
 }catch(_){}},1500);
+/* v1.12.251: first visit on a computer: the voice is not installed yet, so start fetching it the moment a book is opened (not only when Play is pressed). It is ready, or nearly, by the time Play is pressed. A visitor who never opens a book downloads nothing. */
+try{const t=document.getElementById('title');if(t){const go=()=>{try{
+ if(/^No book open/i.test((t.textContent||'').trim()))return;
+ let coi='';try{coi=sessionStorage.getItem('cv-coi')||''}catch(_){}
+ const reloadComing=mode==='fast'&&!isolated()&&coi!=='failed'&&coi!=='unsupported'&&!!window.cvIsolation;
+ if(!mobileDevice()&&!reloadComing&&!worker&&!readyPromise&&!(navigator.connection&&navigator.connection.saveData)){mo.disconnect();ready().catch(()=>{})}
+}catch(_){}};const mo=new MutationObserver(go);mo.observe(t,{childList:true,characterData:true,subtree:true});go()}}catch(_){}
 /* Compact skip controls: seek precisely within the current WAV clip.
    When a 30-second jump crosses a clip boundary, choose the closest
    paragraph using a reading-duration estimate and restart narration. */

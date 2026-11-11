@@ -1,3 +1,7 @@
+## v1.12.251 — 11 November 2026
+
+- Faster first start on computers: the voice now starts downloading as soon as a book is opened, instead of waiting for Play. (Phones still wait for Play. Nothing downloads if the browser is in data-saving mode or you never open a book.)
+
 ## v1.12.250 — 11 November 2026
 
 - Fixed slow starts on computers: the new Install Eddi helper was replacing the one that switches on multi-core Fast mode, so George loaded slowly. Both now live in one helper again.
