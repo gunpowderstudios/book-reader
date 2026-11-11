@@ -1,3 +1,7 @@
+## v1.12.250 — 11 November 2026
+
+- Fixed slow starts on computers: the new Install Eddi helper was replacing the one that switches on multi-core Fast mode, so George loaded slowly. Both now live in one helper again.
+
 ## v1.12.238 — 2 November 2026
 
 - More human pacing: rests now depend on how a sentence ends (question, exclamation, colon, dash, quote), vary very slightly so it doesn't sound like a metronome, and the last sentence of a paragraph is spoken a touch slower. New Settings option: Pause length (Shorter / Normal / Longer / Much longer).
