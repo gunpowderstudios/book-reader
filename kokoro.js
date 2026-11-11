@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.256';
+const VERSION='1.12.258';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -790,9 +790,10 @@ function toggle({S,update,render}){
    };
    async function holdForHeadStart(firstSec){
     /* Current clip is about to play; only completed NEXT clips count toward ready-ahead. */
-    const slow=recent.length>=2&&lastSpeed>0&&lastSpeed<effRate();
-    const target=slow?Math.min(24,Math.max(10,Math.round((effRate()-lastSpeed)*24))):(mobileDevice()?5:8);
-    const deadline=Date.now()+(slow?(mobileDevice()?12000:16000):(mobileDevice()?5000:7000));
+    /* Use one modest head-start, then let the existing continuous look-ahead queue
+       replenish speech during playback. Avoid long adaptive startup holds. */
+    const target=mobileDevice()?5:8;
+    const deadline=Date.now()+(mobileDevice()?5000:7000);
     try{
      while(!stale()&&!s.startNow&&Date.now()<deadline){
       await unpause(s);if(stale())return;
