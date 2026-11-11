@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "E.D.D.i. — Your FREE AI Book & Document Reader",
+  "short_name": "E.D.D.i.",
+  "description": "Your FREE AI Book & Document Reader",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#12201b",
+  "theme_color": "#12201b",
+  "icons": [
+    {
+      "src": "/images/eddi-reader-logo-square.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
