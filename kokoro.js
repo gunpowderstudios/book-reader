@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.255';
+const VERSION='1.12.256';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -155,7 +155,7 @@ function renderEngine(){
  if(value)value.textContent=eng.phase==='error'?'See details':activeReading?'Audio playing':session?.paused?'Paused':eng.phase==='ready'&&!awaitingNarration?'Voice ready':Math.round(pct)+'%';
  if(activeReading)pct=100;
  if(fill)fill.style.setProperty('width',pct.toFixed(1)+'%','important');
- if(bar){bar.dataset.state=state;bar.dataset.det='1';bar.setAttribute('aria-valuenow',String(Math.round(pct)));bar.removeAttribute('aria-valuetext')}
+ if(bar){bar.dataset.state=activeReading?'reading':session?.paused?'paused':state;bar.dataset.det='1';bar.setAttribute('aria-valuenow',String(Math.round(pct)));if(activeReading)bar.setAttribute('aria-valuetext','Reading aloud');else bar.removeAttribute('aria-valuetext')}
  if(engBusy())ensureProgTimer();
  if(netEl){
   let t='Downloaded by George this visit: '+fmtMB(eng.net);
@@ -457,10 +457,12 @@ function renderBuffer(){
  const text=$('buf-text'),fill=$('buf-fill'),bar=$('buf-bar'),hintEl=$('speed-hint');
  const active=session&&!session.cancelled;
  const speed=lastSpeed?lastSpeed.toFixed(1)+'× speaking speed':'';
+ /* Show a practical reserve scale; the engine can continue preparing much more ahead. */
+ const displayTarget=mobileDevice()?30:45;
  let msg,state='idle',pct=0;
  if(active){
   const t=bufInfo.target||bufferTarget();
-  pct=Math.min(100,bufInfo.ready/t*100);
+  pct=Math.min(100,bufInfo.ready/displayTarget*100);
   if(bufInfo.waiting){state='empty';msg='George is reading ahead — preparing the next passage'}
   else{state=bufInfo.ready<20?'low':'ok';msg='Ready ahead: '+fmtDur(bufInfo.ready)+' of '+fmtDur(t)}
   if(speed)msg+=' · George works at '+speed;
@@ -472,8 +474,8 @@ function renderBuffer(){
  if(fill)fill.style.width=pct.toFixed(1)+'%';
  const bLabel=$('eddi-buffer-label'),bValue=$('eddi-buffer-value');
  if(bLabel)bLabel.textContent=active&&session.paused?'Buffered audio':'Buffering…';
- if(bValue)bValue.textContent=active?fmtDur(bufInfo.ready)+' ready':'0s ready';
- if(bar){bar.dataset.state=state;bar.dataset.playbackWaiting=String(!!(bufInfo.waiting&&active&&!session.paused&&(!playerURL||player.paused||player.ended)));bar.setAttribute('aria-valuenow',String(Math.round(pct)))}
+ if(bValue)bValue.textContent=active?fmtDur(bufInfo.ready)+' / '+fmtDur(displayTarget)+' reserve':'0s ready';
+ if(bar){bar.dataset.state=state;bar.dataset.playbackWaiting=String(!!(bufInfo.waiting&&active&&!session.paused&&(!playerURL||player.paused||player.ended)));bar.setAttribute('aria-valuenow',String(Math.round(pct)));bar.setAttribute('aria-valuetext',active?fmtDur(bufInfo.ready)+' prepared ahead':'No buffered speech yet')}
  if(hintEl){
   const h=hint();
   if(active&&session.holding){
