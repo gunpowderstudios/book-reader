@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.85';
+const VERSION='1.12.253';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -17,7 +17,7 @@ const MODES={
 const MAX_TEST_CHARS=300;            /* keeps a sample well inside Kokoro's ~510-token limit */
 const CACHE_MAX_BYTES=(/iPad/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)?8:(/iPhone|iPod|Android/i.test(navigator.userAgent)?16:48))*1024*1024; /* temporary speech clips, not voice models */
 const PARA_PAD=0.3;                  /* seconds of quiet added after each paragraph, like an audiobook narrator's breath */
-const MAX_PENDING=2,MAX_AHEAD=600;   /* passages queued in the worker at once / held ahead of playback */
+const MAX_PENDING=3,MAX_AHEAD=600; /* queue the next passages sooner; inference remains serial */   /* passages queued in the worker at once / held ahead of playback */
 const INIT_TIMEOUT=300000,GENERATE_TIMEOUT=180000; /* worker silence limits before we give up and restart it */
 const $=id=>document.getElementById(id);
 const norm=s=>String(s||'').replace(/\s+/g,' ').trim();
@@ -755,7 +755,7 @@ function toggle({S,update,render}){
    const remaining=(()=>{let chars=0,secCap=2400/spc();for(let ci=S.index;ci<S.chapters.length&&chars<secCap;ci++){const ps=S.chapters[ci].paragraphs;for(let p=ci===S.index?S.p:0;p<ps.length&&chars<secCap;p++)chars+=ps[p].length}return chars*spc()})();
    const needNow=()=>{if(recent.length<2)return 0;const r=Math.max(0.6,effRate()),sp=lastSpeed/1.05;if(!(sp<r))return 0;return Math.min(mobileDevice()?600:1200,lastSpeed*150,remaining*(1-sp/r))}; /* never ask for more than about 2½ minutes of waiting */
    /* Passages beyond a few minutes are parked in browser storage instead of memory. */
-   const MEM_SEC=mobileDevice()?180:360;
+   const MEM_SEC=mobileDevice()?120:360; /* limit temporary mobile audio memory */
    const memSec=()=>{let t=0;for(const i of ahead)if(i.done&&!i.spilled)t+=i.sec;return t};
    const tmpKey=item=>item.key;
    /* Keep two passages queued in the worker whenever less than the chosen number of minutes is ready ahead.
@@ -772,19 +772,19 @@ function toggle({S,update,render}){
       if(!res.saved&&window.bookOffline&&window.bookOffline.putTemp&&memSec()>MEM_SEC&&ahead.includes(item)&&!stale()){
        try{await window.bookOffline.putTemp(tmpKey(item),res.blob);item.spilled=true;item.job=null;cacheDrop(tmpKey(item))}catch(_){}
       }
-      fill();showNextPassage(ahead.length?(ahead[0].done?'ready':'working'):(exhausted?'idle':'working'));bufInfo.ready=readySec();renderBuffer()},()=>{item.done=true});
+      fill();showNextPassage(ahead.length?(ahead[0].done?'ready':'working'):(exhausted?'idle':'working'));bufInfo.ready=readySec();renderBuffer()},()=>{item.done=true;item.failed=true;fill();renderBuffer()});
      ahead.push(item);pending++;
     }
     bufInfo.target=target;bufInfo.ready=readySec();
     showNextPassage(ahead.length?(ahead[0].done?'ready':'working'):(exhausted?'idle':'working'));
    };
    async function holdForHeadStart(firstSec){
-    const deadline=Date.now()+(mobileDevice()?12000:30000); /* avoid endless head-start waiting on slow phones */
+    const deadline=Date.now()+(mobileDevice()?2500:5000); /* short head-start: avoid holding speech for up to 30 seconds */
     while(!stale()&&!s.startNow&&Date.now()<deadline){
      await unpause(s);if(stale())return;
      const need=needNow();s.need=need;fill();
      const have=readySec()+firstSec,known=recent.length>=2;
-     if((known&&have>=need)||exhausted||ahead.length>=MAX_AHEAD)break;
+     if((known&&have>=need)||have>=Math.min(mobileDevice()?3:6,need||6)||exhausted||ahead.length>=MAX_AHEAD)break;
      if(known){
       s.holding=true;bufInfo.target=Math.max(bufInfo.target,need);bufInfo.ready=have;
       status('Getting ahead so George can read without stopping: '+fmtDur(have)+' of '+fmtDur(need)+' ready (about '+fmtDur(Math.max(0,need-have)/Math.max(0.1,lastSpeed))+' to go)');
