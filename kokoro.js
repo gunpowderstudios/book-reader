@@ -3,11 +3,11 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.275';
-const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
-const DEFAULT_VOICE='bm_george';
+const VERSION='1.12.276';
+const VOICES=window.CV_VOICES||{bf_emma:'British Female — Emma'};
+const DEFAULT_VOICE='bf_emma';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
-const narratorName=()=>(VOICES[currentVoice()]||'— George').split('— ')[1];
+const narratorName=()=>(VOICES[currentVoice()]||'— Emma').split('— ')[1];
 const named=s=>String(s).replaceAll('George',narratorName());
 const MODES={
  standard:{label:'Low Memory',mb:92},
@@ -31,7 +31,7 @@ const rate=()=>Number($('rate')&&$('rate').value)||1;
 const STYLES=['natural','pace','single','classic','actor','double'];
 const PACE_MUL=1.10,PACE_PITCH=1.07; /* 'pace' style: quoted speech is spoken a little quicker (by the voice) and slightly higher (by the player), in the same voice */
 const styleNow=()=>{try{const v=localStorage.getItem('cv-voice-style');return STYLES.includes(v)?v:'single'}catch(_){return 'single'}};
-const DIALOGUE={bm_george:'bm_fable',bf_emma:'bf_isabella',am_eric:'am_michael',af_aoede:'af_bella'}; /* same accent and gender, different character */
+/* Character voice switching disabled: all styles use the selected Kokoro narrator. */
 const bake=(style=styleNow(),mul=1)=>(style==='classic'||style==='double')?1:Math.round(Math.min(2,Math.max(0.5,Math.min(2,Math.max(0.5,rate()))*mul))*100)/100; /* speed built into the speech itself */
 const effRate=()=>styleNow()==='double'?2:styleNow()==='classic'?rate():1; /* how much faster than real time the audio must be produced */
 const store={
@@ -714,7 +714,7 @@ function actorCue(text,para,isDialogue){
 function plan(paras,p,narr,style,first){
  const para=paras[p];
  if(style==='classic')return chunks(para,first?FIRST_CHUNK_MAX:CHUNK_MAX).map((t,k,a)=>({text:t,say:readableCaps(t),voice:narr,last:k===a.length-1,pad:k===a.length-1?PARA_PAD:0}));
- const slowish=mobileDevice()||mode==='standard',max=first?(slowish?FIRST_CHUNK_MAX:NAT_FIRST_MAX):(slowish?CHUNK_MAX:NAT_MAX),dlg=style==='natural'&&DIALOGUE[narr]?DIALOGUE[narr]:narr,out=[];
+ const slowish=mobileDevice()||mode==='standard',max=first?(slowish?FIRST_CHUNK_MAX:NAT_FIRST_MAX):(slowish?CHUNK_MAX:NAT_MAX),dlg=narr,out=[];
  const next=paras[p+1],scene=next!=null&&SCENE.test(next),heading=!/[.!?\u2026"\u201d]$/.test(norm(para))&&norm(para).length<80&&(p===0||SCENE.test(paras[p-1]||''));
  for(const r of dialogueRuns(para,style==='pace'||style==='actor'?5:14)){
   for(const t of (slowish?chunks(r.t,max):sentenceChunks(r.t,max))){
