@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.276';
+const VERSION='1.12.278';
 const VOICES=window.CV_VOICES||{bf_emma:'British Female — Emma'};
 const DEFAULT_VOICE='bf_emma';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -710,6 +710,18 @@ function actorCue(text,para,isDialogue){
  if(has(/\b(nervously|fearfully|trembl(?:ed|ing|es)?|hesitant(?:ly)?|uncertain(?:ly)?)\b/i))return {kind:'nervous',mul:0.92,pad:0.20};
  return null;
 }
+/* Actor-only punctuation score. Kokoro already pauses within speech, so these
+   modest rests are added only when a clip actually ends on punctuation. */
+function actorRest(text){
+ const t=String(text).trim().replace(/["'”’)\]]+$/,'').trim();
+ if(/(?:…|\.{3,})$/.test(t))return 0.55;
+ if(/\?$/.test(t))return 0.34;
+ if(/!$/.test(t))return 0.30;
+ if(/\.$/.test(t))return 0.30;
+ if(/[,;:]$/.test(t))return 0.15;
+ if(/[—–-]$/.test(t))return 0.22;
+ return 0;
+}
 /* One paragraph -> the passages to speak, each with its voice, spoken text and the pause after it. */
 function plan(paras,p,narr,style,first){
  const para=paras[p];
@@ -730,9 +742,9 @@ function plan(paras,p,narr,style,first){
   }
  }
  for(let i=0;i<out.length;i++)if(i<out.length-1&&style!=='single'&&out[i].d!==out[i+1].d)out[i].pad=0.12;
- for(let i=0;i<out.length-1;i++)out[i].pad=Math.max(out[i].pad,restAfter(out[i].text)); /* rest after each passage depends on how it ends */
- if(style!=='classic'&&out.length>1)for(const o of out)o.pad=+(o.pad*PAUSE_SCALE()*wobble(o.text)).toFixed(2);
- if(out.length){const l=out[out.length-1];l.last=true;l.pad=+((scene?1.4:heading?1.0:NAT_PARA_PAD)*PAUSE_SCALE()*wobble(l.text)).toFixed(2);if(!scene&&!heading&&style!=='pace'&&!l.d)l.mul=0.97} /* last sentence of a paragraph is spoken a touch slower, as a reader eases off */
+ for(let i=0;i<out.length-1;i++)out[i].pad=Math.max(out[i].pad,style==='actor'?actorRest(out[i].text):restAfter(out[i].text)); /* a passage ending at punctuation gets an appropriate rest */
+ if(style!=='classic'&&out.length>1)for(const o of out)o.pad=+(o.pad*PAUSE_SCALE()*(style==='actor'?1:wobble(o.text))).toFixed(2);
+ if(out.length){const l=out[out.length-1];l.last=true;l.pad=style==='actor'?(next==null?1.5:scene?1.4:heading?1.0:0.7):+((scene?1.4:heading?1.0:NAT_PARA_PAD)*PAUSE_SCALE()*wobble(l.text)).toFixed(2);if(!scene&&!heading&&style!=='pace'&&!l.d)l.mul=0.97} /* last sentence of a paragraph is spoken a touch slower, as a reader eases off */
  return out;
 }
 function* segments(S,narr=currentVoice(),style=styleNow()){ /* lazily walks the book from the current position */
