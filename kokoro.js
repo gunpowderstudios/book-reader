@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.282';
+const VERSION='1.12.284';
 const VOICES=window.CV_VOICES||{bf_emma:'British Female — Emma'};
 const DEFAULT_VOICE='bf_emma';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -139,14 +139,14 @@ function renderEngine(){
   case 'library':pct=2;msg='Fetching the speech library…';break;
   case 'downloading':
    pct=eng.total?Math.min(100,eng.loaded/eng.total*100):0;
-   msg='Loading George: '+fmtMB(eng.loaded)+' of '+(eng.total?fmtMB(eng.total):'?')+' ('+Math.round(pct)+'%)';break;
+   msg='E.D.D.i is downloading: '+fmtMB(eng.loaded)+' of '+(eng.total?fmtMB(eng.total):'?')+' ('+Math.round(pct)+'%)';break;
   case 'starting':pct=0;msg='Starting the voice engine…';break;
   case 'voice':pct=0;msg='Preparing '+narratorName()+'’s voice…';break;
-  case 'ready':pct=100;msg='George is ready — '+modeName(eng.used)+', '+describeEngine()+', started in '+eng.sec.toFixed(1)+' s';break;
-  case 'error':pct=100;msg=eng.error||'George could not load.';break;
+  case 'ready':pct=100;msg='E.D.D.i is ready — '+modeName(eng.used)+', '+describeEngine()+', started in '+eng.sec.toFixed(1)+' s';break;
+  case 'error':pct=100;msg=eng.error||'E.D.D.i could not load the voice engine.';break;
   default:
-   msg=installed()?'George is installed on this device and starts when you press Play.'
-    :'George is not loaded yet. He starts when you press Play (a one-off download of about '+MODES[mode].mb+' MB).';
+   msg=installed()?'E.D.D.i is installed on this device and starts when you press Play.'
+    :'E.D.D.i is not loaded yet. The voice engine starts when you press Play (a one-off download of about '+MODES[mode].mb+' MB).';
  }
  if(awaitingNarration&&state==='ready'){msg='Preparing the first passage for playback…';state='starting';pct=0}
  if(eng.note)msg+=' — '+eng.note;
@@ -161,8 +161,8 @@ function renderEngine(){
  if(bar){bar.dataset.state=activeReading?'reading':session?.paused?'paused':state;bar.dataset.det='1';bar.setAttribute('aria-valuenow',String(Math.round(pct)));if(activeReading)bar.setAttribute('aria-valuetext','Reading aloud');else bar.removeAttribute('aria-valuetext')}
  if(engBusy())ensureProgTimer();
  if(netEl){
-  let t='Downloaded by George this visit: '+fmtMB(eng.net);
-  if(eng.phase==='ready'&&eng.net<1572864)t+=' — nothing new; he loaded from your browser’s saved copy';
+  let t='Downloaded by E.D.D.i this visit: '+fmtMB(eng.net);
+  if(eng.phase==='ready'&&eng.net<1572864)t+=' — nothing new; E.D.D.i loaded from your browser’s saved copy';
   if(eng.phase==='ready'){const tt=timingText();if(tt)t+=' · '+tt}
   netEl.textContent=named(t);
  }
@@ -485,12 +485,12 @@ function renderBuffer(){
  if(active){
   const t=bufInfo.target||bufferTarget();
   pct=Math.min(100,bufInfo.ready/displayTarget*100);
-  if(bufInfo.waiting){state='empty';msg='George is reading ahead — preparing the next passage'}
+  if(bufInfo.waiting){state='empty';msg='E.D.D.i is buffering — preparing the next passage'}
   else{state=bufInfo.ready<20?'low':'ok';msg='Ready ahead: '+fmtDur(bufInfo.ready)+' of '+fmtDur(t)}
-  if(speed)msg+=' · George works at '+speed;
+  if(speed)msg+=' · E.D.D.i is generating at '+speed;
   if(bufInfo.waits)msg+=' · pauses: '+bufInfo.waits+' ('+fmtDur(bufInfo.waitSec)+')';
  }else{
-  msg='Smooth Listening is on · preparing up to '+Math.round(bufferTarget()/60)+' min ahead when you press Play'+(speed?' · last measured: George works at '+speed:'');
+  msg='Smooth Listening is on · preparing up to '+Math.round(bufferTarget()/60)+' min ahead when you press Play'+(speed?' · last measured: E.D.D.i generated at '+speed:'');
  }
  if(text)text.textContent=named(msg);
  if(fill)fill.style.width=pct.toFixed(1)+'%';
@@ -503,15 +503,15 @@ function renderBuffer(){
   if(active&&session.holding){
    hintEl.hidden=false;
    /* keep the same button between refreshes: replacing it every half second made clicks miss */
-   if(!hintEl.querySelector('button[data-start]')){const b=document.createElement('button');b.dataset.start='1';b.textContent='Start now (may pause)';b.onclick=()=>{if(session){session.startNow=true;status('Start requested — George must finish generating the first speech clip before it can play.');b.textContent='Starting when speech is ready…';b.disabled=true}};
-    hintEl.replaceChildren(document.createTextNode(named('George is getting a head start to read without stopping. ')),b)}
+   if(!hintEl.querySelector('button[data-start]')){const b=document.createElement('button');b.dataset.start='1';b.textContent='Start now (may pause)';b.onclick=()=>{if(session){session.startNow=true;status('Start requested — E.D.D.i must finish generating the first speech clip before it can play.');b.textContent='Starting when speech is ready…';b.disabled=true}};
+    hintEl.replaceChildren(document.createTextNode('E.D.D.i is buffering ahead to keep reading without stopping. '),b)}
   }else if(h){
    hintEl.hidden=false;hintEl.replaceChildren(document.createTextNode(named(h.text)+' '));
   }else{hintEl.hidden=true;hintEl.replaceChildren()} /* drop the old Start now button so the next head start gets a fresh one */
  }
 }
 function tick(){
- if(bufInfo.waiting&&session&&!session.cancelled&&!session.holding)status('George is catching up… '+Math.round((Date.now()-bufInfo.waiting)/1000)+' s');
+ if(bufInfo.waiting&&session&&!session.cancelled&&!session.holding)status('E.D.D.i is buffering… '+Math.round((Date.now()-bufInfo.waiting)/1000)+' s');
  renderBuffer();renderEngine();
 }
 function startMeter(){stopMeter();bufInfo={ready:0,target:bufferTarget(),waiting:0,waits:0,waitSec:0};meterTimer=setInterval(tick,500);renderBuffer()}
