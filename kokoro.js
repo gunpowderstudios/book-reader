@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.279';
+const VERSION='1.12.282';
 const VOICES=window.CV_VOICES||{bf_emma:'British Female — Emma'};
 const DEFAULT_VOICE='bf_emma';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -28,9 +28,9 @@ const status=s=>{const el=$('status');if(el)el.textContent=named(s)};
 const rate=()=>Number($('rate')&&$('rate').value)||1;
 /* Narration style: 'natural' (default) = the voice itself speaks faster/slower, a second voice for quoted speech (acting), longer passages, smoother phrasing and longer pauses;
    'pace' = the same, one voice, quoted speech a little quicker; 'single' = the same with one voice; 'classic' = exactly the behaviour of v1.12.28 (browser speed-up, one voice, short chunks). */
-const STYLES=['single','actor'];
+const STYLES=['single'];
 const PACE_MUL=1.10,PACE_PITCH=1.07; /* 'pace' style: quoted speech is spoken a little quicker (by the voice) and slightly higher (by the player), in the same voice */
-const styleNow=()=>{try{const v=localStorage.getItem('cv-voice-style');return STYLES.includes(v)?v:'single'}catch(_){return 'single'}};
+const styleNow=()=> 'single'; /* Standard Kokoro playback only; no Actor effects. */
 /* Character voice switching disabled: all styles use the selected Kokoro narrator. */
 const bake=(style=styleNow(),mul=1)=>(style==='classic'||style==='double')?1:Math.round(Math.min(2,Math.max(0.5,Math.min(2,Math.max(0.5,rate()))*mul))*100)/100; /* speed built into the speech itself */
 const effRate=()=>styleNow()==='double'?2:styleNow()==='classic'?rate():1; /* how much faster than real time the audio must be produced */
@@ -801,7 +801,7 @@ function mediaControls(S){
   act('previoustrack',jump('back'));act('nexttrack',jump('forward'));
  }catch(_){}
 }
-function styleLabel(value){return ({single:'Single Voice',actor:'Actor (experimental)'})[value]||value}
+function styleLabel(value){return 'Single Voice'}
 function reportStyle(){
  const el=document.getElementById('narration-style-active');if(!el)return;
  const active=session&&!session.cancelled?session.style:styleNow();
