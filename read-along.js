@@ -44,9 +44,18 @@ function start(text,p,progress){
  /* Words take time in proportion to their length, and a comma or full stop adds a short pause. */
  const cum=[];let total=0;for(let i=startAt;i<endAt;i++){const w=all[i][0];total+=w.length+(/[.!?…]$/.test(w)?6:/[,;:—–]$/.test(w)?3:0);cum.push(total)}
  active={element:el,original,spans,startAt,endAt,last:-1,cum,total};
- // Keep the current passage near the top without scrolling every word.
+ // Follow the opening spoken word, not the bottom of the entire paragraph.
+ // Paragraph-height scrolling at every new sentence caused a brief downward
+ // jump, immediately reversed by the word-following timer.
  const scroller=$('text');
- if(scroller&&!manualBrowse&&onScreen()){const box=scroller.getBoundingClientRect(),rect=el.getBoundingClientRect();if(rect.top<box.top+12||rect.bottom>box.bottom-12){const target=scroller.scrollTop+rect.top-box.top-18;scroller.scrollTo({top:Math.max(0,target),behavior:'instant'});}}
+ const firstWord=spans[startAt];
+ if(firstWord&&scroller&&!manualBrowse&&onScreen()){
+  const box=scroller.getBoundingClientRect(),rect=firstWord.getBoundingClientRect();
+  if(rect.top<box.top+16||rect.bottom>box.bottom-55){
+   const target=scroller.scrollTop+rect.top-box.top-Math.min(110,box.height*.28);
+   scroller.scrollTop=Math.max(0,target);
+  }
+ }
  function tick(){
   if(!active||!enabled)return;
   const fraction=Math.max(0,Math.min(0.999,Number(progress())||0));
