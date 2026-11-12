@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.267';
+const VERSION='1.12.268';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -33,7 +33,7 @@ const PACE_MUL=1.10,PACE_PITCH=1.07; /* 'pace' style: quoted speech is spoken a 
 const styleNow=()=>{try{const v=localStorage.getItem('cv-voice-style');return STYLES.includes(v)?v:'single'}catch(_){return 'single'}};
 const DIALOGUE={bm_george:'bm_fable',bf_emma:'bf_isabella',am_eric:'am_michael',af_aoede:'af_bella'}; /* same accent and gender, different character */
 const bake=(style=styleNow(),mul=1)=>(style==='classic'||style==='double')?1:Math.round(Math.min(2,Math.max(0.5,Math.min(2,Math.max(0.5,rate()))*mul))*100)/100; /* speed built into the speech itself */
-const effRate=()=>styleNow()==='double'?rate()*2:styleNow()==='classic'?rate():1; /* how much faster than real time the audio must be produced */
+const effRate=()=>styleNow()==='double'?2:styleNow()==='classic'?rate():1; /* how much faster than real time the audio must be produced */
 const store={
  get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v}catch(_){return d}},
  set(k,v){try{localStorage.setItem(k,v)}catch(_){}}
@@ -720,7 +720,7 @@ async function unpause(s){
 }
 async function playback(blob,s,baked,pitch){
  await unpause(s);if(s.cancelled)return;
- await playBlob(blob,baked,pitch,s.style==='double'?2:1);
+ await playBlob(blob,baked,pitch,s.style==='double'?2/Math.max(0.25,rate()):1);
 }
 /* Generate the first few passages before Play is pressed, so reading starts at once.
    Only when George is already installed on this device (never starts a big download by surprise). */
