@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.264';
+const VERSION='1.12.266';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -28,7 +28,7 @@ const status=s=>{const el=$('status');if(el)el.textContent=named(s)};
 const rate=()=>Number($('rate')&&$('rate').value)||1;
 /* Narration style: 'natural' (default) = the voice itself speaks faster/slower, a second voice for quoted speech (acting), longer passages, smoother phrasing and longer pauses;
    'pace' = the same, one voice, quoted speech a little quicker; 'single' = the same with one voice; 'classic' = exactly the behaviour of v1.12.28 (browser speed-up, one voice, short chunks). */
-const STYLES=['natural','pace','single','classic'];
+const STYLES=['natural','pace','single','classic','actor'];
 const PACE_MUL=1.10,PACE_PITCH=1.07; /* 'pace' style: quoted speech is spoken a little quicker (by the voice) and slightly higher (by the player), in the same voice */
 const styleNow=()=>{try{const v=localStorage.getItem('cv-voice-style');return STYLES.includes(v)?v:'single'}catch(_){return 'single'}};
 const DIALOGUE={bm_george:'bm_fable',bf_emma:'bf_isabella',am_eric:'am_michael',af_aoede:'af_bella'}; /* same accent and gender, different character */
@@ -684,10 +684,19 @@ function dialogueRuns(para,minLetters=14){ /* splits a paragraph into narration 
 function plan(paras,p,narr,style,first){
  const para=paras[p];
  if(style==='classic')return chunks(para,first?FIRST_CHUNK_MAX:CHUNK_MAX).map((t,k,a)=>({text:t,say:readableCaps(t),voice:narr,last:k===a.length-1,pad:k===a.length-1?PARA_PAD:0}));
- const slowish=mobileDevice()||mode==='standard',max=first?(slowish?FIRST_CHUNK_MAX:NAT_FIRST_MAX):(slowish?CHUNK_MAX:NAT_MAX),dlg=style==='natural'&&DIALOGUE[narr]?DIALOGUE[narr]:narr,out=[];
+ const slowish=mobileDevice()||mode==='standard',max=first?(slowish?FIRST_CHUNK_MAX:NAT_FIRST_MAX):(slowish?CHUNK_MAX:NAT_MAX),dlg=(style==='natural'||style==='actor')&&DIALOGUE[narr]?DIALOGUE[narr]:narr,out=[];
  const next=paras[p+1],scene=next!=null&&SCENE.test(next),heading=!/[.!?\u2026"\u201d]$/.test(norm(para))&&norm(para).length<80&&(p===0||SCENE.test(paras[p-1]||''));
- for(const r of dialogueRuns(para,style==='pace'?5:14)){
-  for(const t of (slowish?chunks(r.t,max):sentenceChunks(r.t,max))){const say=spoken(t);if(sayable(say))out.push({text:t,say,voice:r.d?dlg:narr,d:r.d,mul:r.d&&style==='pace'?PACE_MUL:1,pitch:r.d&&style==='pace'?PACE_PITCH:1,last:false,pad:0})}
+ for(const r of dialogueRuns(para,style==='pace'||style==='actor'?5:14)){
+  for(const t of (slowish?chunks(r.t,max):sentenceChunks(r.t,max))){
+   const say=spoken(t);if(!sayable(say))continue;
+   /* Actor delivery is deliberately subtle: different dialogue voice where supported,
+      quicker delivery for quotations/exclamations, slower for questions/ellipses.
+      No emotion inference or additional voice-model download is required. */
+   const actor=style==='actor',urgent=actor&&/[!]/.test(t),question=actor&&/[?\u2026]/.test(t);
+   const mul=actor?(urgent?1.12:question?0.94:r.d?1.07:1):(r.d&&style==='pace'?PACE_MUL:1);
+   const pitch=r.d&&style==='pace'?PACE_PITCH:1;
+   out.push({text:t,say,voice:r.d?dlg:narr,d:r.d,mul,pitch,last:false,pad:0});
+  }
  }
  for(let i=0;i<out.length;i++)if(i<out.length-1&&style!=='single'&&out[i].d!==out[i+1].d)out[i].pad=0.12;
  for(let i=0;i<out.length-1;i++)out[i].pad=Math.max(out[i].pad,restAfter(out[i].text)); /* rest after each passage depends on how it ends */
@@ -749,6 +758,13 @@ function mediaControls(S){
   act('previoustrack',jump('back'));act('nexttrack',jump('forward'));
  }catch(_){}
 }
+function setStyle(value){
+ if(!STYLES.includes(value))return false;
+ store.set('cv-voice-style',value);
+ if(session&&!session.cancelled)session.requestedStyle=value;
+ else prefetchToken++;
+ return true;
+}
 function toggle({S,update,render}){
  if(session&&!session.cancelled){
   session.paused=!session.paused;S.playing=!session.paused;
@@ -767,7 +783,7 @@ function toggle({S,update,render}){
  (async()=>{
   try{
    if(!engineReady){status('Loading George… (first visit downloads the voice model once)');sink=t=>{if(!stale())status(t)}}
-   const it=segments(S,s.voice,s.style),ahead=[];let exhausted=false,firstItem=true;
+   let it=segments(S,s.voice,s.style);const ahead=[];let exhausted=false,firstItem=true,generation=0;
    const readySec=()=>{let t=0;for(const i of ahead)if(i.done&&i.sec)t+=i.sec;return t};
    /* How much audio must be ready before reading starts so that it never has to stop: if the voice makes s seconds of
       speech per second and you listen at rate r, the shortfall over the audio still to read (up to ~40 min) is R(1 - s/r). */
@@ -787,7 +803,8 @@ function toggle({S,update,render}){
     while(pending<MAX_PENDING&&!exhausted&&readySec()<target&&ahead.length<MAX_AHEAD){
      const n=it.next();if(n.done){exhausted=true;break}
      const item={seg:n.value,done:false,sec:0};
-     item.job=synth(n.value.say,n.value.voice,{stale,pad:n.value.pad,speed:bake(s.style,n.value.mul),mul:n.value.mul,pitch:n.value.pitch,onGenerate:()=>{if(!stale())sink=null}});
+     const thisGeneration=generation;
+      item.job=synth(n.value.say,n.value.voice,{stale:()=>stale()||thisGeneration!==generation,pad:n.value.pad,speed:bake(s.style,n.value.mul),mul:n.value.mul,pitch:n.value.pitch,onGenerate:()=>{if(!stale()&&thisGeneration===generation)sink=null}});
      item.job.then(async res=>{item.done=true;item.sec=res.audioSec;item.key=res.key;item.speed=res.speed||1;item.pitch=res.pitch||1;
       if(!res.saved&&window.bookOffline&&window.bookOffline.putTemp&&memSec()>MEM_SEC&&ahead.includes(item)&&!stale()){
        try{await window.bookOffline.putTemp(tmpKey(item),res.blob);item.spilled=true;item.job=null;cacheDrop(tmpKey(item))}catch(_){}
@@ -853,7 +870,16 @@ function toggle({S,update,render}){
     if(item.spilled)window.bookOffline.dropTemp(tmpKey(item)).catch(()=>{});
     window.readerTracking?.clear?.();
     if(stale())return;
-    if(g.last){S.p=g.p+1;update()}
+    if(g.last){
+      S.p=g.p+1;update();
+      if(s.requestedStyle&&s.requestedStyle!==s.style){
+       /* Finish the paragraph before changing style. Invalidate already queued clips
+          and reconstruct the iterator at the exact next paragraph: no replay or skip. */
+       s.style=s.requestedStyle;generation++;ahead.length=0;exhausted=false;
+       it=segments(S,s.voice,s.style);fill();
+       status('Switched to '+(document.getElementById('narration-style')?.selectedOptions[0]?.textContent||s.style));
+      }
+     }
    }
   }catch(e){if(!stale()&&e!==CANCELLED)status('George encountered an error: '+e.message)}
   finally{if(!s.cancelled&&token===serial){stop();S.playing=false;S.paused=false;$('play').textContent='▶ Play'}}
@@ -927,7 +953,7 @@ function skipSeconds(seconds,S,update){
  if(resume){const button=$('play');if(button)button.textContent='▶ Play';toggle({S,update,render:window.chapterApp?.render})}
 }
 
-window.chapterKokoro={toggle,stop,skipSeconds,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,recommendMode:suggestedMode,isMobile:mobileDevice,generateClip:(text,id)=>synth(text,VOICES[id]?id:currentVoice(),{speed:1}),chapterClips:chapterClips,style:styleNow,currentVoice,voices:VOICES,splitText:(text)=>chunks(text),version:VERSION,
+window.chapterKokoro={toggle,stop,setStyle,skipSeconds,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,recommendMode:suggestedMode,isMobile:mobileDevice,generateClip:(text,id)=>synth(text,VOICES[id]?id:currentVoice(),{speed:1}),chapterClips:chapterClips,style:styleNow,currentVoice,voices:VOICES,splitText:(text)=>chunks(text),version:VERSION,
  refreshNarrator:()=>{renderEngine();renderBuffer()},stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode}),measured:()=>Number(store.get('cv-measured-'+mode,'0'))};
 
 window.eddiPlaybackDiagnostics=()=>({version:VERSION,threads:eng.threads||1,modePreference:preference,actualMode:eng.used||mode,enginePhase:eng.phase,modelStartSeconds:eng.sec||null,firstSpeechSeconds:playbackDiagnostics.firstSpeechMs===null?null:playbackDiagnostics.firstSpeechMs/1000,generationSpeed:Math.round(lastSpeed*10)/10,bufferReadySeconds:Math.round(bufInfo.ready||0),bufferTargetSeconds:Math.round(bufInfo.target||0),bufferWaits:bufInfo.waits||0,bufferWaitSeconds:Math.round(bufInfo.waitSec||0),audioClipsStarted:playbackDiagnostics.clipsPlayed,handoffCount:playbackDiagnostics.hand,handoffAvgMs:playbackDiagnostics.hand?Math.round(playbackDiagnostics.handTotal/playbackDiagnostics.hand):null,handoffMaxMs:Math.round(playbackDiagnostics.handMax),handoffOver400ms:playbackDiagnostics.handLong,audioErrors:playbackDiagnostics.audioErrors});
