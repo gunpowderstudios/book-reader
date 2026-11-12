@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.259';
+const VERSION='1.12.264';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -628,7 +628,7 @@ function chunks(str,max=CHUNK_MAX){ /* sentence-aware: passages end where a sent
  if(buf.trim())out.push(buf.trim());
  return out;
 }
-const PAUSE_SCALE=()=>{try{const v=parseFloat(localStorage.getItem('cv-pause-scale'));return v>=0.3&&v<=3?v:1}catch(_){return 1}}; /* the 'Pause length' setting */
+const PAUSE_SCALE=()=>1; /* natural pauses use the standard duration; no user pause setting */
 const wobble=t=>{let h=0;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;return 0.88+((h>>>0)%25)/100}; /* 0.88-1.12, the same every time for the same words (so saved speech still matches) */
 const restAfter=t=>{const m=/([.!?\u2026:;,\u2014\u2013-]+)(["'\u201d\u2019)]*)\s*$/.exec(t);if(!m)return 0;const c=m[1];let p=/[?!]/.test(c)?0.32:/\u2026|\.\.\./.test(c)?0.3:/\./.test(c)?0.22:/[:;]/.test(c)?0.16:/[\u2014\u2013-]/.test(c)?0.14:0.1;if(m[2]&&/["\u201d]/.test(m[2]))p+=0.08;return p};
 const SENT_PAD=0.22; /* seconds of extra quiet after a sentence that ends a spoken passage */
