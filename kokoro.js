@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.268';
+const VERSION='1.12.271';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -680,6 +680,24 @@ function dialogueRuns(para,minLetters=14){ /* splits a paragraph into narration 
  const merged=[];for(const r of runs){const l=merged[merged.length-1];if(l&&l.d===r.d)l.t+=' '+r.t;else merged.push({...r})}
  return merged.length?merged:whole;
 }
+/* Small, deterministic actor cues. Never sends text to a server or invents emotions.
+   Look at dialogue tags near a quotation; otherwise react to cues within its own passage. */
+function actorCue(text,para,isDialogue){
+ const source=String(isDialogue?para:text).toLowerCase();
+ const quote=isDialogue?String(text):'';
+ let nearby=source;
+ if(isDialogue&&quote){
+  const at=source.indexOf(quote.toLowerCase().slice(0,Math.min(24,quote.length)));
+  if(at>=0)nearby=source.slice(Math.max(0,at-75),Math.min(source.length,at+quote.length+90));
+ }
+ const has=re=>re.test(nearby);
+ if(has(/\b(whisper(?:ed|ing|s)?|murmur(?:ed|ing|s)?|mutter(?:ed|ing|s)?|hush(?:ed|ing)?|softly|quietly|under (?:his|her|their) breath)\b/i))return {kind:'whisper',mul:0.86,pad:0.13};
+ if(has(/\b(shout(?:ed|ing|s)?|yell(?:ed|ing|s)?|scream(?:ed|ing|s)?|roar(?:ed|ing|s)?|bellow(?:ed|ing|s)?|furiously|angrily)\b/i))return {kind:'shout',mul:1.17,pad:0.09};
+ if(has(/\b(laugh(?:ed|ing|s)?|chuckl(?:ed|ing|es)?|giggl(?:ed|ing|es)?|jok(?:ed|ing|es)?|cheerfully|playfully)\b/i))return {kind:'laugh',mul:1.10,pad:0.13};
+ if(has(/\b(sob(?:bed|bing|s)?|cr(?:ied|ying|ies)|tearfully|sadly|sorrowfully|mournfully)\b/i))return {kind:'sad',mul:0.88,pad:0.25};
+ if(has(/\b(nervously|fearfully|trembl(?:ed|ing|es)?|hesitant(?:ly)?|uncertain(?:ly)?)\b/i))return {kind:'nervous',mul:0.92,pad:0.20};
+ return null;
+}
 /* One paragraph -> the passages to speak, each with its voice, spoken text and the pause after it. */
 function plan(paras,p,narr,style,first){
  const para=paras[p];
@@ -692,9 +710,10 @@ function plan(paras,p,narr,style,first){
    /* Actor delivery: slower narrative speech, livelier dialogue and stronger
       punctuation cues. This is pacing, not full AI emotion interpretation. */
    const actor=style==='actor',urgent=actor&&/[!]/.test(t),question=actor&&/[?\u2026]/.test(t);
-   const mul=actor?(urgent?1.16:question?0.91:r.d?1.11:0.94):(r.d&&style==='pace'?PACE_MUL:1);
+   const cue=actor?actorCue(t,para,!!r.d):null;
+   const mul=actor?(cue?cue.mul:urgent?1.16:question?0.91:r.d?1.11:0.94):(r.d&&style==='pace'?PACE_MUL:1);
    const pitch=r.d&&style==='pace'?PACE_PITCH:1;
-   out.push({text:t,say,voice:r.d?dlg:narr,d:r.d,mul,pitch,last:false,pad:0});
+   out.push({text:t,say,voice:r.d?dlg:narr,d:r.d,mul,pitch,last:false,pad:cue?cue.pad:0,actorCue:cue?.kind||null});
   }
  }
  for(let i=0;i<out.length;i++)if(i<out.length-1&&style!=='single'&&out[i].d!==out[i+1].d)out[i].pad=0.12;
