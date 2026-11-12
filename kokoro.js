@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.272';
+const VERSION='1.12.274';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -917,6 +917,9 @@ function showRecommendation(){
  const el=$('recommended-speed');if(!el)return;
  const name=(MODES[mode]||MODES.standard).label;
  el.textContent=preference==='auto'?'✓ Automatic · '+name+' selected for this device.':'✓ '+name+' selected. You can switch back to Automatic at any time.';
+ const detail=$('processing-diagnosis'),retry=$('retry-fast-detection'),d=window.cvAutoDiagnosis?.();
+ if(detail&&d)detail.textContent='Detected: '+d.cores+' CPU cores; browser memory: '+d.memoryGB+' GB. '+(preference==='auto'?(d.mode==='standard'?'Low Memory reason: '+d.reason+'.':'Fast reason: '+d.reason+'.'):'Automatic would choose '+d.mode+' ('+d.reason+').');
+ if(retry)retry.style.display=d?.retryable?'inline-block':'none';
 }
 /* ───────── Panel wiring ───────── */
 (function wirePanels(){
@@ -924,6 +927,13 @@ function showRecommendation(){
  if(sel){sel.replaceChildren(...Object.entries(VOICES).map(([id,label])=>new Option(label,id)));sel.value=currentVoice();sel.hidden=Object.keys(VOICES).length<2}
  const ta=$('test-text'),count=$('test-count');
  if(ta&&count){const update=()=>{count.textContent=ta.value.length+' / '+MAX_TEST_CHARS};ta.addEventListener('input',update);update()}
+ const retryFast=$('retry-fast-detection');
+ if(retryFast)retryFast.onclick=()=>{
+  /* A user-initiated retry only; never silently erase safety history. */
+  store.set('cv-auto-fallback','');store.set('cv-no-coi','');
+  store.set('cv-mode-choice','auto');store.set('cv-trying','');
+  haltAll();location.reload();
+ };
  const ms=$('mode-select');
  if(ms){
   ms.replaceChildren(new Option('Automatic (recommended)','auto'),new Option('Fast — multi-core CPU','fast'),new Option('Low Memory — lighter CPU mode','standard'));
