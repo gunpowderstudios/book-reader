@@ -60,8 +60,8 @@ let startupNote='';
 const suggestedMode=()=>window.cvAutoMode?window.cvAutoMode():(mobileDevice()?'standard':'fast');
 const ipadDevice=()=>/iPad/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 store.set('cv-mode-choice','auto'); // Processing mode now selected automatically, even if a manual choice was saved previously.
-/* Hidden test switch: add ?mode=gpu (or fast, or standard) to the address to try that mode for this visit only. Nothing is saved. */
-const forcedMode=(()=>{try{const q=new URLSearchParams(location.search).get('mode');return ['gpu','fast','standard'].includes(q)?q:''}catch(_){return ''}})();
+/* Hidden test switch: add ?mode=fast (or standard) to the address to try that mode for this visit only. Nothing is saved. */
+const forcedMode=(()=>{try{const q=new URLSearchParams(location.search).get('mode');return ['fast','standard'].includes(q)?q:'' /* gpu left out on purpose: it froze a MacBook in the full reader (v1.12.261 test) */}catch(_){return ''}})();
 let preference=forcedMode||(ipadDevice()?'standard':'auto'); // Preserve the known-safe iPad CPU mode.
 if(!PREFS.includes(preference))preference='auto';
 let mode=preference==='auto'?suggestedMode():preference;

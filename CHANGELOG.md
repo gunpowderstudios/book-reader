@@ -1,3 +1,7 @@
+## v1.12.263 — 12 November 2026
+
+- The hidden ?mode= test switch no longer accepts the graphics chip, because it froze a MacBook in the full reader. ?mode=fast and ?mode=standard still work.
+
 ## v1.12.262 — 12 November 2026
 
 - When George can't keep up with listening, the hint now says so plainly: on a laptop running on battery it asks you to plug in (battery makes speech about half as fast), otherwise it explains he is catching up. The old hint pointed to settings that no longer exist.
