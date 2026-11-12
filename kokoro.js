@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.274';
+const VERSION='1.12.275';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -413,7 +413,7 @@ async function pump(){
 /* ───────── One shared <audio> element ───────── */
 const player=new Audio();let playerURL=null,silenceURL=null,endPlay=null;
 function releasePlayer(nextClip=false){
- player.onended=null;player.onerror=null;player.onplaying=null;
+ player.onended=null;player.onerror=null;player.onplaying=null;player.ontimeupdate=null;
  try{player.pause()}catch(_){}
  const previousURL=playerURL;playerURL=null;
  /* Avoid tearing down the decoder between ready narration passages. */
@@ -429,15 +429,26 @@ function unlockAudio(){ /* call from a click: lets Safari/iOS allow playback tha
   player.src=silenceURL;const p=player.play();if(p&&p.catch)p.catch(()=>{});
  }catch(_){}
 }
-function playBlob(blob,baked=1,pitch=1,playMultiplier=1){ /* resolves true when finished, false if stopped */
+function playBlob(blob,baked=1,pitch=1,playMultiplier=1,questionRise=false){ /* resolves true when finished, false if stopped */
  return new Promise((resolve,reject)=>{
   const previousURL=releasePlayer(true);
   playerURL=URL.createObjectURL(blob);player.src=playerURL;
   if(previousURL)URL.revokeObjectURL(previousURL);
   const r=Math.min(4,Math.max(0.25,rate()/(baked||1)*(pitch||1)*playMultiplier));
-  const keep=!(pitch&&pitch!==1);player.preservesPitch=keep;player.webkitPreservesPitch=keep;player.mozPreservesPitch=keep; /* a slightly faster player also sounds slightly higher */
+  const keep=!(pitch&&pitch!==1);player.preservesPitch=keep;player.webkitPreservesPitch=keep;player.mozPreservesPitch=keep;
   player.defaultPlaybackRate=r;player.playbackRate=r; /* set after src: loading a new source resets the rate */
-  const clear=()=>{endPlay=null;player.onended=null;player.onerror=null;player.onplaying=null};
+  /* Actor questions: gently lift pitch during only the last ~0.45 s,
+     without switching narrators. HTMLAudioElement can't change pitch alone;
+     a tiny playback-rate lift is used with pitch preservation disabled. */
+  player.ontimeupdate=questionRise?()=>{
+   const remain=player.duration-player.currentTime;
+   if(!Number.isFinite(remain)||remain<0)return;
+   const lift=remain<0.45?1+0.075*(1-Math.max(0,remain)/0.45):1;
+   const preserve=lift===1&&keep;
+   player.preservesPitch=preserve;player.webkitPreservesPitch=preserve;player.mozPreservesPitch=preserve;
+   player.playbackRate=Math.min(4,r*lift);
+  }:null;
+  const clear=()=>{endPlay=null;player.onended=null;player.onerror=null;player.onplaying=null;player.ontimeupdate=null};
   player.onplaying=()=>{playbackDiagnostics.clipsPlayed++;if(playbackDiagnostics.endedAt){const g=performance.now()-playbackDiagnostics.endedAt;playbackDiagnostics.endedAt=0;if(g<30000){playbackDiagnostics.hand++;playbackDiagnostics.handTotal+=g;if(g>playbackDiagnostics.handMax)playbackDiagnostics.handMax=g;if(g>400)playbackDiagnostics.handLong++}}if(playbackDiagnostics.firstSpeechMs===null&&playbackDiagnostics.startedAt)playbackDiagnostics.firstSpeechMs=Math.round(performance.now()-playbackDiagnostics.startedAt);if(awaitingNarration){awaitingNarration=false;spinner(false);renderEngine();status('Reading with George')}};
   const finish=ok=>{clear();resolve(ok)};
   endPlay=finish;
@@ -703,7 +714,7 @@ function actorCue(text,para,isDialogue){
 function plan(paras,p,narr,style,first){
  const para=paras[p];
  if(style==='classic')return chunks(para,first?FIRST_CHUNK_MAX:CHUNK_MAX).map((t,k,a)=>({text:t,say:readableCaps(t),voice:narr,last:k===a.length-1,pad:k===a.length-1?PARA_PAD:0}));
- const slowish=mobileDevice()||mode==='standard',max=first?(slowish?FIRST_CHUNK_MAX:NAT_FIRST_MAX):(slowish?CHUNK_MAX:NAT_MAX),dlg=(style==='natural'||style==='actor')&&DIALOGUE[narr]?DIALOGUE[narr]:narr,out=[];
+ const slowish=mobileDevice()||mode==='standard',max=first?(slowish?FIRST_CHUNK_MAX:NAT_FIRST_MAX):(slowish?CHUNK_MAX:NAT_MAX),dlg=style==='natural'&&DIALOGUE[narr]?DIALOGUE[narr]:narr,out=[];
  const next=paras[p+1],scene=next!=null&&SCENE.test(next),heading=!/[.!?\u2026"\u201d]$/.test(norm(para))&&norm(para).length<80&&(p===0||SCENE.test(paras[p-1]||''));
  for(const r of dialogueRuns(para,style==='pace'||style==='actor'?5:14)){
   for(const t of (slowish?chunks(r.t,max):sentenceChunks(r.t,max))){
@@ -714,7 +725,8 @@ function plan(paras,p,narr,style,first){
    const cue=actor?actorCue(t,para,!!r.d):null;
    const mul=actor?(cue?cue.mul:urgent?1.16:question?0.91:r.d?1.11:0.94):(r.d&&style==='pace'?PACE_MUL:1);
    const pitch=r.d&&style==='pace'?PACE_PITCH:1;
-   out.push({text:t,say,voice:r.d?dlg:narr,d:r.d,mul,pitch,last:false,pad:cue?cue.pad:0,actorCue:cue?.kind||null});
+   const questionRise=actor&&/\?[\s\u201d"']*$/.test(t);
+   out.push({text:t,say,voice:r.d?dlg:narr,d:r.d,mul,pitch,questionRise,last:false,pad:cue?cue.pad:0,actorCue:cue?.kind||null});
   }
  }
  for(let i=0;i<out.length;i++)if(i<out.length-1&&style!=='single'&&out[i].d!==out[i+1].d)out[i].pad=0.12;
@@ -738,9 +750,9 @@ async function unpause(s){
  while(s.paused&&!s.cancelled)await new Promise(resolve=>{s.wake=resolve});
  s.wake=null;
 }
-async function playback(blob,s,baked,pitch){
+async function playback(blob,s,baked,pitch,questionRise=false){
  await unpause(s);if(s.cancelled)return;
- await playBlob(blob,baked,pitch,s.style==='double'?2/Math.max(0.25,rate()):1);
+ await playBlob(blob,baked,pitch,s.style==='double'?2/Math.max(0.25,rate()):1,questionRise&&s.style==='actor');
 }
 /* Generate the first few passages before Play is pressed, so reading starts at once.
    Only when George is already installed on this device (never starts a big download by surprise). */
@@ -891,7 +903,7 @@ function toggle({S,update,render}){
     bufInfo.ready=readySec();renderBuffer();
     mediaInfo(S);
     window.readerTracking?.start?.(g.text,g.p,()=>{const duration=(player.duration||res.audioSec)-(g.pad||0);return duration>0?player.currentTime/duration:0});
-    await playback(res.blob,s,res.speed,res.pitch);
+    await playback(res.blob,s,res.speed,res.pitch,!!g.questionRise);
     /* Once a passage has played, discard its temporary WAV clip from RAM. */
     if(res.key)cacheDrop(res.key);
     if(item.spilled)window.bookOffline.dropTemp(tmpKey(item)).catch(()=>{});
