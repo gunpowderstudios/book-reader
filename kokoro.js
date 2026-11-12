@@ -171,7 +171,7 @@ const FALLBACKS={fast:'standard'};
 let runMode=null,failedModes=[];
 const nextLighter=from=>from==='gpu'?(isolated()?'fast':'standard'):FALLBACKS[from];
 let worker=null,readyPromise=null,initWaiter=null,engineReady=false,watchdog=null,nextId=1,sink=null;
-const playbackDiagnostics={startedAt:0,firstSpeechMs:null,audioErrors:0,clipsPlayed:0};
+const playbackDiagnostics={startedAt:0,firstSpeechMs:null,audioErrors:0,clipsPlayed:0,endedAt:0,hand:0,handTotal:0,handMax:0,handLong:0}; /* hand* = silent gap between one clip ending and the next starting (not counting the pause built into a clip) */
 const calls=new Map();
 
 function armWatchdog(){
@@ -435,10 +435,10 @@ function playBlob(blob,baked=1,pitch=1){ /* resolves true when finished, false i
   const keep=!(pitch&&pitch!==1);player.preservesPitch=keep;player.webkitPreservesPitch=keep;player.mozPreservesPitch=keep; /* a slightly faster player also sounds slightly higher */
   player.defaultPlaybackRate=r;player.playbackRate=r; /* set after src: loading a new source resets the rate */
   const clear=()=>{endPlay=null;player.onended=null;player.onerror=null;player.onplaying=null};
-  player.onplaying=()=>{playbackDiagnostics.clipsPlayed++;if(playbackDiagnostics.firstSpeechMs===null&&playbackDiagnostics.startedAt)playbackDiagnostics.firstSpeechMs=Math.round(performance.now()-playbackDiagnostics.startedAt);if(awaitingNarration){awaitingNarration=false;spinner(false);renderEngine();status('Reading with George')}};
+  player.onplaying=()=>{playbackDiagnostics.clipsPlayed++;if(playbackDiagnostics.endedAt){const g=performance.now()-playbackDiagnostics.endedAt;playbackDiagnostics.endedAt=0;if(g<30000){playbackDiagnostics.hand++;playbackDiagnostics.handTotal+=g;if(g>playbackDiagnostics.handMax)playbackDiagnostics.handMax=g;if(g>400)playbackDiagnostics.handLong++}}if(playbackDiagnostics.firstSpeechMs===null&&playbackDiagnostics.startedAt)playbackDiagnostics.firstSpeechMs=Math.round(performance.now()-playbackDiagnostics.startedAt);if(awaitingNarration){awaitingNarration=false;spinner(false);renderEngine();status('Reading with George')}};
   const finish=ok=>{clear();resolve(ok)};
   endPlay=finish;
-  player.onended=()=>finish(true);
+  player.onended=()=>{playbackDiagnostics.endedAt=performance.now();finish(true)};
   player.onerror=()=>{playbackDiagnostics.audioErrors++;clear();reject(new Error('The browser could not play this audio.'))};
   const p=player.play();
   if(p&&p.catch)p.catch(e=>{
@@ -755,7 +755,7 @@ function toggle({S,update,render}){
  }
  stop();awaitingNarration=true;spinner(true);renderEngine();prefetchToken++;
  const token=serial,s={cancelled:false,paused:false,wake:null,voice:currentVoice(),style:styleNow(),need:0,holding:false,startNow:false};session=s;
- playbackDiagnostics.startedAt=performance.now();playbackDiagnostics.firstSpeechMs=null; /* first-speech time counts from pressing Play, not from page load */
+ playbackDiagnostics.startedAt=performance.now();playbackDiagnostics.firstSpeechMs=null;playbackDiagnostics.endedAt=0;playbackDiagnostics.hand=playbackDiagnostics.handTotal=playbackDiagnostics.handMax=playbackDiagnostics.handLong=0; /* first-speech time counts from pressing Play, not from page load */
  const stale=()=>s.cancelled||token!==serial;
  S.playing=true;S.paused=false;$('play').textContent='Ⅱ Pause';
  unlockAudio();startMeter();mediaControls(S);
@@ -925,5 +925,5 @@ function skipSeconds(seconds,S,update){
 window.chapterKokoro={toggle,stop,skipSeconds,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,recommendMode:suggestedMode,isMobile:mobileDevice,generateClip:(text,id)=>synth(text,VOICES[id]?id:currentVoice(),{speed:1}),chapterClips:chapterClips,style:styleNow,currentVoice,voices:VOICES,splitText:(text)=>chunks(text),version:VERSION,
  refreshNarrator:()=>{renderEngine();renderBuffer()},stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode}),measured:()=>Number(store.get('cv-measured-'+mode,'0'))};
 
-window.eddiPlaybackDiagnostics=()=>({version:VERSION,threads:eng.threads||1,modePreference:preference,actualMode:eng.used||mode,enginePhase:eng.phase,modelStartSeconds:eng.sec||null,firstSpeechSeconds:playbackDiagnostics.firstSpeechMs===null?null:playbackDiagnostics.firstSpeechMs/1000,generationSpeed:Math.round(lastSpeed*10)/10,bufferReadySeconds:Math.round(bufInfo.ready||0),bufferTargetSeconds:Math.round(bufInfo.target||0),bufferWaits:bufInfo.waits||0,bufferWaitSeconds:Math.round(bufInfo.waitSec||0),audioClipsStarted:playbackDiagnostics.clipsPlayed,audioErrors:playbackDiagnostics.audioErrors});
+window.eddiPlaybackDiagnostics=()=>({version:VERSION,threads:eng.threads||1,modePreference:preference,actualMode:eng.used||mode,enginePhase:eng.phase,modelStartSeconds:eng.sec||null,firstSpeechSeconds:playbackDiagnostics.firstSpeechMs===null?null:playbackDiagnostics.firstSpeechMs/1000,generationSpeed:Math.round(lastSpeed*10)/10,bufferReadySeconds:Math.round(bufInfo.ready||0),bufferTargetSeconds:Math.round(bufInfo.target||0),bufferWaits:bufInfo.waits||0,bufferWaitSeconds:Math.round(bufInfo.waitSec||0),audioClipsStarted:playbackDiagnostics.clipsPlayed,handoffCount:playbackDiagnostics.hand,handoffAvgMs:playbackDiagnostics.hand?Math.round(playbackDiagnostics.handTotal/playbackDiagnostics.hand):null,handoffMaxMs:Math.round(playbackDiagnostics.handMax),handoffOver400ms:playbackDiagnostics.handLong,audioErrors:playbackDiagnostics.audioErrors});
 })();

@@ -1,3 +1,7 @@
+## v1.12.260 — 12 November 2026
+
+- The Eddi report now also measures the silent gap between one spoken clip and the next (average, longest, and how many were over 0.4 s), so we can tell hand-off gaps from George being too slow.
+
 ## v1.12.251 — 11 November 2026
 
 - Faster first start on computers: the voice now starts downloading as soon as a book is opened, instead of waiting for Play. (Phones still wait for Play. Nothing downloads if the browser is in data-saving mode or you never open a book.)
