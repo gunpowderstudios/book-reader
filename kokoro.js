@@ -454,11 +454,14 @@ function playBlob(blob,baked=1,pitch=1){ /* resolves true when finished, false i
 let meterTimer=null,bufInfo={ready:0,target:0,waiting:0,waits:0,waitSec:0};
 let nextPassageState='idle';
 function showNextPassage(state){if(nextPassageState===state)return;nextPassageState=state;const label=$('next-passage-label'),track=$('next-passage-track'),fill=$('next-passage-fill');if(label)label.textContent=state==='ready'?'Next passage: ready':state==='working'?'Next passage: preparing…':'Next passage: waiting';if(track)track.dataset.state=state;if(fill&&state!=='working')fill.style.width=state==='ready'?'100%':'0%';else if(fill)fill.style.width=''}
+/* Computers slow right down on battery (the same Mac was 0.6x on battery and 1.1x to 1.6x plugged in), so say so when it matters. Chrome/Edge only; elsewhere the plain message is used. */
+let onBattery=false;
+try{if(navigator.getBattery&&!mobileDevice())navigator.getBattery().then(b=>{const u=()=>{onBattery=!b.charging};u();b.addEventListener('chargingchange',u)}).catch(()=>{})}catch(_){}
 function hint(){
  const need=Math.max(1,effRate());
  if(recent.length<3||lastSpeed>=need)return null;
- if(mode==='standard')return {text:'Speech may pause on this device. Try Fast in Settings, or turn up Smooth Listening so more is prepared ahead.',action:null};
- return {text:'Speech may pause while the next passage is prepared. Turn up Smooth Listening in Settings so more is prepared ahead.',action:null};
+ if(onBattery)return {text:'Your computer is running on battery, which makes George slower than he speaks, so you may hear pauses. Plug in for smooth reading.',action:null};
+ return {text:'George is making speech a little slower than it is spoken on this device, so you may hear pauses while he catches up. He keeps preparing more ahead.',action:null};
 }
 function renderBuffer(){
  const text=$('buf-text'),fill=$('buf-fill'),bar=$('buf-bar'),hintEl=$('speed-hint');

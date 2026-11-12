@@ -1,3 +1,7 @@
+## v1.12.262 — 12 November 2026
+
+- When George can't keep up with listening, the hint now says so plainly: on a laptop running on battery it asks you to plug in (battery makes speech about half as fast), otherwise it explains he is catching up. The old hint pointed to settings that no longer exist.
+
 ## v1.12.261 — 12 November 2026
 
 - Hidden test switch: adding ?mode=gpu (or ?mode=fast, ?mode=standard) to the address tries that voice mode for that visit only. Nothing is saved, and Automatic is unchanged.
