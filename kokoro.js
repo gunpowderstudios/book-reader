@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.271';
+const VERSION='1.12.272';
 const VOICES=window.CV_VOICES||{bm_george:'British Male — George'}; /* the list is defined in index.html */
 const DEFAULT_VOICE='bm_george';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -59,10 +59,11 @@ let startupNote='';
 /* Automatic: see cvAutoMode in index.html (graphics chip or multi-core only on a capable computer; remembers failures). */
 const suggestedMode=()=>window.cvAutoMode?window.cvAutoMode():(mobileDevice()?'standard':'fast');
 const ipadDevice=()=>/iPad/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-store.set('cv-mode-choice','auto'); // Processing mode now selected automatically, even if a manual choice was saved previously.
+/* Automatic is the initial default. An explicitly chosen processing mode is retained
+   so a required one-time multi-core page reload does not undo the selection. */
 /* Hidden test switch: add ?mode=fast (or standard) to the address to try that mode for this visit only. Nothing is saved. */
 const forcedMode=(()=>{try{const q=new URLSearchParams(location.search).get('mode');return ['fast','standard'].includes(q)?q:'' /* gpu left out on purpose: it froze a MacBook in the full reader (v1.12.261 test) */}catch(_){return ''}})();
-let preference=forcedMode||(ipadDevice()?'standard':'auto'); // Preserve the known-safe iPad CPU mode.
+let preference=forcedMode||store.get('cv-mode-choice',ipadDevice()?'standard':'auto'); // Preserve the known-safe iPad CPU mode until explicitly changed.
 if(!PREFS.includes(preference))preference='auto';
 let mode=preference==='auto'?suggestedMode():preference;
 const bufferTarget=()=>(ipadDevice()?90:(mobileDevice()||mode==='standard'?6:2)*60); /* chosen automatically: a bigger cushion on phones and slower setups, light on fast computers */
@@ -306,7 +307,7 @@ function haltAll(){ /* stop playback through the page (so its buttons reset), fa
 }
 function setMode(next){
  if(!PREFS.includes(next))return mode;
- preference=next;store.set('cv-mode-choice',next);if(next==='auto')store.set('cv-auto-fallback','');
+ preference=next;store.set('cv-mode-choice',next);/* Keep failure history when returning to Automatic: never clear safety fallbacks. */
  const chosen=next==='auto'?suggestedMode():next;
  if(chosen===mode){showRecommendation();return mode}
  mode=chosen;runMode=null;failedModes=[];
@@ -925,7 +926,7 @@ function showRecommendation(){
  if(ta&&count){const update=()=>{count.textContent=ta.value.length+' / '+MAX_TEST_CHARS};ta.addEventListener('input',update);update()}
  const ms=$('mode-select');
  if(ms){
-  ms.replaceChildren(new Option('Automatic (recommended)','auto'),new Option('Graphics chip (experimental) — try on a Mac or PC with a good graphics chip','gpu'),new Option('Fast — for powerful computers','fast'),new Option('Low Memory — for phones and older devices','standard'));
+  ms.replaceChildren(new Option('Automatic (recommended)','auto'),new Option('Fast — multi-core CPU','fast'),new Option('Low Memory — lighter CPU mode','standard'));
   ms.value=preference;ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=preference;showRecommendation()};
  }
  const ss=$('style-select'); /* (no menu any more: one voice, natural style) */
