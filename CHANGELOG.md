@@ -1,3 +1,7 @@
+## v1.12.261 — 12 November 2026
+
+- Hidden test switch: adding ?mode=gpu (or ?mode=fast, ?mode=standard) to the address tries that voice mode for that visit only. Nothing is saved, and Automatic is unchanged.
+
 ## v1.12.260 — 12 November 2026
 
 - The Eddi report now also measures the silent gap between one spoken clip and the next (average, longest, and how many were over 0.4 s), so we can tell hand-off gaps from George being too slow.
