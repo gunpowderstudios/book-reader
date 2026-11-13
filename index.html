@@ -501,7 +501,7 @@ body>header{background:linear-gradient(90deg,rgba(3,12,9,.88),rgba(3,12,9,.45),r
 #eddi-install{position:absolute;right:12px;top:34px;z-index:201;border:1px solid #698570;background:#325740;color:#fff;border-radius:8px;padding:8px 11px;font:600 13px/1.2 system-ui,sans-serif;cursor:pointer;white-space:nowrap}#eddi-install:hover{background:#467655}#eddi-install[hidden],#eddi-install-dialog[hidden]{display:none!important}
 #eddi-install-dialog{position:fixed;inset:0;z-index:100000;background:#0009;display:flex;align-items:center;justify-content:center;padding:18px}#eddi-install-card{background:#173026;color:#fff;border:1px solid #698570;border-radius:14px;max-width:420px;width:100%;padding:22px;box-shadow:0 15px 55px #0009;font:15px/1.55 system-ui,sans-serif}#eddi-install-card h2{font-size:22px;margin:0 0 12px}#eddi-install-card p{margin:0 0 12px}#eddi-install-close{float:right;background:transparent;color:#fff;border:0;font-size:24px;cursor:pointer}#eddi-install-card strong{color:#d1f869}
 @media(max-width:720px){#eddi-install{top:39px;right:8px;padding:6px 8px;font-size:11px}#eddi-install-card{max-width:340px}}
-</style><header><small id="app-version" aria-label="E.D.D.i. version">Version v1.12.288</small><div class="brand"><a href="./" class="eddi-brand" aria-label="E.D.D.i. — Your FREE Book & Document Reader. Back to home" title="Back to home"><img class="eddi-long-logo" src="images/eddi-reader-logo-long.png?v=1.12.180" alt="E.D.D.i. — Your FREE Book & Document Reader" width="559" height="120"><span class="eddi-long-tagline"><span>Your FREE Book & Document Reader</span><span id="eddi-mission-subtitle">His 5-year mission: To read every book in the universe!</span></span></a></div><input hidden id="file" type="file" accept=".epub,.zip,.pdf,.docx,.doc,.odt,.rtf,.txt,.md,.markdown,.html,.htm,.xhtml,.fb2,application/epub+zip,application/pdf,text/plain"><div id="mobile-navigation"><button id="mobile-menu-toggle" type="button" aria-label="Open page menu" aria-expanded="false" aria-controls="mobile-menu-items">☰</button><nav id="mobile-menu-items" aria-label="Mobile pages" hidden><a href="#library">📚 My Library</a><a href="#reading">📖 Now Reading</a><a href="#free-books">📚 Free Books</a><a href="#narrators">🎙 Meet the Narrators</a><a href="#sync">☁ Syncing Playback</a><a href="#" id="mobile-upload-to-eddi">📤 Upload to E.D.D.i.</a></nav></div></header><div id="eddi-install-dialog" role="dialog" aria-modal="true" aria-labelledby="eddi-install-title" hidden><div id="eddi-install-card"><button id="eddi-install-close" type="button" aria-label="Close installation instructions">×</button><h2 id="eddi-install-title">Install Eddi for FREE</h2><div id="eddi-install-steps"></div><p>No App Store required.</p></div></div><script>/* 1.12.249: optional installation flow; no reader engine changes */
+</style><header><small id="app-version" aria-label="E.D.D.i. version">Version v1.12.289</small><div class="brand"><a href="./" class="eddi-brand" aria-label="E.D.D.i. — Your FREE Book & Document Reader. Back to home" title="Back to home"><img class="eddi-long-logo" src="images/eddi-reader-logo-long.png?v=1.12.180" alt="E.D.D.i. — Your FREE Book & Document Reader" width="559" height="120"><span class="eddi-long-tagline"><span>Your FREE Book & Document Reader</span><span id="eddi-mission-subtitle">His 5-year mission: To read every book in the universe!</span></span></a></div><input hidden id="file" type="file" accept=".epub,.zip,.pdf,.docx,.doc,.odt,.rtf,.txt,.md,.markdown,.html,.htm,.xhtml,.fb2,application/epub+zip,application/pdf,text/plain"><div id="mobile-navigation"><button id="mobile-menu-toggle" type="button" aria-label="Open page menu" aria-expanded="false" aria-controls="mobile-menu-items">☰</button><nav id="mobile-menu-items" aria-label="Mobile pages" hidden><a href="#library">📚 My Library</a><a href="#reading">📖 Now Reading</a><a href="#free-books">📚 Free Books</a><a href="#narrators">🎙 Meet the Narrators</a><a href="#sync">☁ Syncing Playback</a><a href="#" id="mobile-upload-to-eddi">📤 Upload to E.D.D.i.</a></nav></div></header><div id="eddi-install-dialog" role="dialog" aria-modal="true" aria-labelledby="eddi-install-title" hidden><div id="eddi-install-card"><button id="eddi-install-close" type="button" aria-label="Close installation instructions">×</button><h2 id="eddi-install-title">Install Eddi for FREE</h2><div id="eddi-install-steps"></div><p>No App Store required.</p></div></div><script>/* 1.12.249: optional installation flow; no reader engine changes */
 (()=>{
 const button=document.getElementById('eddi-install'),dialog=document.getElementById('eddi-install-dialog'),detail=document.getElementById('eddi-install-steps'),close=document.getElementById('eddi-install-close');
 if(!button||!dialog||!detail||!close)return;
@@ -572,15 +572,12 @@ if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.ser
 </section><section id="library-panel"><h1 style="color:#D1F869;font-size:clamp(28px,4.2vw,48px);line-height:1.14;margin:0 0 12px;font-weight:800">E.D.D.i is ready...</h1><h2>Your FREE Book & Document Reader</h2><p><small>Your books and reading progress are saved in this browser on this device. They do not automatically sync with other devices.</small></p><div id="lib-list" class="grid"></div><div id="lib-empty" hidden><img src="images/classics/dracula.jpg" alt="Dracula book cover" loading="lazy" onerror="this.onerror=null;this.src='images/book-cover-fallback.svg'"><div><p>Your library is empty.</p><a href="#free-books" id="first-book-link">Load your first book</a><p class="first-book-note">Explore the Free Books collection, including Dracula.</p></div></div><p><small id="lib-storage"></small></p><div class="library-upload-area"><label class="upload" for="file">Upload to E.D.D.i...</label><p><small>Choose a book or document from your device. E.D.D.i can read EPUB, PDF, Word (.docx), text, Markdown, web page (.html), RTF, ODT and FB2 files, plus a zipped book and progress file made by Syncing Playback. PDFs need real text, so scanned pages won't work.</small></p></div></section><section id="narrators-panel" hidden style="max-width:850px;margin:22px auto 210px;padding:22px;background:#1c2c25;border:1px solid #415a49;border-radius:14px">
 <style>/* v1.12.213: highlight the word being spoken in the narrator sample. */#test-sample .eddi-preview-word.eddi-preview-current{background:#ffdd48;color:#17200d;border-radius:3px;box-shadow:0 0 0 2px #ffdd48}#test-sample .eddi-preview-word{transition:background-color .08s linear}</style>
 <h2>🎙 Meet the Narrators</h2>
-<div style="margin:14px 0 20px;padding:15px;border:1px solid #628065;border-radius:11px;background:#14251b">
-<strong style="color:#d1f869">NEW: Piper Voice Lab (experimental)</strong>
-<p style="margin:8px 0 12px">Try 10 British and American Piper voices with the same reading passage, and measure how quickly your device generates speech. The lab is for samples. Only the four reviewed Piper builds are available in the reader.</p>
-<a href="./piper-lab.html" style="display:inline-block;border-radius:9px;background:#d1f869;color:#18281c;padding:11px 17px;font-weight:800;text-decoration:none">🎙 Open Piper Voice Lab →</a>
-<p>To try Piper with a book, pick a voice under <strong>Piper (experimental)</strong> in the reader’s Voice menu. The first use downloads the voice, and your text stays on your device. Emma (Kokoro) remains the default. <a href="./piper-credits.html">Piper voice credits and licences</a>.</p>
-</div>
-<p style="font-size:.92em;color:#c1d7c6">E.D.D.i.’s default narrator voices are powered by <a href="https://huggingface.co/hexgrad/Kokoro-82M" target="_blank" rel="noopener noreferrer">Kokoro</a>, a free and open-source text-to-speech project. Thanks to the Kokoro developers and contributors for making these voices available for everyone to enjoy.</p>
-<p>Choose a Kokoro or experimental Piper voice and listen to a short sample before using it to read your book. Emma loads by default.</p>
-<p><label for="test-voice"><strong>Choose a narrator</strong></label> <select id="test-voice" aria-label="Narrator to preview"></select></p>
+<p>Choose a voice engine and a narrator, then play a sample. When you find one you like, select <strong>Use this narrator</strong>. E.D.D.i. remembers your choice in this browser until you change it.</p>
+<p style="display:flex;gap:10px 18px;flex-wrap:wrap;align-items:center">
+<label for="test-engine"><strong>Voice engine</strong> <select id="test-engine"><option value="kokoro">Kokoro</option><option value="piper">Piper (experimental)</option></select></label>
+<label for="test-voice"><strong>Narrator</strong> <select id="test-voice" aria-label="Narrator to preview"></select></label>
+</p>
+<p style="font-size:.92em;color:#c1d7c6">Emma (Kokoro) is the default. A voice may need to download the first time you try it. <a href="./piper-credits.html">Piper voice credits and licences</a>.</p>
 <p><label for="test-sample"><strong>A little bedtime story</strong></label></p>
 <p id="test-sample" style="font-size:1.1em;line-height:1.65">As the evening light faded, the little bookshop at the end of the lane began to glow. Somewhere between its shelves, a forgotten story waited patiently for someone to open the first page.</p>
 <p><button id="test-play" type="button">▶ Play sample</button> <button id="test-choose" type="button">✓ Use this narrator</button></p>
@@ -614,7 +611,7 @@ try{localStorage.setItem('cv-voice-style','single')}catch(_){}
 function highlight(){let c=S.chapters[S.index],n=c?.paragraphs.length||0;$('pct').textContent=(n?Math.round(S.p/n*100):0)+'% complete';$('num').textContent='Paragraph '+(n?S.p+1:0)+' of '+n;$('seek').value=n?Math.round(S.p/n*1000):0;document.querySelectorAll('#text .current').forEach(x=>x.classList.remove('current'));let el=$('text').querySelector('[data-p="'+S.p+'"]');if(el){el.classList.add('current');/* read-along handles scrolling during playback; avoid competing animations */}const mp=$('eddi-mobile-simple-progress');if(mp)mp.value=n?Math.round(S.p/n*1000):0;save();queuePrefetch()}function render(){try{if(S.chapters.length&&(!S.chapters[S.index]||!Number.isInteger(S.index)))S.index=0;let c=S.chapters[S.index];if(!c){$('status').textContent='No readable chapters were found in this EPUB.';return;}$('heading').textContent=c.title;$('now').textContent=c.title;$('text').replaceChildren();c.paragraphs.forEach((text,i)=>{let p=document.createElement('p');p.dataset.p=i;p.textContent=text;p.onclick=()=>{stop();S.p=i;highlight();$('play').click()};$('text').append(p)});$('chapters').replaceChildren();const choice=$('chapter-select');if(choice){choice.replaceChildren(...S.chapters.map((ch,i)=>new Option(ch.title||('Chapter '+(i+1)),String(i))));choice.value=String(S.index)}const mobileChoice=$('mobile-chapter-select');if(mobileChoice){mobileChoice.replaceChildren(...S.chapters.map((ch,i)=>new Option(ch.title||('Chapter '+(i+1)),String(i))));mobileChoice.value=String(S.index);mobileChoice.disabled=false;}const mobileList=$('eddi-mobile-chapter-list');if(mobileList){mobileList.replaceChildren();S.chapters.forEach((ch,i)=>{const b=document.createElement('button');b.type='button';b.textContent=ch.title||('Chapter '+(i+1));b.setAttribute('aria-current',i===S.index?'true':'false');b.onclick=()=>{moveChapter(i);$('eddi-mobile-chapters').open=false;if(document.body.classList.contains('eddi-mobile-reading'))$('play').click()};mobileList.append(b)})}S.chapters.forEach((ch,i)=>{let b=document.createElement('button');b.textContent=ch.title;if(i===S.index)b.style.background='#579575';b.onclick=()=>moveChapter(i);$('chapters').append(b)});highlight();try{window.bookOffline?.refresh?.()}catch(err){console.warn('Optional offline panel refresh failed:',err)}}catch(err){console.error('EPUB chapter display failed:',err);$('status').textContent='Could not display chapter: '+err.message;const h=$('heading');if(h)h.textContent='Unable to show this chapter';const t=$('text');if(t)t.textContent='Something prevented the chapter from displaying: '+err.message+'. Try reopening the book.';}}function moveChapter(i,auto=false){if(i<0||i>=S.chapters.length)return;stop();S.index=i;S.p=0;render();if(auto)play()}
 $('play').onclick=async()=>{if(!window.chapterKokoro){$('status').textContent='The voice engine is unavailable. Please reload and try again.';return}if(!S.chapters.length){const lib=window.chapterLibrary;if(lib){await lib.ready;const last=lib.books.slice().sort((a,b)=>(b.lastOpened||0)-(a.lastOpened||0))[0];if(last){await openFromLibrary(last.id);if(!S.chapters.length)return}else{$('status').textContent='Choose a book from Free Books or load your own EPUB first.';return}}}if(S.chapters.length){if(window.matchMedia('(max-width:720px)').matches){document.body.classList.add('eddi-mobile-reading');$('book-main').classList.add('mobile-text-open');$('mobile-show-text').setAttribute('aria-pressed','true');$('mobile-show-text').textContent='📖 Hide book text';}window.chapterKokoro.toggle({S,update:highlight,render})}};document.addEventListener('keydown',e=>{if(e.code!=='Space'||e.repeat||e.altKey||e.ctrlKey||e.metaKey||e.shiftKey)return;const t=e.target;if(t?.isContentEditable||t?.closest?.('input, textarea, select, [contenteditable="true"]'))return;if(!S.chapters.length)return;e.preventDefault();$('play').click() /* v1.12.177: Space pauses or resumes from any page and even with a button focused */});
 $('previous').onclick=()=>moveChapter(S.index-1);$('next').onclick=()=>moveChapter(S.index+1);$('back').onclick=()=>{stop();S.p=Math.max(0,S.p-1);highlight()};$('forward').onclick=()=>{stop();S.p=Math.min((S.chapters[S.index]?.paragraphs.length||1)-1,S.p+1);highlight()};$('rewind30').onclick=()=>window.chapterKokoro?.skipSeconds?.(-30,S,highlight);$('ahead30').onclick=()=>window.chapterKokoro?.skipSeconds?.(30,S,highlight);$('seek').onchange=()=>{if(!S.chapters.length)return;stop();S.p=Math.min(S.chapters[S.index].paragraphs.length-1,Math.floor(+$('seek').value/1000*S.chapters[S.index].paragraphs.length));highlight()};$('rate').oninput=()=>{$('speed').textContent=(+$('rate').value).toFixed(1)+'×';try{localStorage.setItem('cv-rate',$('rate').value)}catch(_){}};$('rate').value='1';$('rate').oninput();$('small').onclick=()=>{$('text').style.fontSize=(S.font=Math.max(14,S.font-2))+'px'};$('large').onclick=()=>{$('text').style.fontSize=(S.font=Math.min(32,S.font+2))+'px'};
-/* Kokoro's full narrator selection; Emma is selected on every fresh load. */
+/* Narrators are grouped by engine. Emma is the fallback when no saved choice is available. */
 window.CV_VOICES={bf_emma:'British Female — Emma',bf_isabella:'British Female — Isabella',bf_alice:'British Female — Alice',bf_lily:'British Female — Lily',bm_george:'British Male — George',bm_fable:'British Male — Fable',bm_lewis:'British Male — Lewis',bm_daniel:'British Male — Daniel',af_heart:'American Female — Heart',af_bella:'American Female — Bella',af_nicole:'American Female — Nicole',af_aoede:'American Female — Aoede',af_kore:'American Female — Kore',af_sarah:'American Female — Sarah',af_alloy:'American Female — Alloy',af_nova:'American Female — Nova',af_sky:'American Female — Sky',af_jessica:'American Female — Jessica',af_river:'American Female — River',am_michael:'American Male — Michael',am_fenrir:'American Male — Fenrir',am_puck:'American Male — Puck',am_eric:'American Male — Eric',am_echo:'American Male — Echo',am_liam:'American Male — Liam',am_onyx:'American Male — Onyx',am_adam:'American Male — Adam',am_santa:'American Male — Santa'};
 const piperVoices={'piper:en_GB-alba-medium':'British Female — Alba','piper:en_GB-cori-medium':'British Female — Cori','piper:en_GB-jenny_dioco-medium':'British Female — Jenny (Dioco)','piper:en_US-joe-medium':'American Male — Joe'};
 Object.assign(window.CV_VOICES,piperVoices);
@@ -628,9 +625,10 @@ const voiceName=id=>(window.CV_VOICES[id]||'— Emma').split('— ')[1];
 const defaultVoice='bf_emma';
 narratorOptions($('voice'),true);
 $('voice').hidden=false;
-$('voice').value=defaultVoice;
-$('engine-narrator').textContent=voiceName(defaultVoice);
 const lsGet=k=>{try{return localStorage.getItem(k)}catch(_){return null}};
+const savedVoice=lsGet('br-narrator');
+$('voice').value=Object.hasOwn(window.CV_VOICES,savedVoice)?savedVoice:defaultVoice;
+$('engine-narrator').textContent=voiceName($('voice').value);
 const coresBox=$('cores-toggle');
 if(coresBox){coresBox.checked=lsGet('cv-lowmem-cores')==='1';
  coresBox.onchange=()=>{try{localStorage.setItem('cv-lowmem-cores',coresBox.checked?'1':'0');sessionStorage.removeItem('cv-coi-tried')}catch(_){}
@@ -758,15 +756,32 @@ window.addEventListener('kokoro-memory-failure',e=>showCompatibilityNotice(e.det
 $('voice').onchange=()=>{
  stop();
  try{localStorage.setItem('br-narrator',$('voice').value)}catch(_){}
- const t=$('test-voice');if(t)t.value=$('voice').value;
+ syncNarratorPreview($('voice').value);
  $('engine-narrator').textContent=voiceName($('voice').value);
  window.chapterKokoro?.refreshNarrator?.();
  window.bookOffline?.refresh?.();
 };
-const testSelect=$('test-voice');
-narratorOptions(testSelect);
-testSelect.value=$('voice').value;
-$('test-voice').onchange=()=>{window.chapterKokoro?.stopTest?.();$('test-status').textContent='Press Play sample to hear '+voiceName(testSelect.value)+'.'};
+const testSelect=$('test-voice'),testEngine=$('test-engine'),testStatus=$('test-status');
+const engineOf=id=>Object.hasOwn(piperVoices,id)?'piper':'kokoro';
+const lastPreview={};
+function sampleHint(){
+ testStatus.dataset.state='idle';
+ testStatus.textContent='Press Play sample to hear '+voiceName(testSelect.value)+'.';
+}
+function setPreviewEngine(engine,preferred){
+ testEngine.value=engine;
+ const options=Object.entries(window.CV_VOICES).filter(([id])=>engineOf(id)===engine);
+ testSelect.replaceChildren(...options.map(([id,label])=>new Option(label,id)));
+ const id=preferred||lastPreview[engine];
+ if(options.some(([key])=>key===id))testSelect.value=id;
+ lastPreview[engine]=testSelect.value;
+ sampleHint();
+}
+function syncNarratorPreview(id){setPreviewEngine(engineOf(id),id)}
+function stopPreview(){if(window.chapterKokoro?.testActive?.())window.chapterKokoro.stopTest()}
+syncNarratorPreview($('voice').value);
+testEngine.onchange=()=>{stopPreview();setPreviewEngine(testEngine.value)};
+testSelect.onchange=()=>{stopPreview();lastPreview[testEngine.value]=testSelect.value;sampleHint()};
 $('test-play').onclick=()=>{
  const kokoro=window.chapterKokoro;if(!kokoro)return;
  if(kokoro.testActive?.()){kokoro.stopTest();return}
@@ -777,7 +792,7 @@ $('test-play').onclick=()=>{
 };
 $('test-choose').onclick=()=>{
  const resume=!!S.playing&&S.chapters.length>0; /* v1.12.133: the book carries on with the new narrator */
- window.chapterKokoro?.stopTest?.();
+ stopPreview();
  $('voice').value=testSelect.value;$('voice').dispatchEvent(new Event('change'));
  $('test-status').textContent=voiceName(testSelect.value)+' is now your narrator.'+(resume?' Carrying on with the book…':'');
  if(resume)setTimeout(()=>{if(!S.playing)$('play').click()},400);
@@ -1008,7 +1023,7 @@ window.chapterApp={openFile,openFromLibrary,addFiles,stop,say,showTab,boot,rende
  dock.addEventListener('keydown',e=>{if(e.key==='Escape'){dock.classList.remove('dock-pinned');dock.classList.add('dock-closed');sync();handle.focus()}});
  sync();
 })();
-</script><script src="document-import.js?v=233"></script><script defer src="pdf-view.js?v=1.12.225"></script><script defer src="bookmarks.js?v=1.12.225"></script><script defer src="kokoro.js?v=288"></script><script defer src="library.js?v=1.12.218"></script><script defer src="offline.js?v=1.12.66"></script><script defer src="read-along.js?v=1.12.280"></script><script>document.getElementById('eddi-beta-dismiss')?.addEventListener('click',()=>{document.getElementById('eddi-mobile-notice').hidden=true});</script><script>
+</script><script src="document-import.js?v=233"></script><script defer src="pdf-view.js?v=1.12.225"></script><script defer src="bookmarks.js?v=1.12.225"></script><script defer src="kokoro.js?v=289"></script><script defer src="library.js?v=1.12.218"></script><script defer src="offline.js?v=1.12.66"></script><script defer src="read-along.js?v=1.12.280"></script><script>document.getElementById('eddi-beta-dismiss')?.addEventListener('click',()=>{document.getElementById('eddi-mobile-notice').hidden=true});</script><script>
 /* Check for updated offline shell without clearing saved books or narration data. */
 (()=>{const mobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 if(!('serviceWorker' in navigator))return;

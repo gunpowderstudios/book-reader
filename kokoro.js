@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.288', KOKORO_WORKER_VERSION='1.12.284';
+const VERSION='1.12.289', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.288';
 const isPiper=voice=>typeof voice==='string'&&voice.startsWith('piper:');
 const VOICES=window.CV_VOICES||{bf_emma:'British Female — Emma'};
 const DEFAULT_VOICE='bf_emma';
@@ -281,7 +281,7 @@ async function retryAsBlob(){
 function startWorker(voice){
  if(worker)return worker;
  let w;
- try{w=isPiper(voice)?new Worker('piper-reader-worker.js?v='+VERSION):new Worker(blobUrl||('kokoro-worker.js?v='+KOKORO_WORKER_VERSION),{type:'module'})}
+ try{w=isPiper(voice)?new Worker('piper-reader-worker.js?v='+PIPER_WORKER_VERSION):new Worker(blobUrl||('kokoro-worker.js?v='+KOKORO_WORKER_VERSION),{type:'module'})}
  catch(e){throw new Error(isPiper(voice)?'This browser cannot start Piper. Switch back to Kokoro in Voice.':'This browser cannot run George in the background (module Web Workers are not supported).')}
  worker=w;workerVoice=isPiper(voice)?voice:'kokoro';wireWorker(w);
  return w;
@@ -978,7 +978,7 @@ function showRecommendation(){
  const ms=$('mode-select');
  if(ms){
   ms.replaceChildren(new Option('Automatic (recommended)','auto'),new Option('Fast — multi-core CPU','fast'),new Option('Low Memory — lighter CPU mode','standard'));
-  ms.value=preference;ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=preference;showRecommendation()};
+  ms.value=preference;ms.disabled=isPiper(currentVoice());ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=preference;showRecommendation()};
  }
  const ss=$('style-select'); /* (no menu any more: one voice, natural style) */
  if(ss){ss.value=styleNow();ss.onchange=()=>{store.set('cv-voice-style',ss.value);const t=$('test-style');if(t)t.value=ss.value;window.bookOffline&&window.bookOffline.refresh&&window.bookOffline.refresh()}}
