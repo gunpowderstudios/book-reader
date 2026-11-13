@@ -3,12 +3,12 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.289', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.288';
+const VERSION='1.12.290', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.288';
 const isPiper=voice=>typeof voice==='string'&&voice.startsWith('piper:');
 const VOICES=window.CV_VOICES||{bf_emma:'British Female — Emma'};
-const DEFAULT_VOICE='bf_emma';
+const DEFAULT_VOICE=Object.hasOwn(VOICES,window.CV_DEFAULT_VOICE)?window.CV_DEFAULT_VOICE:'bf_emma';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
-const narratorName=()=>(VOICES[currentVoice()]||'— Emma').split('— ')[1];
+const narratorName=()=>(VOICES[currentVoice()]||VOICES[DEFAULT_VOICE]).split('— ')[1];
 const named=s=>String(s).replaceAll('George',narratorName());
 const MODES={
  standard:{label:'Low Memory',mb:92},
