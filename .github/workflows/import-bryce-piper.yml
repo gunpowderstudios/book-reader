@@ -1,0 +1,62 @@
+name: Import Bryce Beattie’s Piper voices
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/import-bryce-piper.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch the original releases and publish a separate asset branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          origin_url="$(git remote get-url origin)"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch --orphan piper-voice-assets
+          mkdir models
+          python3 - <<'PY'
+          import concurrent.futures, hashlib, json, pathlib, subprocess
+          root=pathlib.Path('models')
+          base='https://sfo3.digitaloceanspaces.com/bkmdls/'
+          sizes={'bryce':63531379,'clean100':77569096,'cori-high':114219352,'cori-med':63531379,'jenny':63531379,'john':63531379,'kristin':63531379,'lj-med':63531379,'ljspeech':114199011,'mv2':77100103,'norman':63531379}
+          def get(url,path):
+              subprocess.run(['curl','-fsSL','--retry','3','--max-time','180',url,'-o',str(path)],check=True)
+          def fetch(item):
+              name,size=item
+              model=root/(name+'.onnx')
+              config=root/(name+'.onnx.json')
+              get(base+model.name,model)
+              get(base+config.name,config)
+              data=model.read_bytes()
+              assert len(data)==size and data[:1]==b'\x08',name
+              cfg=json.loads(config.read_text())
+              assert all(k in cfg for k in ('phoneme_id_map','espeak','audio','inference')),name
+              model.unlink()
+              files=[]
+              for i in range(0,len(data),32*1024*1024):
+                  part=model.with_name(model.name+'.'+str(len(files)))
+                  part.write_bytes(data[i:i+32*1024*1024])
+                  files.append(part.name)
+              return name,{'bytes':size,'parts':files,'sha256':hashlib.sha256(data).hexdigest(),'configSha256':hashlib.sha256(config.read_bytes()).hexdigest()}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+              manifest=dict(pool.map(fetch,sizes.items()))
+          (root/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+          PY
+          cat > README.md <<'EOF'
+          # Original Piper models by Bryce Beattie
+          Original model cards, samples and terms: https://brycebeattie.com/files/tts/
+          Models are unchanged and split into numbered parts for hosting. Concatenate parts in manifest order.
+          Jenny (Dioco) naming/credit: https://github.com/dioco-group/jenny-tts-dataset
+          Clean 100: LibriTTS-R by Yuka Koizumi and contributors, https://www.openslr.org/141/ (CC BY 4.0, https://creativecommons.org/licenses/by/4.0/).
+          Other releases here are listed as public domain on the author's page.
+          EOF
+          git add README.md models
+          git commit -m 'Publish browser-loadable copies of Bryce Beattie’s original Piper models'
+          git push "$origin_url" HEAD:refs/heads/piper-voice-assets
