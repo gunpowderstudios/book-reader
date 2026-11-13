@@ -1,9 +1,10 @@
-/* Book Reader — Kokoro narration controller (main thread).
-   Speech is generated inside kokoro-worker.js, a Web Worker, so this page never runs the model itself.
+/* Book Reader — narration controller (main thread).
+   Kokoro and optional Piper generate speech in separate Web Workers.
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.284';
+const VERSION='1.12.288', KOKORO_WORKER_VERSION='1.12.284';
+const isPiper=voice=>typeof voice==='string'&&voice.startsWith('piper:');
 const VOICES=window.CV_VOICES||{bf_emma:'British Female — Emma'};
 const DEFAULT_VOICE='bf_emma';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -142,10 +143,10 @@ function renderEngine(){
    msg='E.D.D.i is downloading: '+fmtMB(eng.loaded)+' of '+(eng.total?fmtMB(eng.total):'?')+' ('+Math.round(pct)+'%)';break;
   case 'starting':pct=0;msg='Starting the voice engine…';break;
   case 'voice':pct=0;msg='Preparing '+narratorName()+'’s voice…';break;
-  case 'ready':pct=100;msg='E.D.D.i is ready — '+modeName(eng.used)+', '+describeEngine()+', started in '+eng.sec.toFixed(1)+' s';break;
+  case 'ready':pct=100;msg=eng.used==='piper'?'E.D.D.i is ready — Piper, started in '+eng.sec.toFixed(1)+' s':'E.D.D.i is ready — '+modeName(eng.used)+', '+describeEngine()+', started in '+eng.sec.toFixed(1)+' s';break;
   case 'error':pct=100;msg=eng.error||'E.D.D.i could not load the voice engine.';break;
   default:
-   msg=installed()?'E.D.D.i is installed on this device and starts when you press Play.'
+   msg=isPiper(currentVoice())?'Piper starts when you press Play. The first use downloads the selected voice.':installed()?'E.D.D.i is installed on this device and starts when you press Play.'
     :'E.D.D.i is not loaded yet. The voice engine starts when you press Play (a one-off download of about '+MODES[mode].mb+' MB).';
  }
  if(awaitingNarration&&state==='ready'){msg='Preparing the first passage for playback…';state='starting';pct=0}
@@ -173,7 +174,7 @@ function engineReset(note){Object.assign(eng,{phase:'idle',loaded:0,total:0,net:
 const FALLBACKS={fast:'standard'};
 let runMode=null,failedModes=[];
 const nextLighter=from=>from==='gpu'?(isolated()?'fast':'standard'):FALLBACKS[from];
-let worker=null,readyPromise=null,initWaiter=null,engineReady=false,watchdog=null,nextId=1,sink=null;
+let worker=null,workerVoice='',readyPromise=null,initWaiter=null,engineReady=false,watchdog=null,nextId=1,sink=null;
 const playbackDiagnostics={startedAt:0,firstSpeechMs:null,audioErrors:0,clipsPlayed:0,endedAt:0,hand:0,handTotal:0,handMax:0,handLong:0}; /* hand* = silent gap between one clip ending and the next starting (not counting the pause built into a clip) */
 const calls=new Map();
 
@@ -185,7 +186,7 @@ function armWatchdog(){
 function failWorker(err,silent){
  if(!silent)window.dispatchEvent(new CustomEvent('eddi-ai-diagnostic',{detail:{mode:runMode||mode,stage:'Worker or engine',message:String(err?.message||err)}}));
  clearTimeout(watchdog);watchdog=null;
- const w=worker;worker=null;readyPromise=null;engineReady=false;
+ const w=worker;worker=null;workerVoice='';readyPromise=null;engineReady=false;
  try{if(w)w.terminate()}catch(_){}
  const iw=initWaiter;initWaiter=null;if(iw)iw.reject(err);
  const pending=[...calls.values()];calls.clear();pending.forEach(c=>c.reject(err));
@@ -212,6 +213,10 @@ function onWorkerMessage(w,m){
   case 'voice-ready':if(m.voice===currentVoice()){eng.phase='ready';renderEngine()}break;
   case 'ready':{
    stamp('ready');keepVoiceSaved();
+   if(isPiper(workerVoice)){
+    engineReady=true;Object.assign(eng,{phase:'ready',used:'piper',sec:(m.ms||0)/1000,threads:1,note:''});
+    renderEngine();const iw=initWaiter;initWaiter=null;if(iw)iw.resolve(m.ms);break;
+   }
    engineReady=true;eng.phase='ready';eng.used=m.mode||mode;eng.sec=(m.ms||0)/1000;eng.isolated=!!m.isolated;eng.cores=m.cores||0;eng.threads=m.threads||1;
    if(eng.used===mode)eng.note='';
    store.set('cv-ready-'+(m.mode||mode),'1');
@@ -220,6 +225,7 @@ function onWorkerMessage(w,m){
    if(m.mode&&m.mode!==mode){store.set('cv-ready-'+mode,'');mode=m.mode;const sel=$('mode-select');if(sel)sel.value=mode} /* remember the mode that works on this device */
    renderEngine();
    const iw=initWaiter;initWaiter=null;if(iw)iw.resolve(m.ms);break}
+  case 'piper-init-error':failWorker(new Error('Piper could not load: '+m.message+' You can switch back to Kokoro in Voice.'));return;
   case 'init-error':{
    window.dispatchEvent(new CustomEvent('eddi-ai-diagnostic',{detail:{mode:m.mode||runMode||mode,stage:'Model initialisation',message:String(m.message||'Unknown error')}}));
    const from=m.mode||runMode||mode,next=nextLighter(from);
@@ -252,6 +258,7 @@ function wireWorker(w){
  w.onmessage=ev=>onWorkerMessage(w,ev.data||{});
  w.onerror=ev=>{
   if(w!==worker)return;if(ev&&ev.preventDefault)ev.preventDefault();
+  if(isPiper(workerVoice)){failWorker(new Error('Piper could not start on this browser. Switch back to Kokoro in Voice.'));return}
   if(!(ev&&ev.message)){ /* the script itself did not load */
    if(!blobTried&&lastInit){blobTried=true;retryAsBlob();return}
    if(isolated()&&leaveIsolation()){eng.note='multi-core is not available in this browser, so the page is restarting on Low Memory';renderEngine();return}
@@ -262,7 +269,7 @@ function wireWorker(w){
 }
 async function retryAsBlob(){
  try{
-  if(!blobUrl){const src=await (await fetch('kokoro-worker.js?v='+VERSION)).text();blobUrl=URL.createObjectURL(new Blob([src],{type:'text/javascript'}))}
+  if(!blobUrl){const src=await (await fetch('kokoro-worker.js?v='+KOKORO_WORKER_VERSION)).text();blobUrl=URL.createObjectURL(new Blob([src],{type:'text/javascript'}))}
   const old=worker,w2=new Worker(blobUrl,{type:'module'});
   worker=w2;try{if(old)old.terminate()}catch(_){}
   wireWorker(w2);w2.postMessage(lastInit);armWatchdog();
@@ -271,19 +278,26 @@ async function retryAsBlob(){
   failWorker(new Error('George could not start (the worker script failed to load).'));
  }
 }
-function startWorker(){
+function startWorker(voice){
  if(worker)return worker;
  let w;
- try{w=new Worker(blobUrl||('kokoro-worker.js?v='+VERSION),{type:'module'})}
- catch(e){throw new Error('This browser cannot run George in the background (module Web Workers are not supported).')}
- worker=w;wireWorker(w);
+ try{w=isPiper(voice)?new Worker('piper-reader-worker.js?v='+VERSION):new Worker(blobUrl||('kokoro-worker.js?v='+KOKORO_WORKER_VERSION),{type:'module'})}
+ catch(e){throw new Error(isPiper(voice)?'This browser cannot start Piper. Switch back to Kokoro in Voice.':'This browser cannot run George in the background (module Web Workers are not supported).')}
+ worker=w;workerVoice=isPiper(voice)?voice:'kokoro';wireWorker(w);
  return w;
 }
-function ready(){
+function ready(voice=currentVoice()){
+ const piper=isPiper(voice),identity=piper?voice:'kokoro';
+ if(worker&&workerVoice!==identity)failWorker(CANCELLED,true);
  if(readyPromise)return readyPromise;
  if(!playbackDiagnostics.startedAt)playbackDiagnostics.startedAt=performance.now();
- let w;try{w=startWorker()}catch(e){return Promise.reject(e)}
+ let w;try{w=startWorker(voice)}catch(e){return Promise.reject(e)}
  eng.phase='library';eng.error='';eng.loaded=0;eng.total=0;tim={};stamp('t0');tim.library=tim.t0;
+ if(piper){
+  eng.note='';renderEngine();
+  readyPromise=new Promise((resolve,reject)=>{initWaiter={resolve,reject};w.postMessage({type:'init',voice})});
+  readyPromise.catch(()=>{});armWatchdog();return readyPromise;
+ }
  if(mode==='fast'&&!isolated()){
   const st=(()=>{try{return sessionStorage.getItem('cv-coi')}catch(_){return null}})();
   eng.note=st==='failed'||st==='unsupported'?'multi-core is not available in this browser, so Fast mode runs on one core':'multi-core is not active on this page';
@@ -291,7 +305,7 @@ function ready(){
  renderEngine();
 if((runMode||mode)!=='standard')store.set('cv-trying',runMode||mode);
 else if(coresWanted())store.set('cv-cores-trying','1');
- readyPromise=new Promise((resolve,reject)=>{initWaiter={resolve,reject};lastInit={type:'init',voice:currentVoice(),mode:runMode||mode,extraCores:coresWanted()};w.postMessage(lastInit)});
+ readyPromise=new Promise((resolve,reject)=>{initWaiter={resolve,reject};lastInit={type:'init',voice,mode:runMode||mode,extraCores:coresWanted()};w.postMessage(lastInit)});
  readyPromise.catch(()=>{});
  armWatchdog();
  return readyPromise;
@@ -386,7 +400,7 @@ async function pump(){
      const blob=job.pad?await padWav(saved,job.pad):saved,info=await wavInfo(blob),audioSec=info.n/info.hz;
      cachePut(job.key,{blob,audioSec,speed:1,pitch:job.pitch});job.resolve({blob,audioSec,cached:true,saved:true,speed:1,pitch:job.pitch,key:job.key});renderBuffer();continue;
     }
-    await ready();
+    await ready(job.voice);
     if(job.stale()){job.reject(CANCELLED);continue}
     if(job.onGenerate)job.onGenerate();
     if(awaitingNarration)status('George is generating the first speech passage…');
@@ -395,13 +409,14 @@ async function pump(){
     let pcm=trimSilence(r.samples);const speechSec=pcm.length/r.rate;
     if(job.pad){const padded=new Float32Array(pcm.length+Math.round(job.pad*r.rate));padded.set(pcm);pcm=padded}
     const blob=toWav(pcm,r.rate),audioSec=pcm.length/r.rate;
-    if(!r.cold)noteGen(speechSec,r.ms/1000); /* a voice's first passage includes fetching the voice, so it says nothing about speed */
+    if(!r.cold&&!job.stale())noteGen(speechSec,r.ms/1000); /* a voice's first passage includes fetching the voice, so it says nothing about speed */
     charStat.sec+=speechSec;charStat.chars+=job.text.length;
     cachePut(job.key,{blob,audioSec,speed:job.speed/job.mul,pitch:job.pitch}); /* speed is kept relative to the intended pace so playback can follow the speed slider */ /* cached even if the user pressed Stop meanwhile */
     job.resolve({blob,audioSec,genSec:r.ms/1000,cached:false,speed:job.speed/job.mul,pitch:job.pitch,key:job.key});
     renderBuffer();
    }catch(e){
     /* One automatic retry if the voice engine hiccups mid-book (it restarts itself on the next request). */
+    if(isPiper(job.voice)&&job.called&&!job.stale()&&workerVoice===job.voice)failWorker(e,true);
     if(e!==CANCELLED&&job.called&&job.tries<1&&!job.stale()){job.tries++;job.called=false;queue.unshift(job);status('George hit a snag — trying that passage again…');continue}
     if(e!==CANCELLED&&!job.stale())window.dispatchEvent(new CustomEvent('eddi-ai-diagnostic',{detail:{mode:runMode||mode,stage:job.called?'Speech generation':'Model preparation',message:String(e?.message||e)}}));
     job.reject(e);
@@ -569,7 +584,7 @@ async function testVoice(raw){
  unlockAudio();
  try{
   if(!engineReady){
-   setTest('loading','Loading George… (first visit downloads the voice model once; your browser keeps it afterwards)');
+   setTest('loading','Loading '+(VOICES[voice]||'— Emma').split('— ')[1]+'… (first visit downloads the voice model once)');
    sink=t=>{if(!stale())setTest('loading',t)};
   }else setTest('generating','Generating speech… the page stays responsive, and you can press Stop.');
   const jobs=parts.map(g=>synth(g.say,g.voice,{stale,pad:g.pad,speed:g.speed,mul:g.mul,pitch:g.pitch,onGenerate:()=>{if(!stale()){sink=null;setTest('generating','Generating speech… the page stays responsive, and you can press Stop.')}}}));
@@ -770,6 +785,7 @@ async function playback(blob,s,baked,pitch,questionRise=false){
    Only when George is already installed on this device (never starts a big download by surprise). */
 function prefetch(S,count=3){
  if(session&&!session.cancelled)return;
+ if(isPiper(currentVoice()))return;
  if(mobileDevice())return; /* phones and tablets prepare nothing before Play */
  if(!(engineReady||installed()))return;
  if(!S||!S.chapters||!S.chapters.length)return;
@@ -939,6 +955,7 @@ function toggle({S,update,render}){
 
 function showRecommendation(){
  const el=$('recommended-speed');if(!el)return;
+ if(isPiper(currentVoice())){el.textContent='Piper uses its own processing mode. This setting is for Kokoro.';const d=$('processing-diagnosis'),r=$('retry-fast-detection');if(d)d.textContent='';if(r)r.style.display='none';return}
  const name=(MODES[mode]||MODES.standard).label;
  el.textContent=preference==='auto'?'✓ Automatic · '+name+' selected for this device.':'✓ '+name+' selected. You can switch back to Automatic at any time.';
  const detail=$('processing-diagnosis'),retry=$('retry-fast-detection'),d=window.cvAutoDiagnosis?.();
@@ -948,7 +965,7 @@ function showRecommendation(){
 /* ───────── Panel wiring ───────── */
 (function wirePanels(){
  const sel=$('test-voice');
- if(sel){sel.replaceChildren(...Object.entries(VOICES).map(([id,label])=>new Option(label,id)));sel.value=currentVoice();sel.hidden=Object.keys(VOICES).length<2}
+ if(sel){sel.value=currentVoice();sel.hidden=Object.keys(VOICES).length<2}
  const ta=$('test-text'),count=$('test-count');
  if(ta&&count){const update=()=>{count.textContent=ta.value.length+' / '+MAX_TEST_CHARS};ta.addEventListener('input',update);update()}
  const retryFast=$('retry-fast-detection');
@@ -977,14 +994,14 @@ window.addEventListener('pagehide',()=>store.set('cv-trying',''));
 setTimeout(()=>{try{
  let coi='';try{coi=sessionStorage.getItem('cv-coi')||''}catch(_){}
  const reloadComing=mode==='fast'&&!isolated()&&coi!=='failed'&&coi!=='unsupported'&&!!window.cvIsolation;
- if(!mobileDevice()&&installed()&&!reloadComing&&!worker&&!readyPromise&&!(navigator.connection&&navigator.connection.saveData))ready().catch(()=>{});
+ if(!isPiper(currentVoice())&&!mobileDevice()&&installed()&&!reloadComing&&!worker&&!readyPromise&&!(navigator.connection&&navigator.connection.saveData))ready().catch(()=>{});
 }catch(_){}},1500);
 /* v1.12.251: first visit on a computer: the voice is not installed yet, so start fetching it the moment a book is opened (not only when Play is pressed). It is ready, or nearly, by the time Play is pressed. A visitor who never opens a book downloads nothing. */
 try{const t=document.getElementById('title');if(t){const go=()=>{try{
  if(/^No book open/i.test((t.textContent||'').trim()))return;
  let coi='';try{coi=sessionStorage.getItem('cv-coi')||''}catch(_){}
  const reloadComing=mode==='fast'&&!isolated()&&coi!=='failed'&&coi!=='unsupported'&&!!window.cvIsolation;
- if(!mobileDevice()&&!reloadComing&&!worker&&!readyPromise&&!(navigator.connection&&navigator.connection.saveData)){mo.disconnect();ready().catch(()=>{})}
+ if(!isPiper(currentVoice())&&!mobileDevice()&&!reloadComing&&!worker&&!readyPromise&&!(navigator.connection&&navigator.connection.saveData)){mo.disconnect();ready().catch(()=>{})}
 }catch(_){}};const mo=new MutationObserver(go);mo.observe(t,{childList:true,characterData:true,subtree:true});go()}}catch(_){}
 /* Compact skip controls: seek precisely within the current WAV clip.
    When a 30-second jump crosses a clip boundary, choose the closest
@@ -1015,7 +1032,8 @@ function skipSeconds(seconds,S,update){
 }
 
 window.chapterKokoro={toggle,stop,setStyle,skipSeconds,testVoice,stopTest,testActive,prefetch,setMode,getMode:()=>mode,recommendMode:suggestedMode,isMobile:mobileDevice,generateClip:(text,id)=>synth(text,VOICES[id]?id:currentVoice(),{speed:1}),chapterClips:chapterClips,style:styleNow,currentVoice,voices:VOICES,splitText:(text)=>chunks(text),version:VERSION,
- refreshNarrator:()=>{renderEngine();renderBuffer();reportStyle()},stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode}),measured:()=>Number(store.get('cv-measured-'+mode,'0'))};
+ refreshNarrator:()=>{const v=currentVoice(),target=isPiper(v)?v:'kokoro';if((worker&&workerVoice!==target)||(eng.used==='piper')!==isPiper(v)){if(worker&&workerVoice!==target)failWorker(CANCELLED,true);recent.length=0;lastSpeed=0;if(!worker)engineReset('')}
+  const ms=$('mode-select');if(ms)ms.disabled=isPiper(v);showRecommendation();renderEngine();renderBuffer();reportStyle()},stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode}),measured:()=>Number(store.get('cv-measured-'+mode,'0'))};
 
-window.eddiPlaybackDiagnostics=()=>({version:VERSION,threads:eng.threads||1,modePreference:preference,actualMode:eng.used||mode,enginePhase:eng.phase,modelStartSeconds:eng.sec||null,firstSpeechSeconds:playbackDiagnostics.firstSpeechMs===null?null:playbackDiagnostics.firstSpeechMs/1000,generationSpeed:Math.round(lastSpeed*10)/10,bufferReadySeconds:Math.round(bufInfo.ready||0),bufferTargetSeconds:Math.round(bufInfo.target||0),bufferWaits:bufInfo.waits||0,bufferWaitSeconds:Math.round(bufInfo.waitSec||0),audioClipsStarted:playbackDiagnostics.clipsPlayed,handoffCount:playbackDiagnostics.hand,handoffAvgMs:playbackDiagnostics.hand?Math.round(playbackDiagnostics.handTotal/playbackDiagnostics.hand):null,handoffMaxMs:Math.round(playbackDiagnostics.handMax),handoffOver400ms:playbackDiagnostics.handLong,audioErrors:playbackDiagnostics.audioErrors});
+window.eddiPlaybackDiagnostics=()=>({version:VERSION,threads:eng.threads||1,modePreference:preference,actualMode:eng.used||(isPiper(currentVoice())?'piper':mode),enginePhase:eng.phase,modelStartSeconds:eng.sec||null,firstSpeechSeconds:playbackDiagnostics.firstSpeechMs===null?null:playbackDiagnostics.firstSpeechMs/1000,generationSpeed:Math.round(lastSpeed*10)/10,bufferReadySeconds:Math.round(bufInfo.ready||0),bufferTargetSeconds:Math.round(bufInfo.target||0),bufferWaits:bufInfo.waits||0,bufferWaitSeconds:Math.round(bufInfo.waitSec||0),audioClipsStarted:playbackDiagnostics.clipsPlayed,handoffCount:playbackDiagnostics.hand,handoffAvgMs:playbackDiagnostics.hand?Math.round(playbackDiagnostics.handTotal/playbackDiagnostics.hand):null,handoffMaxMs:Math.round(playbackDiagnostics.handMax),handoffOver400ms:playbackDiagnostics.handLong,audioErrors:playbackDiagnostics.audioErrors});
 })();
