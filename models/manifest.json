@@ -1,0 +1,107 @@
+{
+  "bryce": {
+    "bytes": 63531379,
+    "parts": [
+      "bryce.onnx.0",
+      "bryce.onnx.1"
+    ],
+    "sha256": "dc9caa6c313199ffb5ac698b6e542fa6cba388aeaf2731e25262e33b9810aef1",
+    "configSha256": "7609b52cb210d56a0eaaf6aaeb3e5b2d230fd6f5a48659bdf1c073a7de7ee78a"
+  },
+  "clean100": {
+    "bytes": 77569096,
+    "parts": [
+      "clean100.onnx.0",
+      "clean100.onnx.1",
+      "clean100.onnx.2"
+    ],
+    "sha256": "a48b44084f5465a9d1c5e74c46c6ce6e1907af85e34f15292b9f44b13263f6e4",
+    "configSha256": "575a90e0f03154d30c4e8d9b1a86dcb590f7df2fc65e24466dde3c91491984b8"
+  },
+  "cori-high": {
+    "bytes": 114219352,
+    "parts": [
+      "cori-high.onnx.0",
+      "cori-high.onnx.1",
+      "cori-high.onnx.2",
+      "cori-high.onnx.3"
+    ],
+    "sha256": "470b4dd634c98f8a4850d7626ffc3dfc90774628eeef6605a6dd8f88f30a5903",
+    "configSha256": "abba7e8eefc7a4c6837284a5b0a4f484cc415fba253d1b546c8a3c461f208d96"
+  },
+  "cori-med": {
+    "bytes": 63531379,
+    "parts": [
+      "cori-med.onnx.0",
+      "cori-med.onnx.1"
+    ],
+    "sha256": "1899f98e5fb8310154f3c2973f4b8a929ba7245e722b3d3a85680b833d95f10d",
+    "configSha256": "4e4e862c06be95e268cb2edeb18eed39b4fc51c515d808ed3c51404f20e96fea"
+  },
+  "jenny": {
+    "bytes": 63531379,
+    "parts": [
+      "jenny.onnx.0",
+      "jenny.onnx.1"
+    ],
+    "sha256": "d33f72ffbabcbbcb673ff6fac06949e8b1a0e56fca0ffd97ae557ac614bab8f1",
+    "configSha256": "39bae6c39dac08347a1232ecfafae9e0d18028c180b23a0a4da18105948a3330"
+  },
+  "john": {
+    "bytes": 63531379,
+    "parts": [
+      "john.onnx.0",
+      "john.onnx.1"
+    ],
+    "sha256": "789c6c875726e627ddee93d51d8727859abe9c091c3d141591f4b83c2072e988",
+    "configSha256": "1d0433ba8a5182d0295dfcb6c036e9fd27b722f4d379a61fb84472d29b08529f"
+  },
+  "kristin": {
+    "bytes": 63531379,
+    "parts": [
+      "kristin.onnx.0",
+      "kristin.onnx.1"
+    ],
+    "sha256": "5849957f929cbf720c258f8458692d6103fff2f0e3d3b19c8259474bb06a18d4",
+    "configSha256": "d34362d5b723e2031d6b0ebb5d7c1254cd59d11691e2979147fd518cba5663b2"
+  },
+  "lj-med": {
+    "bytes": 63531379,
+    "parts": [
+      "lj-med.onnx.0",
+      "lj-med.onnx.1"
+    ],
+    "sha256": "6f52a751e2349abe7a76735eb09dc1875298c77ea2342ffd2fef79ff81b87f22",
+    "configSha256": "01699b1f64aec09d359efd73aed94453d83a3fe6031de1f570bbb1df46d995d2"
+  },
+  "ljspeech": {
+    "bytes": 114199011,
+    "parts": [
+      "ljspeech.onnx.0",
+      "ljspeech.onnx.1",
+      "ljspeech.onnx.2",
+      "ljspeech.onnx.3"
+    ],
+    "sha256": "5d4f08ba6a2a48c44592eed3ce56bf85e9de3dd4e20df90541ae68a8310c029a",
+    "configSha256": "c277566ff3eb715a97fb99b56d9b7de53d9b3b0dab6420f87a32cc214253811f"
+  },
+  "mv2": {
+    "bytes": 77100103,
+    "parts": [
+      "mv2.onnx.0",
+      "mv2.onnx.1",
+      "mv2.onnx.2"
+    ],
+    "sha256": "3cc7b8f55b82146c09265e909beaa539254a882b9a6ac915792cbfc7d41ba235",
+    "configSha256": "1dae6569843412ace557acdc2f2136405219ab75219efb3ddf882af2055a4c1c"
+  },
+  "norman": {
+    "bytes": 63531379,
+    "parts": [
+      "norman.onnx.0",
+      "norman.onnx.1"
+    ],
+    "sha256": "b9739443232a80a59c7d18810dd856899bf16a7964725f5ab81ea49b1351cb71",
+    "configSha256": "cbb2cac181ae3a1fd09f7a8835b57c545f79df06a3db6212bd643202085afe5c"
+  }
+}
