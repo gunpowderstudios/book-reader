@@ -1,5 +1,5 @@
 /* E.D.D.i. Piper Voice Lab — isolated experimental worker, never used by Kokoro. */
-const PACKAGE='https://esm.sh/@mintplex-labs/piper-tts-web@1.0.5?bundle';
+const PACKAGE='https://esm.sh/@mintplex-labs/piper-tts-web@1.0.5?bundle&deps=onnxruntime-web@1.18.0';
 self.onmessage=async e=>{
  const m=e.data||{};if(m.type!=='generate')return;
  const send=(type,other={})=>self.postMessage({type,...other});
