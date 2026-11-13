@@ -1,4 +1,4 @@
-/* E.D.D.i. Piper reader adapter. Models are fetched by exact reviewed upstream revision. */
+/* E.D.D.i. Piper reader adapter. Models are fetched from pinned original or mirrored releases. */
 'use strict';
 const REV='2f358b6a560e3a913ebf509b2f3344f20b367f94';
 const BASE='https://huggingface.co/rhasspy/piper-voices/resolve/'+REV+'/en/';
@@ -10,17 +10,20 @@ const VOICES={
  'en_GB-jenny_dioco-medium':'en_GB/jenny_dioco/medium',
  'en_US-joe-medium':'en_US/joe/medium'
 };
+const BRYCE_BASE='https://raw.githubusercontent.com/gunpowderstudios/book-reader/ccafb239a4fec6b9c33ccbc8b2c39fbc66676add/models/';
+const BRYCE_MODELS=["lj-med","ljspeech","jenny","cori-med","cori-high","kristin","john","bryce","norman","clean100","mv2"];
+let speaker=0;
 let config,session,phonemizerData,phonemizerBinary,active='',first=true;
 const send=(type,detail={})=>self.postMessage({type,...detail});
-async function modelFile(name){
- const url=BASE+name;
+async function modelFile(name,base=BASE,report=true){
+ const url=base+name;
  // Do not reuse the lab's cache, which can contain the older model with the same name.
  const cache=await self.caches?.open('eddi-piper-'+REV).catch(()=>null);
  const saved=await cache?.match(url).catch(()=>null);
  if(saved)return saved;
  const response=await fetch(url);
  if(!response.ok)throw Error('Piper download returned HTTP '+response.status);
- if(!name.endsWith('.onnx')){
+ if(name.endsWith('.json')){
   if(cache)await cache.put(url,response.clone()).catch(()=>{});
   return response;
  }
@@ -28,7 +31,7 @@ async function modelFile(name){
  let loaded=0,last=0;
  const tap=new TransformStream({transform(chunk,ctrl){
   loaded+=chunk.byteLength;
-  if(loaded-last>256*1024||loaded===total){send('progress',{loaded,total,net:loaded});last=loaded}
+  if(report&&(loaded-last>256*1024||loaded===total)){send('progress',{loaded,total,net:loaded});last=loaded}
   ctrl.enqueue(chunk);
  }});
  const stream=new Response(response.body.pipeThrough(tap),{headers:response.headers});
@@ -37,10 +40,33 @@ async function modelFile(name){
  await save;
  return new Response(buffer);
 }
+let manifest;
+async function bryceWeights(key){
+ manifest=manifest||await modelFile('manifest.json',BRYCE_BASE).then(r=>r.json());
+ const item=manifest[key];
+ if(!item)throw Error('Piper model manifest entry is missing.');
+ const output=new Uint8Array(item.bytes);
+ let offset=0;
+ for(const part of item.parts){
+  const response=await modelFile(part,BRYCE_BASE,false);
+  const reader=response.body.getReader();
+  for(;;){
+   const {done,value}=await reader.read();
+   if(done)break;
+   output.set(value,offset);offset+=value.length;
+   send('progress',{loaded:offset,total:output.length});
+  }
+ }
+ if(offset!==output.length)throw Error('Piper model download was incomplete.');
+ return output.buffer;
+}
 async function init(voice){
  const id=voice.replace(/^piper:/,'');
- if(!Object.hasOwn(VOICES,id))throw Error('Unknown Piper voice.');
- const name=VOICES[id]+'/'+id+'.onnx';
+ const match=/^bryce-([a-z0-9-]+?)(?:-speaker-(\d+))?$/.exec(id);
+ const bryce=match&&BRYCE_MODELS.includes(match[1]);
+ if(!bryce&&!Object.hasOwn(VOICES,id))throw Error('Unknown Piper voice.');
+ const name=bryce?match[1]+'.onnx':VOICES[id]+'/'+id+'.onnx';
+ speaker=bryce?Number(match[2]||0):0;
  send('stage',{stage:'library'});
  if(!self.ort)importScripts(ORT+'ort.wasm.min.js');
  if(!self.createPiperPhonemize)importScripts(WASM+'piper_phonemize.js');
@@ -48,11 +74,14 @@ async function init(voice){
  ort.env.wasm.numThreads=1;
  send('stage',{stage:'model'});
  const asset=async file=>{const r=await fetch(WASM+file);if(!r.ok)throw Error('Piper speech support download returned HTTP '+r.status);return r.arrayBuffer()};
- const [json,model,data,binary]=await Promise.all([modelFile(name+'.json'),modelFile(name),asset('piper_phonemize.data'),asset('piper_phonemize.wasm')]);
+ const [json,model,data,binary]=await Promise.all([
+  modelFile(name+'.json',bryce?BRYCE_BASE:BASE),bryce?bryceWeights(match[1]):modelFile(name).then(r=>r.arrayBuffer()),
+  asset('piper_phonemize.data'),asset('piper_phonemize.wasm')]);
  phonemizerData=data;phonemizerBinary=binary;
  config=await json.json();
  send('stage',{stage:'warmup'});
- session=await ort.InferenceSession.create(await model.arrayBuffer(),{executionProviders:['wasm']});
+ if(!Number.isSafeInteger(speaker)||speaker<0||speaker>=(config.num_speakers||1))throw Error('Unknown voice in this Piper collection.');
+ session=await ort.InferenceSession.create(model,{executionProviders:['wasm']});
  active=voice;first=true;
 }
 function phonemeIds(phones,model){
@@ -89,7 +118,7 @@ async function generate(m){
   input_lengths:int([ids.length]),
   scales:new ort.Tensor('float32',Float32Array.of(opts.noise_scale,opts.length_scale/speed,opts.noise_w),[3])
  };
- if(session.inputNames.includes('sid'))inputs.sid=int([0]);
+ if(session.inputNames.includes('sid'))inputs.sid=int([speaker]);
  const output=await session.run(inputs),samples=output.output.data,rate=config.audio.sample_rate;
  if(!(samples instanceof Float32Array)||!samples.length)throw Error('Piper returned no audio.');
  self.postMessage({type:'audio',id:m.id,samples,rate,ms:performance.now()-start,cold:first},[samples.buffer]);

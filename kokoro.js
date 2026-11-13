@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.290', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.288';
+const VERSION='1.12.295', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.295';
 const isPiper=voice=>typeof voice==='string'&&voice.startsWith('piper:');
 const VOICES=window.CV_VOICES||{bf_emma:'British Female — Emma'};
 const DEFAULT_VOICE=Object.hasOwn(VOICES,window.CV_DEFAULT_VOICE)?window.CV_DEFAULT_VOICE:'bf_emma';
