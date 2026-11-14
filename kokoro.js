@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.295', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.295';
+const VERSION='1.12.296', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.295';
 const isPiper=voice=>typeof voice==='string'&&voice.startsWith('piper:');
 const VOICES=window.CV_VOICES||{bf_emma:'British Female — Emma'};
 const DEFAULT_VOICE=Object.hasOwn(VOICES,window.CV_DEFAULT_VOICE)?window.CV_DEFAULT_VOICE:'bf_emma';
@@ -487,8 +487,8 @@ try{if(navigator.getBattery&&!mobileDevice())navigator.getBattery().then(b=>{con
 function hint(){
  const need=Math.max(1,effRate());
  if(recent.length<3||lastSpeed>=need)return null;
- if(onBattery)return {text:'Your computer is running on battery, which makes George slower than he speaks, so you may hear pauses. Plug in for smooth reading.',action:null};
- return {text:'George is making speech a little slower than it is spoken on this device, so you may hear pauses while he catches up. He keeps preparing more ahead.',action:null};
+ if(onBattery)return {text:'Your computer is running on battery, which makes E.D.D.i slower than it speaks, so you may hear pauses. Plug in for smooth reading.',action:null};
+ return {text:'E.D.D.i is making speech a little slower than it is spoken on this device, so you may hear pauses while it catches up. It keeps preparing more ahead.',action:null};
 }
 function renderBuffer(){
  const text=$('buf-text'),fill=$('buf-fill'),bar=$('buf-bar'),hintEl=$('speed-hint');

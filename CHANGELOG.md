@@ -1,3 +1,7 @@
+## v1.12.296 — 14 November 2026
+
+- The slow-device hint now says E.D.D.i instead of George, so it reads correctly with Piper voices too.
+
 ## v1.12.263 — 12 November 2026
 
 - The hidden ?mode= test switch no longer accepts the graphics chip, because it froze a MacBook in the full reader. ?mode=fast and ?mode=standard still work.
