@@ -1,3 +1,7 @@
+## v1.12.297 — 15 November 2026
+
+- If a Piper voice cannot start on a browser, E.D.D.i now switches to the Emma (Kokoro) voice automatically and tells you to press Play again, instead of leaving you stuck.
+
 ## v1.12.296 — 14 November 2026
 
 - The slow-device hint now says E.D.D.i instead of George, so it reads correctly with Piper voices too.

@@ -3,8 +3,10 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.296', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.295';
+const VERSION='1.12.297', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.295';
 const isPiper=voice=>typeof voice==='string'&&voice.startsWith('piper:');
+/* If a Piper voice cannot start on this browser, switch the narrator to Emma (Kokoro) so Play works next time instead of staying stuck. */
+const fallBackToKokoro=()=>{try{const sel=document.getElementById('voice');if(sel&&isPiper(sel.value)&&sel.querySelector('option[value="bf_emma"]')){sel.value='bf_emma';sel.dispatchEvent(new Event('change',{bubbles:true}))}}catch(_){}};
 const VOICES=window.CV_VOICES||{bf_emma:'British Female — Emma'};
 const DEFAULT_VOICE=Object.hasOwn(VOICES,window.CV_DEFAULT_VOICE)?window.CV_DEFAULT_VOICE:'bf_emma';
 const currentVoice=()=>{const v=document.getElementById('voice')?.value;return VOICES[v]?v:DEFAULT_VOICE};
@@ -225,7 +227,7 @@ function onWorkerMessage(w,m){
    if(m.mode&&m.mode!==mode){store.set('cv-ready-'+mode,'');mode=m.mode;const sel=$('mode-select');if(sel)sel.value=mode} /* remember the mode that works on this device */
    renderEngine();
    const iw=initWaiter;initWaiter=null;if(iw)iw.resolve(m.ms);break}
-  case 'piper-init-error':failWorker(new Error('Piper could not load: '+m.message+' You can switch back to Kokoro in Voice.'));return;
+  case 'piper-init-error':failWorker(new Error('Piper could not load: '+m.message+' E.D.D.i has switched to Emma. Press Play again.'));fallBackToKokoro();return;
   case 'init-error':{
    window.dispatchEvent(new CustomEvent('eddi-ai-diagnostic',{detail:{mode:m.mode||runMode||mode,stage:'Model initialisation',message:String(m.message||'Unknown error')}}));
    const from=m.mode||runMode||mode,next=nextLighter(from);
@@ -258,7 +260,7 @@ function wireWorker(w){
  w.onmessage=ev=>onWorkerMessage(w,ev.data||{});
  w.onerror=ev=>{
   if(w!==worker)return;if(ev&&ev.preventDefault)ev.preventDefault();
-  if(isPiper(workerVoice)){failWorker(new Error('Piper could not start on this browser. Switch back to Kokoro in Voice.'));return}
+  if(isPiper(workerVoice)){failWorker(new Error('Piper could not start on this browser, so E.D.D.i has switched to Emma. Press Play again.'));fallBackToKokoro();return}
   if(!(ev&&ev.message)){ /* the script itself did not load */
    if(!blobTried&&lastInit){blobTried=true;retryAsBlob();return}
    if(isolated()&&leaveIsolation()){eng.note='multi-core is not available in this browser, so the page is restarting on Low Memory';renderEngine();return}
@@ -282,7 +284,7 @@ function startWorker(voice){
  if(worker)return worker;
  let w;
  try{w=isPiper(voice)?new Worker('piper-reader-worker.js?v='+PIPER_WORKER_VERSION):new Worker(blobUrl||('kokoro-worker.js?v='+KOKORO_WORKER_VERSION),{type:'module'})}
- catch(e){throw new Error(isPiper(voice)?'This browser cannot start Piper. Switch back to Kokoro in Voice.':'This browser cannot run George in the background (module Web Workers are not supported).')}
+ catch(e){if(isPiper(voice))setTimeout(fallBackToKokoro,0);throw new Error(isPiper(voice)?'This browser cannot start Piper, so E.D.D.i has switched to Emma. Press Play again.':'This browser cannot run George in the background (module Web Workers are not supported).')}
  worker=w;workerVoice=isPiper(voice)?voice:'kokoro';wireWorker(w);
  return w;
 }
