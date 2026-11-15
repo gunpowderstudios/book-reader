@@ -1,3 +1,7 @@
+## v1.12.300 — 15 November 2026
+
+- Removed the Clean 100 voices (245 speakers) to keep the project small. Piper voices, ManyVoice and Kokoro voices stay. Voice files moved to a fresh copy without Clean 100.
+
 ## v1.12.299 — 15 November 2026
 
 - Removed the "Report a problem" link.

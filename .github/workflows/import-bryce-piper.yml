@@ -25,7 +25,7 @@ jobs:
           import concurrent.futures, hashlib, json, pathlib, subprocess
           root=pathlib.Path('models')
           base='https://sfo3.digitaloceanspaces.com/bkmdls/'
-          sizes={'bryce':63531379,'clean100':77569096,'cori-high':114219352,'cori-med':63531379,'jenny':63531379,'john':63531379,'kristin':63531379,'lj-med':63531379,'ljspeech':114199011,'mv2':77100103,'norman':63531379}
+          sizes={'bryce':63531379,'cori-high':114219352,'cori-med':63531379,'jenny':63531379,'john':63531379,'kristin':63531379,'lj-med':63531379,'ljspeech':114199011,'mv2':77100103,'norman':63531379}
           def get(url,path):
               subprocess.run(['curl','-fsSL','--retry','3','--max-time','180',url,'-o',str(path)],check=True)
           def fetch(item):
@@ -54,7 +54,6 @@ jobs:
           Original model cards, samples and terms: https://brycebeattie.com/files/tts/
           Models are unchanged and split into numbered parts for hosting. Concatenate parts in manifest order.
           Jenny (Dioco) naming/credit: https://github.com/dioco-group/jenny-tts-dataset
-          Clean 100: LibriTTS-R by Yuka Koizumi and contributors, https://www.openslr.org/141/ (CC BY 4.0, https://creativecommons.org/licenses/by/4.0/).
           Other releases here are listed as public domain on the author's page.
           EOF
           git add README.md models
