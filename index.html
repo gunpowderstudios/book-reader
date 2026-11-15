@@ -1240,7 +1240,7 @@ a.addEventListener('click',e=>{e.preventDefault();
  const v=(document.getElementById('app-version')||{}).textContent||'';let d={};try{d=window.eddiPlaybackDiagnostics?window.eddiPlaybackDiagnostics():{}}catch(_){}
  const lines=['E.D.D.i problem report',v,'Time: '+new Date().toString(),'Browser: '+navigator.userAgent,'Cores: '+(navigator.hardwareConcurrency||'?')+' · Memory: '+(navigator.deviceMemory||'?')+' GB · Screen: '+screen.width+'x'+screen.height+' @'+(devicePixelRatio||1)+'x','Page: '+location.hash,'Narrator: '+((document.getElementById('voice')||{}).value||'?'),'Mode: '+(d.actualMode||'?')+' · Phase: '+(d.enginePhase||'?')+' · Speed: '+(d.generationSpeed||'?')+'x','Gap between clips (ms): avg '+(d.handoffAvgMs??'?')+', max '+(d.handoffMaxMs??'?'),'First speech (s): '+(d.firstSpeechSeconds??'?'),'Errors: '+(d.lastError||d.audioErrors||'none')];
  const full=lines.join('\n');
- try{navigator.clipboard&&navigator.clipboard.writeText(full)}catch(_){}
+ try{navigator.clipboard&&navigator.clipboard.writeText(full).catch(()=>{})}catch(_){}
  const body='What went wrong (please describe it in your own words):\n\n\n\n--- Details added automatically (no book names or text) ---\n'+full;
  location.href='mailto:eddi@gunpowderstudios.co.uk?subject='+encodeURIComponent('E.D.D.i problem report '+v.replace('Version ',''))+'&body='+encodeURIComponent(body.slice(0,1800));
 });})();</script>
