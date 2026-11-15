@@ -25,7 +25,7 @@ jobs:
           import concurrent.futures, hashlib, json, pathlib, subprocess
           root=pathlib.Path('models')
           base='https://sfo3.digitaloceanspaces.com/bkmdls/'
-          sizes={'bryce':63531379,'cori-high':114219352,'cori-med':63531379,'jenny':63531379,'john':63531379,'kristin':63531379,'lj-med':63531379,'ljspeech':114199011,'mv2':77100103,'norman':63531379}
+          sizes={'bryce':63531379,'cori-med':63531379,'jenny':63531379,'john':63531379,'kristin':63531379,'lj-med':63531379,'mv2':77100103,'norman':63531379}
           def get(url,path):
               subprocess.run(['curl','-fsSL','--retry','3','--max-time','180',url,'-o',str(path)],check=True)
           def fetch(item):

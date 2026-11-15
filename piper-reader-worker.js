@@ -10,8 +10,8 @@ const VOICES={
  'en_GB-jenny_dioco-medium':'en_GB/jenny_dioco/medium',
  'en_US-joe-medium':'en_US/joe/medium'
 };
-const BRYCE_BASE='https://raw.githubusercontent.com/gunpowderstudios/book-reader/d39dfcd5e391321df14ebff992d7ca6e2a57f958/models/';
-const BRYCE_MODELS=["lj-med","ljspeech","jenny","cori-med","cori-high","kristin","john","bryce","norman","mv2"];
+const BRYCE_BASE='https://raw.githubusercontent.com/gunpowderstudios/book-reader/420c33ea28b5f8797d191639279f7d87d49321a6/models/';
+const BRYCE_MODELS=["lj-med","jenny","cori-med","kristin","john","bryce","norman","mv2"];
 let speaker=0;
 let config,session,phonemizerData,phonemizerBinary,active='',first=true;
 const send=(type,detail={})=>self.postMessage({type,...detail});
