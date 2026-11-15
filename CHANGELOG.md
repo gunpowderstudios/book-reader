@@ -1,3 +1,7 @@
+## v1.12.298 — 15 November 2026
+
+- New "Report a problem" link at the top right. It opens an email to eddi@gunpowderstudios.co.uk with the device, browser, voice, speed and version already filled in (no book names or text), and also copies the same details so they can be pasted.
+
 ## v1.12.297 — 15 November 2026
 
 - If a Piper voice cannot start on a browser, E.D.D.i now switches to the Emma (Kokoro) voice automatically and tells you to press Play again, instead of leaving you stuck.
