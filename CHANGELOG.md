@@ -1,3 +1,7 @@
+## v1.12.299 — 15 November 2026
+
+- Removed the "Report a problem" link.
+
 ## v1.12.298 — 15 November 2026
 
 - New "Report a problem" link at the top right. It opens an email to eddi@gunpowderstudios.co.uk with the device, browser, voice, speed and version already filled in (no book names or text), and also copies the same details so they can be pasted.
