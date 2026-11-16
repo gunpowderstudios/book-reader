@@ -1,3 +1,7 @@
+## v1.12.308 — 16 November 2026
+
+- Two extra Prosody levels for testing: Theatrical (pauses about twice as long as Natural) and Melodrama (about two and a half times).
+
 ## v1.12.307 — 16 November 2026
 
 - Prosody is now a setting with four levels (Off, Subtle, Natural, Dramatic) that scales every pause and the slowing at the end of a paragraph. Four test switches under it: pauses that follow the meaning of each sentence, pace by sentence type, keep two short sentences together, and quicker bracketed asides. (Italic emphasis is not done yet: books lose their italics when imported.)

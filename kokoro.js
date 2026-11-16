@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.307', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
+const VERSION='1.12.308', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
 const isPiper=voice=>typeof voice==='string'&&voice.startsWith('piper:');
 /* If a Piper voice cannot start on this browser, switch the narrator to Emma (Kokoro) so Play works next time instead of staying stuck. */
 const fallBackToKokoro=()=>{try{const sel=document.getElementById('voice');if(sel&&isPiper(sel.value)&&sel.querySelector('option[value="bf_emma"]')){sel.value='bf_emma';sel.dispatchEvent(new Event('change',{bubbles:true}))}}catch(_){}};
@@ -44,7 +44,7 @@ const store={
 
 /* ───────── Settings ───────── */
 /* Prosody: a level plus four test switches, packed into one string so a change is noticed everywhere ('' means off). */
-const PR_LEVELS={off:0,subtle:.6,natural:1,dramatic:1.5},PR_DEFAULT={meaning:'1',pace:'1',context:'0',asides:'1'};
+const PR_LEVELS={off:0,subtle:.6,natural:1,dramatic:1.5,theatrical:2,melodrama:2.6},PR_DEFAULT={meaning:'1',pace:'1',context:'0',asides:'1'};
 function prosKey(){
  const old=store.get('eddi-natural-timing','1')==='0'?'off':'natural';
  const level=store.get('eddi-prosody-level',old);
@@ -754,7 +754,7 @@ function applyTiming(parts,setting,para,p,scene,chapterEnd,heading=false){
   const words=last.say.trim().split(/\s+/u).length;
   if(!shortDialogue&&!heading&&!last.d&&words>=5&&/[.!?…]["'”’»)\]}]*$/u.test(last.text)){
    const m=words<=16?(scene||chapterEnd?.92:.94):.96;
-   last.mul=Math.min(last.mul??1,1-(1-m)*PR.scale);
+   last.mul=Math.min(last.mul??1,Math.max(.85,1-(1-m)*PR.scale));
   }
  }
  return parts;
