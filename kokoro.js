@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.308', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
+const VERSION='1.12.309', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
 const isPiper=voice=>typeof voice==='string'&&voice.startsWith('piper:');
 /* If a Piper voice cannot start on this browser, switch the narrator to Emma (Kokoro) so Play works next time instead of staying stuck. */
 const fallBackToKokoro=()=>{try{const sel=document.getElementById('voice');if(sel&&isPiper(sel.value)&&sel.querySelector('option[value="bf_emma"]')){sel.value='bf_emma';sel.dispatchEvent(new Event('change',{bubbles:true}))}}catch(_){}};
@@ -45,17 +45,31 @@ const store={
 /* ───────── Settings ───────── */
 /* Prosody: a level plus four test switches, packed into one string so a change is noticed everywhere ('' means off). */
 const PR_LEVELS={off:0,subtle:.6,natural:1,dramatic:1.5,theatrical:2,melodrama:2.6},PR_DEFAULT={meaning:'1',pace:'1',context:'0',asides:'1'};
+/* Tone: a flavour (calm, warm, lively...) made only from speed, a small pitch change and pause length. Works with or without Prosody. */
+const TONES={neutral:{mul:1,pitch:1,pad:1},calm:{mul:.94,pitch:1,pad:1.3},warm:{mul:.97,pitch:.97,pad:1.1},lively:{mul:1.05,pitch:1.03,pad:.8},serious:{mul:.96,pitch:.96,pad:1.15},tense:{mul:1.08,pitch:1.02,pad:.6}};
 function prosKey(){
  const old=store.get('eddi-natural-timing','1')==='0'?'off':'natural';
  const level=store.get('eddi-prosody-level',old);
- if(!(level in PR_LEVELS)||level==='off')return '';
+ let tone=store.get('eddi-tone','neutral');if(!(tone in TONES))tone='neutral';
+ const off=!(level in PR_LEVELS)||level==='off';
+ if(off&&tone==='neutral')return '';
  const f=name=>store.get('eddi-pr-'+name,PR_DEFAULT[name])==='1'?1:0;
- return level+'|'+f('meaning')+f('pace')+f('context')+f('asides');
+ return (off?'off':level)+'|'+f('meaning')+f('pace')+f('context')+f('asides')+'|'+tone;
 }
 function parseKey(key){
- if(!key||typeof key!=='string')return {scale:1,meaning:false,pace:false,context:false,asides:false};
- const [level,flags='0000']=key.split('|');
- return {scale:PR_LEVELS[level]||1,meaning:flags[0]==='1',pace:flags[1]==='1',context:flags[2]==='1',asides:flags[3]==='1'};
+ if(!key||typeof key!=='string')return {off:true,scale:1,meaning:false,pace:false,context:false,asides:false,tone:'neutral'};
+ const [level,flags='0000',tone='neutral']=key.split('|');
+ return {off:level==='off',scale:PR_LEVELS[level]||1,meaning:flags[0]==='1',pace:flags[1]==='1',context:flags[2]==='1',asides:flags[3]==='1',tone:tone in TONES?tone:'neutral'};
+}
+function applyTone(parts,setting){
+ const T=TONES[parseKey(setting).tone];
+ if(!T||(T.mul===1&&T.pitch===1&&T.pad===1))return parts;
+ for(const part of parts){
+  if(T.mul!==1)part.mul=+((part.mul??1)*T.mul).toFixed(3);
+  if(T.pitch!==1)part.pitch=+((part.pitch||1)*T.pitch).toFixed(3);
+  if(part.pad)part.pad=+(part.pad*T.pad).toFixed(2);
+ }
+ return parts;
 }
 let timing=prosKey();
 
@@ -732,8 +746,8 @@ function meaningChunks(text,max,PR){
  return parts;
 }
 function applyTiming(parts,setting,para,p,scene,chapterEnd,heading=false){
- if(!setting)return parts;
  const PR=parseKey(setting);
+ if(!setting||PR.off)return parts;
  const shortDialogue=/^\s*["“‘]/u.test(para)&&para.trim().split(/\s+/u).length<=12;
  for(const part of parts){
   if(!part.last&&part.beat)part.pad=shortDialogue?Math.min(.35,part.beat):part.beat;
@@ -843,11 +857,11 @@ function actorRest(text){
 }
 /* One paragraph -> the passages to speak, each with its voice, spoken text and the pause after it. */
 function plan(paras,p,narr,style,first,setting=timing){
- const para=paras[p];
+ const para=paras[p],settingKey=setting,PRk=parseKey(settingKey);setting=settingKey&&!PRk.off?settingKey:'';
  if(style==='classic'){
   const max=first?FIRST_CHUNK_MAX:CHUNK_MAX;
   const parts=setting?timedChunks(norm(para),max,p):chunks(para,max).map(t=>({t}));
-  return applyTiming(parts.map(({t,beat},i)=>({text:t,say:readableCaps(t),voice:narr,last:i===parts.length-1,pad:i===parts.length-1?PARA_PAD:0,beat})),setting,para,p,SCENE.test(paras[p+1]||''),p===paras.length-1);
+  return applyTone(applyTiming(parts.map(({t,beat},i)=>({text:t,say:readableCaps(t),voice:narr,last:i===parts.length-1,pad:i===parts.length-1?PARA_PAD:0,beat})),setting,para,p,SCENE.test(paras[p+1]||''),p===paras.length-1),settingKey);
  }
  const slowish=mobileDevice()||mode==='standard',max=first?(slowish?FIRST_CHUNK_MAX:NAT_FIRST_MAX):(slowish?CHUNK_MAX:NAT_MAX),dlg=narr,out=[];
  const next=paras[p+1],scene=next!=null&&SCENE.test(next),heading=!/[.!?\u2026"\u201d]$/.test(norm(para))&&norm(para).length<80&&(p===0||SCENE.test(paras[p-1]||''));
@@ -869,7 +883,7 @@ function plan(paras,p,narr,style,first,setting=timing){
  for(let i=0;i<out.length-1;i++)out[i].pad=Math.max(out[i].pad,style==='actor'?actorRest(out[i].text):restAfter(out[i].text)); /* a passage ending at punctuation gets an appropriate rest */
  if(style!=='classic'&&out.length>1)for(const o of out)o.pad=+(o.pad*PAUSE_SCALE()*(style==='actor'?1:wobble(o.text))).toFixed(2);
  if(out.length){const l=out[out.length-1];l.last=true;l.pad=style==='actor'?(next==null?1.5:scene?1.4:heading?1.0:0.7):+((scene?1.4:heading?1.0:NAT_PARA_PAD)*PAUSE_SCALE()*wobble(l.text)).toFixed(2);if(!scene&&!heading&&style!=='pace'&&!l.d)l.mul=0.97} /* last sentence of a paragraph is spoken a touch slower, as a reader eases off */
- return applyTiming(out,setting,para,p,scene,next==null,heading);
+ return applyTone(applyTiming(out,setting,para,p,scene,next==null,heading),settingKey);
 }
 function* segments(S,narr=currentVoice(),style=styleNow(),setting=timing){ /* lazily walks the book from the current position */
  let ci=S.index,p=S.p,first=true;
@@ -1102,12 +1116,17 @@ function showProsodyToast(label){
   ms.value=preference;ms.disabled=isPiper(currentVoice());ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=preference;showRecommendation()};
  }
 
+  const toneSel=$('tone-select');
+ if(toneSel){
+  toneSel.value=store.get('eddi-tone','neutral');if(!(toneSel.value in TONES))toneSel.value='neutral';
+  toneSel.onchange=()=>{store.set('eddi-tone',toneSel.value);timing=prosKey();showProsodyToast('Tone: '+toneSel.options[toneSel.selectedIndex].text);prefetchToken++;window.bookOffline?.refresh?.()};
+ }
  const prLevel=$('prosody-level'),prBoxes=['meaning','pace','context','asides'];
  if(prLevel){
   const sync=()=>{
-   const key=prosKey();prLevel.value=key?key.split('|')[0]:'off';
+   const key=prosKey(),PRs=parseKey(key);prLevel.value=PRs.off?'off':key.split('|')[0];
    const f=key?key.split('|')[1]:'0000';
-   prBoxes.forEach((name,i)=>{const b=$('pr-'+name);if(b){b.checked=key?f[i]==='1':store.get('eddi-pr-'+name,PR_DEFAULT[name])==='1';b.disabled=!key}});
+   prBoxes.forEach((name,i)=>{const b=$('pr-'+name);if(b){b.checked=key&&!PRs.off?f[i]==='1':store.get('eddi-pr-'+name,PR_DEFAULT[name])==='1';b.disabled=PRs.off}});
   };
   const changed=label=>{
    timing=prosKey();sync();showProsodyToast(label);

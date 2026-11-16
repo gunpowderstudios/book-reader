@@ -1,3 +1,7 @@
+## v1.12.309 — 16 November 2026
+
+- New Tone setting (Neutral, Calm, Warm, Lively, Serious, Tense): a flavour for the whole reading made from speed, a small pitch change and pause length. It sits beside Prosody and works with or without it.
+
 ## v1.12.308 — 16 November 2026
 
 - Two extra Prosody levels for testing: Theatrical (pauses about twice as long as Natural) and Melodrama (about two and a half times).
