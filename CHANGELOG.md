@@ -1,3 +1,7 @@
+## v1.12.314 — 16 November 2026
+
+- Acting: tested on A Christmas Carol and fixed. It now understands "Scrooge's nephew", "the ghost", "returned the uncle" and more speech words, hands unattributed lines to the other speaker in a two-person chat, and needs stronger mood words (three or more) before changing the tone.
+
 ## v1.12.313 — 16 November 2026
 
 - The style message now stays for 9 seconds, and you can click it to close it sooner.
