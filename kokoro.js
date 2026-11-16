@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.315', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
+const VERSION='1.12.316', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
 const isPiper=voice=>typeof voice==='string'&&voice.startsWith('piper:');
 /* If a Piper voice cannot start on this browser, switch the narrator to Emma (Kokoro) so Play works next time instead of staying stuck. */
 const fallBackToKokoro=()=>{try{const sel=document.getElementById('voice');if(sel&&isPiper(sel.value)&&sel.querySelector('option[value="bf_emma"]')){sel.value='bf_emma';sel.dispatchEvent(new Event('change',{bubbles:true}))}}catch(_){}};
@@ -1246,7 +1246,7 @@ function showProsodyToast(label){
   let name='custom';for(const [n,p] of Object.entries(PRESETS))if(p[0]===lv&&p[1]===tn&&p[2]===ac)name=n;
   const defaults=['meaning','pace','context','asides'].every(f=>store.get('eddi-pr-'+f,PR_DEFAULT[f])===PR_DEFAULT[f]);
   if(!defaults)name='custom';
-  presetSel.value=name;
+  presetSel.value=name;try{document.body.dataset.readStyle=name}catch(_){}
   if(sumEl)sumEl.textContent='Now: Prosody '+(LV[lv]||lv)+' · Tone '+(tn[0].toUpperCase()+tn.slice(1))+' · Acting '+AC[ac]+(ac!=='off'&&isPiper(currentVoice())?' (character voices need a Kokoro voice; mood still works)':'');
  };
  if(presetSel){

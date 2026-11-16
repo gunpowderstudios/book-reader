@@ -1,3 +1,7 @@
+## v1.12.316 — 16 November 2026
+
+- The paragraph being read now has a dark tint that follows the Reading style: green for Plain (as before), blue for Natural, plum for Storyteller, brick red for Full cast, brown for Theatrical.
+
 ## v1.12.315 — 16 November 2026
 
 - New Reset E.D.D.i button at the bottom of Settings (tap twice). It puts every setting back to a new visitor's start and reloads. Books and your place in them are kept.
