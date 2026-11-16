@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.310', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
+const VERSION='1.12.311', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
 const isPiper=voice=>typeof voice==='string'&&voice.startsWith('piper:');
 /* If a Piper voice cannot start on this browser, switch the narrator to Emma (Kokoro) so Play works next time instead of staying stuck. */
 const fallBackToKokoro=()=>{try{const sel=document.getElementById('voice');if(sel&&isPiper(sel.value)&&sel.querySelector('option[value="bf_emma"]')){sel.value='bf_emma';sel.dispatchEvent(new Event('change',{bubbles:true}))}}catch(_){}};
@@ -1182,7 +1182,7 @@ function showProsodyToast(label){
  clearTimeout(prosodyToastTimer);
  toast.textContent=label;
  toast.classList.add('is-visible');
- prosodyToastTimer=setTimeout(()=>toast.classList.remove('is-visible'),1600);
+ prosodyToastTimer=setTimeout(()=>toast.classList.remove("is-visible"),3200);
 }
 (function wirePanels(){
  const sel=$('test-voice');
@@ -1202,7 +1202,8 @@ function showProsodyToast(label){
   ms.value=preference;ms.disabled=isPiper(currentVoice());ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=preference;showRecommendation()};
  }
 
-  const toneSel=$('tone-select');
+  let prSync=()=>{};
+ const toneSel=$('tone-select');
  if(toneSel){
   toneSel.value=store.get('eddi-tone','neutral');if(!(toneSel.value in TONES))toneSel.value='neutral';
   toneSel.onchange=()=>{store.set('eddi-tone',toneSel.value);timing=prosKey();showProsodyToast('Tone: '+toneSel.options[toneSel.selectedIndex].text);prefetchToken++;window.bookOffline?.refresh?.()};
@@ -1223,9 +1224,37 @@ function showProsodyToast(label){
    timing=prosKey();sync();showProsodyToast(label);
    prefetchToken++;window.bookOffline?.refresh?.();
   };
-  sync();
+  sync();prSync=sync;
   prLevel.onchange=()=>{store.set('eddi-prosody-level',prLevel.value);store.set('eddi-natural-timing',prLevel.value==='off'?'0':'1');changed(prLevel.value==='off'?'Prosody off':'Prosody: '+prLevel.options[prLevel.selectedIndex].text)};
   prBoxes.forEach(name=>{const b=$('pr-'+name);if(b)b.onchange=()=>{store.set('eddi-pr-'+name,b.checked?'1':'0');changed('Prosody test: '+b.parentElement.textContent.trim().split(' (')[0]+(b.checked?' on':' off'))}});
+ }
+
+ /* One "Reading style" menu sets Prosody, Tone and Acting together. The separate menus stay under Advanced. */
+ const PRESETS={plain:['off','neutral','off','Plain: no extra pauses, tone or acting.'],natural:['natural','neutral','off','Natural: gentle pauses that follow the meaning.'],storyteller:['dramatic','neutral','mood','Storyteller: longer pauses, with a tone to match each scene.'],fullcast:['dramatic','neutral','both','Full cast: longer pauses, scene tone and a separate voice for each main character.'],theatrical:['theatrical','neutral','both','Theatrical: very long pauses, scene tone and character voices.']};
+ const presetSel=$('style-preset'),sumEl=$('style-summary');
+ const LV={off:'Off',subtle:'Subtle',natural:'Natural',dramatic:'Dramatic',theatrical:'Theatrical',melodrama:'Melodrama'},AC={off:'off',voices:'character voices',mood:'scene mood',both:'character voices and scene mood'};
+ const styleState=()=>{const lv=store.get('eddi-prosody-level','natural'),tn=store.get('eddi-tone','neutral'),ac=store.get('eddi-acting','off');return{lv,tn,ac}};
+ const refreshStyle=()=>{
+  if(!presetSel)return;const {lv,tn,ac}=styleState();
+  let name='custom';for(const [n,p] of Object.entries(PRESETS))if(p[0]===lv&&p[1]===tn&&p[2]===ac)name=n;
+  const defaults=['meaning','pace','context','asides'].every(f=>store.get('eddi-pr-'+f,PR_DEFAULT[f])===PR_DEFAULT[f]);
+  if(!defaults)name='custom';
+  presetSel.value=name;
+  if(sumEl)sumEl.textContent='Now: Prosody '+(LV[lv]||lv)+' · Tone '+(tn[0].toUpperCase()+tn.slice(1))+' · Acting '+AC[ac]+(ac!=='off'&&isPiper(currentVoice())?' (character voices need a Kokoro voice; mood still works)':'');
+ };
+ if(presetSel){
+  presetSel.onchange=()=>{
+   const p=PRESETS[presetSel.value];if(!p){refreshStyle();return}
+   store.set('eddi-prosody-level',p[0]);store.set('eddi-natural-timing',p[0]==='off'?'0':'1');store.set('eddi-tone',p[1]);store.set('eddi-acting',p[2]);
+   for(const f of ['meaning','pace','context','asides'])store.set('eddi-pr-'+f,PR_DEFAULT[f]);
+   timing=prosKey();
+   const ts=$('tone-select'),as=$('acting-select');if(ts)ts.value=p[1];if(as)as.value=p[2];prSync();refreshStyle();
+   showProsodyToast(p[3]+(p[2]!=='off'&&p[2]!=='mood'&&isPiper(currentVoice())?' Character voices need a Kokoro voice.':''));
+   prefetchToken++;window.bookOffline?.refresh?.();
+   if(p[2]==='voices'||p[2]==='both'){const S=window.eddiState&&window.eddiState();if(S&&S.chapters)try{buildCast(S,currentVoice())}catch(_){}}
+  };
+  const adv=$('advanced-style');if(adv)adv.addEventListener('change',()=>setTimeout(refreshStyle,0));
+  refreshStyle();
  }
  const ss=$('style-select'); /* (no menu any more: one voice, natural style) */
  if(ss){ss.value=styleNow();ss.onchange=()=>{store.set('cv-voice-style',ss.value);const t=$('test-style');if(t)t.value=ss.value;window.bookOffline&&window.bookOffline.refresh&&window.bookOffline.refresh()}}

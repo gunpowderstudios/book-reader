@@ -1,3 +1,7 @@
+## v1.12.311 — 16 November 2026
+
+- One Reading style menu (Plain, Natural, Storyteller, Full cast, Theatrical) now sets Prosody, Tone and Acting together, with a line showing exactly what is on. The separate menus are still there under Advanced. Changing the style shows a short message at the top of the screen saying what it does.
+
 ## v1.12.310 — 16 November 2026
 
 - New Acting (testing) setting. E.D.D.i scans the book for who is speaking ("said Harry", "she asked") and gives up to six main characters their own Kokoro voice, and picks a tone for each paragraph from its mood words (tense, sad, cheerful, calm). Options: Off, Character voices, Scene mood only, Voices and mood. It is a guess and will sometimes be wrong. Character voices work with Kokoro voices only; Piper voices get mood only. Nothing leaves the device. Not yet listened to on a real voice.
