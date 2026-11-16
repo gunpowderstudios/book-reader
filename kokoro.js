@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.309', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
+const VERSION='1.12.310', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
 const isPiper=voice=>typeof voice==='string'&&voice.startsWith('piper:');
 /* If a Piper voice cannot start on this browser, switch the narrator to Emma (Kokoro) so Play works next time instead of staying stuck. */
 const fallBackToKokoro=()=>{try{const sel=document.getElementById('voice');if(sel&&isPiper(sel.value)&&sel.querySelector('option[value="bf_emma"]')){sel.value='bf_emma';sel.dispatchEvent(new Event('change',{bubbles:true}))}}catch(_){}};
@@ -52,19 +52,21 @@ function prosKey(){
  const level=store.get('eddi-prosody-level',old);
  let tone=store.get('eddi-tone','neutral');if(!(tone in TONES))tone='neutral';
  const off=!(level in PR_LEVELS)||level==='off';
- if(off&&tone==='neutral')return '';
+ const acting=store.get('eddi-acting','off');
+ if(off&&tone==='neutral'&&acting==='off')return '';
  const f=name=>store.get('eddi-pr-'+name,PR_DEFAULT[name])==='1'?1:0;
- return (off?'off':level)+'|'+f('meaning')+f('pace')+f('context')+f('asides')+'|'+tone;
+ return (off?'off':level)+'|'+f('meaning')+f('pace')+f('context')+f('asides')+'|'+tone+'|'+(['voices','mood','both'].includes(acting)?acting:'off');
 }
 function parseKey(key){
- if(!key||typeof key!=='string')return {off:true,scale:1,meaning:false,pace:false,context:false,asides:false,tone:'neutral'};
- const [level,flags='0000',tone='neutral']=key.split('|');
- return {off:level==='off',scale:PR_LEVELS[level]||1,meaning:flags[0]==='1',pace:flags[1]==='1',context:flags[2]==='1',asides:flags[3]==='1',tone:tone in TONES?tone:'neutral'};
+ if(!key||typeof key!=='string')return {off:true,acting:'off',scale:1,meaning:false,pace:false,context:false,asides:false,tone:'neutral'};
+ const [level,flags='0000',tone='neutral',acting='off']=key.split('|');
+ return {acting,off:level==='off',scale:PR_LEVELS[level]||1,meaning:flags[0]==='1',pace:flags[1]==='1',context:flags[2]==='1',asides:flags[3]==='1',tone:tone in TONES?tone:'neutral'};
 }
 function applyTone(parts,setting){
- const T=TONES[parseKey(setting).tone];
- if(!T||(T.mul===1&&T.pitch===1&&T.pad===1))return parts;
+ const base=parseKey(setting).tone;
  for(const part of parts){
+  const T=TONES[part.toneOverride||base];
+  if(!T||(T.mul===1&&T.pitch===1&&T.pad===1))continue;
   if(T.mul!==1)part.mul=+((part.mul??1)*T.mul).toFixed(3);
   if(T.pitch!==1)part.pitch=+((part.pitch||1)*T.pitch).toFixed(3);
   if(part.pad)part.pad=+(part.pad*T.pad).toFixed(2);
@@ -855,6 +857,86 @@ function actorRest(text){
  if(/[—–-]$/.test(t))return 0.22;
  return 0;
 }
+
+/* ===== Acting (testing) =====
+   A free, in-browser guess at who is speaking, using only the book's own words ("said Harry", "she asked").
+   It gives the main speakers their own voices and picks a tone from the mood words in each paragraph.
+   Kokoro voices only (they switch instantly); never sends text anywhere. */
+const SPEECH_VERBS='said|asked|replied|whispered|shouted|cried|answered|muttered|called|exclaimed|added|continued|demanded|snapped|growled|sighed|laughed|yelled|murmured|declared|suggested|insisted|protested|agreed|warned|offered|observed|remarked|interrupted|retorted|stammered|gasped|breathed|urged|pleaded';
+const NOT_NAMES=new Set('The A An He She They It We You I And But Then So Yet Or If When While As At In On Of To For From With By After Before Soon Now There Here This That These Those His Her Their My Our Your What Who Why How Where Which Not No Yes Oh Well Just Only Even Still Perhaps Maybe Suddenly Finally Meanwhile Chapter Mr Mrs Miss Ms Sir Lady Lord Dr Madam'.split(' '));
+const NAME='([A-Z][a-z]{1,}(?:\\s+[A-Z][a-z]{1,})?)';
+const ATT_AFTER=new RegExp('\\b(?:'+SPEECH_VERBS+')\\s+(?:the\\s+)?'+NAME);
+const ATT_BEFORE=new RegExp('(?:^|[\\s,.;:!?"\\u201d])'+NAME+'\\s+(?:\\w+ly\\s+)?(?:'+SPEECH_VERBS+')\\b');
+const ATT_PRON=new RegExp('\\b(he|she)\\s+(?:\\w+ly\\s+)?(?:'+SPEECH_VERBS+')\\b|\\b(?:'+SPEECH_VERBS+')\\s+(he|she)\\b','i');
+const F_VOICES=['bf_isabella','bf_alice','bf_lily','bf_emma','af_heart','af_bella','af_nicole'],M_VOICES=['bm_fable','bm_lewis','bm_daniel','bm_george','am_michael','am_adam','am_fenrir'];
+function attributionIn(text){
+ if(!text)return null;
+ let m=ATT_AFTER.exec(text),name=m&&m[1];
+ if(!name||NOT_NAMES.has(name.split(' ')[0])){m=ATT_BEFORE.exec(text);name=m&&m[1]}
+ if(name&&!NOT_NAMES.has(name.split(' ')[0]))return {name:name.trim()};
+ const p=ATT_PRON.exec(text);if(p)return {pron:(p[1]||p[2]).toLowerCase()};
+ return null;
+}
+function genderHint(narration,name){
+ const i=narration.indexOf(name);if(i<0)return '';
+ const after=narration.slice(i+name.length,i+name.length+70).toLowerCase();
+ if(/\b(?:she|her|hers|herself)\b/.test(after))return 'f';
+ if(/\b(?:he|his|him|himself)\b/.test(after))return 'm';
+ const before=narration.slice(Math.max(0,i-12),i);
+ if(/\b(?:Mrs|Miss|Ms|Lady|Madam|Queen|Mother|Aunt)\.?\s*$/.test(before))return 'f';
+ if(/\b(?:Mr|Sir|Lord|King|Father|Uncle)\.?\s*$/.test(before))return 'm';
+ return '';
+}
+const castCache=new Map();
+function buildCast(S,narr){
+ const id=(S.key||'')+'|'+S.chapters.length+'|'+narr;
+ if(castCache.has(id))return castCache.get(id);
+ const stat=new Map(),assign=new Map(),recent=[];let lastG={m:null,f:null};
+ const note=(name)=>{let s=stat.get(name);if(!s){s={n:0,m:0,f:0};stat.set(name,s)}return s};
+ S.chapters.forEach((ch,ci)=>{
+  (ch.paragraphs||[]).forEach((para,p)=>{
+   if(!/["“”]/.test(para))return;
+   const runs=dialogueRuns(para,1);if(!runs.some(r=>r.d))return;
+   const names=new Map();
+   runs.forEach((r,i)=>{
+    if(!r.d)return;
+    const near=[runs[i+1]&&!runs[i+1].d?runs[i+1].t:'',runs[i-1]&&!runs[i-1].d?runs[i-1].t:''];
+    let who=null;
+    for(const t of near){const a=attributionIn(t);if(!a)continue;
+     if(a.name){who=a.name;const g=genderHint(t,a.name);if(g)note(a.name)[g]++;break}
+     if(a.pron){const g=a.pron==='she'?'f':'m';if(t===near[1]&&i>=2&&runs[i-2].d&&names.get(runs[i-2].t)){who=names.get(runs[i-2].t);break}if(lastG[g]){who=lastG[g];break}const prev=recent[recent.length-1],other=recent.slice().reverse().find(x=>x!==prev&&(()=>{const s=stat.get(x);return !s||(s[g==='f'?'m':'f']===0)})());if(other){who=other;break}}
+    }
+    if(!who&&recent.length>=2&&runs.every(x=>x.d||x.t.trim().length<2)){ /* pure back-and-forth speech: take turns */
+     who=recent[recent.length-1]===recent[recent.length-2]?null:recent[recent.length-2];
+    }
+    if(who){const s=note(who);s.n++;recent.push(who);if(recent.length>4)recent.shift();const g=s.f>s.m?'f':s.m>s.f?'m':'';if(g)lastG[g]=who}
+    if(who)names.set(r.t,who);
+   });
+   assign.set(ci+':'+p,names);
+  });
+ });
+ const top=[...stat.entries()].filter(([,s])=>s.n>=3).sort((a,b)=>b[1].n-a[1].n).slice(0,6);
+ const exists=v=>window.CV_VOICES&&Object.prototype.hasOwnProperty.call(window.CV_VOICES,v)&&v!==narr;
+ const fp=F_VOICES.filter(exists),mp=M_VOICES.filter(exists),used=new Set(),cast={};
+ let flip=0;
+ for(const [name,s] of top){
+  let g=s.f>s.m?'f':s.m>s.f?'m':'';
+  if(!g){g=(flip++%2)?'f':'m'}
+  const pool=(g==='f'?fp:mp).concat(g==='f'?mp:fp);
+  const v=pool.find(x=>!used.has(x))||pool[0];if(!v)continue;
+  used.add(v);cast[name]={voice:v,g,n:s.n};
+ }
+ const out={cast,assign};castCache.set(id,out);
+ setTimeout(()=>{const el=document.getElementById('acting-cast');if(el)el.textContent=Object.keys(cast).length?'Cast found: '+Object.entries(cast).map(([n,c])=>n+' → '+(window.CV_VOICES[c.voice]||c.voice).replace(/^.*— /,'')).join(', '):'No speakers found yet in this book.'},0);
+ return out;
+}
+const MOODS=[['tense',/\b(ran|run|running|rushed|scream\w*|shout\w*|blood\w*|sword|fight\w*|attack\w*|danger\w*|gun|shot|fired|explosion|chase\w*|panic\w*|suddenly|crash\w*|terrified|fear\w*|hurried|trap|enemy|battle|knife|kill\w*|dead|death)\b/gi],['serious',/\b(tears|wept|weep\w*|grief|funeral|mourn\w*|alone|lonely|sorrow|lost|farewell|buried|died|dying|heartbroken)\b/gi],['lively',/\b(laugh\w*|smil\w*|joy\w*|delight\w*|celebrat\w*|cheer\w*|giggl\w*|happy|happily|merry|feast|dance\w*|grinn\w*)\b/gi],['calm',/\b(quiet\w*|gentle|gently|soft\w*|slowly|peaceful|sleep\w*|calm\w*|silence|dawn|breeze|stillness)\b/gi]];
+function moodOf(text){
+ let best='',bestN=1;
+ for(const [tone,re] of MOODS){const n=(text.match(re)||[]).length;if(n>bestN){best=tone;bestN=n}}
+ return best;
+}
+const ACT_CTX={S:null,ci:0};
 /* One paragraph -> the passages to speak, each with its voice, spoken text and the pause after it. */
 function plan(paras,p,narr,style,first,setting=timing){
  const para=paras[p],settingKey=setting,PRk=parseKey(settingKey);setting=settingKey&&!PRk.off?settingKey:'';
@@ -865,7 +947,10 @@ function plan(paras,p,narr,style,first,setting=timing){
  }
  const slowish=mobileDevice()||mode==='standard',max=first?(slowish?FIRST_CHUNK_MAX:NAT_FIRST_MAX):(slowish?CHUNK_MAX:NAT_MAX),dlg=narr,out=[];
  const next=paras[p+1],scene=next!=null&&SCENE.test(next),heading=!/[.!?\u2026"\u201d]$/.test(norm(para))&&norm(para).length<80&&(p===0||SCENE.test(paras[p-1]||''));
- for(const r of dialogueRuns(para,style==='pace'||style==='actor'?5:14)){
+ const ACT=PRk.acting,actVoices=(ACT==='voices'||ACT==='both')&&style!=='classic'&&ACT_CTX.S&&!isPiper(narr),actMood=(ACT==='mood'||ACT==='both')?moodOf(para):'';
+ const castInfo=actVoices?buildCast(ACT_CTX.S,narr):null,castNames=castInfo&&castInfo.assign.get(ACT_CTX.ci+':'+p);
+ for(const r of dialogueRuns(para,castInfo?2:style==='pace'||style==='actor'?5:14)){
+  let actVoice='';if(castInfo&&r.d){const who=castNames&&castNames.get(r.t);const c=who&&castInfo.cast[who];if(c)actVoice=c.voice}
   const PRn=setting?parseKey(setting):null;const pieces=setting?(PRn.meaning&&!slowish?meaningChunks(r.t,max,PRn):timedChunks(r.t,max,p)):(slowish?chunks(r.t,max):sentenceChunks(r.t,max)).map(t=>({t}));
   for(const {t,beat} of pieces){
    const say=spoken(t);if(!sayable(say))continue;
@@ -876,7 +961,7 @@ function plan(paras,p,narr,style,first,setting=timing){
    const mul=actor?(cue?cue.mul:urgent?1.16:question?0.91:r.d?1.11:0.94):(r.d&&style==='pace'?PACE_MUL:1);
    const pitch=r.d&&style==='pace'?PACE_PITCH:1;
    const questionRise=actor&&/\?[\s\u201d"']*$/.test(t);
-   out.push({text:t,say,voice:r.d?dlg:narr,d:r.d,mul,pitch,questionRise,last:false,pad:cue?cue.pad:0,actorCue:cue?.kind||null,...(setting?{beat}:null)});
+   out.push({text:t,say,voice:r.d?(actVoice||dlg):narr,d:r.d,toneOverride:actMood||undefined,mul,pitch,questionRise,last:false,pad:cue?cue.pad:0,actorCue:cue?.kind||null,...(setting?{beat}:null)});
   }
  }
  for(let i=0;i<out.length;i++)if(i<out.length-1&&style!=='single'&&out[i].d!==out[i+1].d)out[i].pad=0.12;
@@ -891,6 +976,7 @@ function* segments(S,narr=currentVoice(),style=styleNow(),setting=timing){ /* la
   const ch=S.chapters[ci];
   if(!ch||p>=ch.paragraphs.length){ci++;p=0;continue}
   if(style!=='classic'&&SCENE.test(ch.paragraphs[p])&&p>0){p++;continue} /* a scene-break line is a pause, not words */
+  ACT_CTX.S=S;ACT_CTX.ci=ci;
   const parts=plan(ch.paragraphs,p,narr,style,first,setting);first=false;
   for(const g of parts)yield{ci,p,...g};
   p++;
@@ -1121,6 +1207,11 @@ function showProsodyToast(label){
   toneSel.value=store.get('eddi-tone','neutral');if(!(toneSel.value in TONES))toneSel.value='neutral';
   toneSel.onchange=()=>{store.set('eddi-tone',toneSel.value);timing=prosKey();showProsodyToast('Tone: '+toneSel.options[toneSel.selectedIndex].text);prefetchToken++;window.bookOffline?.refresh?.()};
  }
+  const actSel=$('acting-select');
+ if(actSel){
+  actSel.value=store.get('eddi-acting','off');if(!['off','voices','mood','both'].includes(actSel.value))actSel.value='off';
+  actSel.onchange=()=>{store.set('eddi-acting',actSel.value);timing=prosKey();showProsodyToast('Acting: '+actSel.options[actSel.selectedIndex].text);prefetchToken++;window.bookOffline?.refresh?.();if(actSel.value==='voices'||actSel.value==='both'){const S=window.eddiState&&window.eddiState();if(S&&S.chapters)try{buildCast(S,currentVoice())}catch(_){}}};
+ }
  const prLevel=$('prosody-level'),prBoxes=['meaning','pace','context','asides'];
  if(prLevel){
   const sync=()=>{
@@ -1191,6 +1282,6 @@ window.chapterKokoro={toggle,stop,setStyle,skipSeconds,testVoice,stopTest,testAc
  refreshNarrator:()=>{const v=currentVoice(),target=isPiper(v)?v:'kokoro';if((worker&&workerVoice!==target)||(eng.used==='piper')!==isPiper(v)){if(worker&&workerVoice!==target)failWorker(CANCELLED,true);recent.length=0;lastSpeed=0;if(!worker)engineReset('')}
   const ms=$('mode-select');if(ms)ms.disabled=isPiper(v);showRecommendation();renderEngine();renderBuffer();reportStyle()},stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode}),measured:()=>Number(store.get('cv-measured-'+mode,'0'))};
 
-window.eddiPlanPreview=(paras,p=0)=>plan(paras,p,currentVoice(),styleNow(),false,timing).map(g=>({text:g.text,pad:g.pad,mul:g.mul}));
+window.eddiPlanPreview=(paras,p=0)=>{ACT_CTX.S={key:'preview'+paras.join('').length,chapters:[{paragraphs:paras}]};ACT_CTX.ci=0;return plan(paras,p,currentVoice(),styleNow(),false,timing).map(g=>({text:g.text,pad:g.pad,mul:g.mul,voice:g.voice,tone:g.toneOverride}))};
 window.eddiPlaybackDiagnostics=()=>({version:VERSION,threads:eng.threads||1,modePreference:preference,actualMode:eng.used||(isPiper(currentVoice())?'piper':mode),enginePhase:eng.phase,modelStartSeconds:eng.sec||null,firstSpeechSeconds:playbackDiagnostics.firstSpeechMs===null?null:playbackDiagnostics.firstSpeechMs/1000,generationSpeed:Math.round(lastSpeed*10)/10,bufferReadySeconds:Math.round(bufInfo.ready||0),bufferTargetSeconds:Math.round(bufInfo.target||0),bufferWaits:bufInfo.waits||0,bufferWaitSeconds:Math.round(bufInfo.waitSec||0),audioClipsStarted:playbackDiagnostics.clipsPlayed,handoffCount:playbackDiagnostics.hand,handoffAvgMs:playbackDiagnostics.hand?Math.round(playbackDiagnostics.handTotal/playbackDiagnostics.hand):null,handoffMaxMs:Math.round(playbackDiagnostics.handMax),handoffOver400ms:playbackDiagnostics.handLong,audioErrors:playbackDiagnostics.audioErrors});
 })();
