@@ -1,3 +1,7 @@
+## v1.12.307 — 16 November 2026
+
+- Prosody is now a setting with four levels (Off, Subtle, Natural, Dramatic) that scales every pause and the slowing at the end of a paragraph. Four test switches under it: pauses that follow the meaning of each sentence, pace by sentence type, keep two short sentences together, and quicker bracketed asides. (Italic emphasis is not done yet: books lose their italics when imported.)
+
 ## v1.12.301 — 15 November 2026
 
 - Removed the two largest voice files (the High versions of Cori and LJSpeech) to keep the project small. The Medium versions of both remain.

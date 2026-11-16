@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.306', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
+const VERSION='1.12.307', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
 const isPiper=voice=>typeof voice==='string'&&voice.startsWith('piper:');
 /* If a Piper voice cannot start on this browser, switch the narrator to Emma (Kokoro) so Play works next time instead of staying stuck. */
 const fallBackToKokoro=()=>{try{const sel=document.getElementById('voice');if(sel&&isPiper(sel.value)&&sel.querySelector('option[value="bf_emma"]')){sel.value='bf_emma';sel.dispatchEvent(new Event('change',{bubbles:true}))}}catch(_){}};
@@ -43,7 +43,21 @@ const store={
 };
 
 /* ───────── Settings ───────── */
-let timing=store.get('eddi-natural-timing','1')!=='0';
+/* Prosody: a level plus four test switches, packed into one string so a change is noticed everywhere ('' means off). */
+const PR_LEVELS={off:0,subtle:.6,natural:1,dramatic:1.5},PR_DEFAULT={meaning:'1',pace:'1',context:'0',asides:'1'};
+function prosKey(){
+ const old=store.get('eddi-natural-timing','1')==='0'?'off':'natural';
+ const level=store.get('eddi-prosody-level',old);
+ if(!(level in PR_LEVELS)||level==='off')return '';
+ const f=name=>store.get('eddi-pr-'+name,PR_DEFAULT[name])==='1'?1:0;
+ return level+'|'+f('meaning')+f('pace')+f('context')+f('asides');
+}
+function parseKey(key){
+ if(!key||typeof key!=='string')return {scale:1,meaning:false,pace:false,context:false,asides:false};
+ const [level,flags='0000']=key.split('|');
+ return {scale:PR_LEVELS[level]||1,meaning:flags[0]==='1',pace:flags[1]==='1',context:flags[2]==='1',asides:flags[3]==='1'};
+}
+let timing=prosKey();
 
 const mobileDevice=()=>/iPad|iPhone|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const RANK=['gpu','fast','standard'];
@@ -694,21 +708,53 @@ function timedChunks(text,max,offset){
  if(text.slice(start).trim())push(text.slice(start),0);
  return parts;
 }
+/* Prosody test: speak sentence by sentence and rest after each one according to how it ends and how long it was. */
+function meaningBeat(text,PR){
+ const t=text.trim(),words=t.split(/\s+/u).length;
+ let base;
+ if(/(?:\u2026|\.{3,})["'\u201d\u2019)\]]*$/u.test(t))base=.55;
+ else if(/\?["'\u201d\u2019)\]]*$/u.test(t))base=.45;
+ else if(/!["'\u201d\u2019)\]]*$/u.test(t))base=.40;
+ else if(/[:;]["'\u201d\u2019)\]]*$/u.test(t))base=.24;
+ else if(/[\u2014\u2013-]["'\u201d\u2019)\]]*$/u.test(t))base=.22;
+ else if(/\.["'\u201d\u2019)\]]*$/u.test(t))base=.32+Math.min(.28,Math.max(0,words-8)*.012);
+ else base=.15;
+ return +(base*PR.scale*wobble(t)).toFixed(2);
+}
+function meaningChunks(text,max,PR){
+ const parts=[],minChars=PR.context?110:45;let buf='';
+ const flush=()=>{const t=buf.trim();buf='';if(t)parts.push({t,beat:meaningBeat(t,PR)})};
+ for(const sent of sentences(norm(text)))for(const piece of splitLong(sent,max)){
+  buf+=(buf?' ':'')+piece.trim();
+  if(buf.length>=minChars&&/[.!?\u2026]["'\u201d\u2019)\]]*$/u.test(buf))flush();
+ }
+ flush();
+ return parts;
+}
 function applyTiming(parts,setting,para,p,scene,chapterEnd,heading=false){
  if(!setting)return parts;
+ const PR=parseKey(setting);
  const shortDialogue=/^\s*["“‘]/u.test(para)&&para.trim().split(/\s+/u).length<=12;
  for(const part of parts){
   if(!part.last&&part.beat)part.pad=shortDialogue?Math.min(.35,part.beat):part.beat;
+  if(PR.pace&&!part.d){
+   const w=(part.say||part.text).trim().split(/\s+/u).length;let m=1;
+   if(/\?["'\u201d\u2019)\]]*$/u.test(part.text))m*=.97;else if(/!["'\u201d\u2019)\]]*$/u.test(part.text))m*=1.02;
+   if(w>=28)m*=1.03;else if(w<=5)m*=.98;
+   if(m!==1)part.mul=+((part.mul??1)*m).toFixed(3);
+  }
+  if(PR.asides&&/^[(\[].*[)\]]["'\u201d\u2019.,;:!?]*$/su.test(part.text.trim()))part.mul=+((part.mul??1)*1.05).toFixed(3);
  }
  const last=parts[parts.length-1];
  if(last){
   const n=pausePick(para,p);
-  last.pad=scene||chapterEnd?2:shortDialogue?(n<30?.55:.35):n<20?2:n<60?1.25:.9;
-  /* Ease the final existing passage, never create a new clip just for this.
-     Keep long passages nearly at their usual pace and leave short dialogue alone. */
+  const base=scene||chapterEnd?2:shortDialogue?(n<30?.55:.35):n<20?2:n<60?1.25:.9;
+  last.pad=+(base*PR.scale).toFixed(2);
+  /* Ease the final existing passage, never create a new clip just for this. */
   const words=last.say.trim().split(/\s+/u).length;
   if(!shortDialogue&&!heading&&!last.d&&words>=5&&/[.!?…]["'”’»)\]}]*$/u.test(last.text)){
-   last.mul=Math.min(last.mul??1,words<=16?(scene||chapterEnd?.92:.94):.96);
+   const m=words<=16?(scene||chapterEnd?.92:.94):.96;
+   last.mul=Math.min(last.mul??1,1-(1-m)*PR.scale);
   }
  }
  return parts;
@@ -806,7 +852,7 @@ function plan(paras,p,narr,style,first,setting=timing){
  const slowish=mobileDevice()||mode==='standard',max=first?(slowish?FIRST_CHUNK_MAX:NAT_FIRST_MAX):(slowish?CHUNK_MAX:NAT_MAX),dlg=narr,out=[];
  const next=paras[p+1],scene=next!=null&&SCENE.test(next),heading=!/[.!?\u2026"\u201d]$/.test(norm(para))&&norm(para).length<80&&(p===0||SCENE.test(paras[p-1]||''));
  for(const r of dialogueRuns(para,style==='pace'||style==='actor'?5:14)){
-  const pieces=setting?timedChunks(r.t,max,p):(slowish?chunks(r.t,max):sentenceChunks(r.t,max)).map(t=>({t}));
+  const PRn=setting?parseKey(setting):null;const pieces=setting?(PRn.meaning&&!slowish?meaningChunks(r.t,max,PRn):timedChunks(r.t,max,p)):(slowish?chunks(r.t,max):sentenceChunks(r.t,max)).map(t=>({t}));
   for(const {t,beat} of pieces){
    const say=spoken(t);if(!sayable(say))continue;
    /* Actor delivery: slower narrative speech, livelier dialogue and stronger
@@ -1031,10 +1077,10 @@ function showRecommendation(){
 }
 /* ───────── Panel wiring ───────── */
 let prosodyToastTimer;
-function showProsodyToast(on){
+function showProsodyToast(label){
  const toast=$('prosody-toast');if(!toast)return;
  clearTimeout(prosodyToastTimer);
- toast.textContent=on?'Prosody on':'Prosody off';
+ toast.textContent=label;
  toast.classList.add('is-visible');
  prosodyToastTimer=setTimeout(()=>toast.classList.remove('is-visible'),1600);
 }
@@ -1055,15 +1101,21 @@ function showProsodyToast(on){
   ms.replaceChildren(new Option('Automatic (recommended)','auto'),new Option('Fast — multi-core CPU','fast'),new Option('Low Memory — lighter CPU mode','standard'));
   ms.value=preference;ms.disabled=isPiper(currentVoice());ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=preference;showRecommendation()};
  }
- const naturalTiming=$('natural-timing');
- if(naturalTiming){
-  naturalTiming.checked=timing;
-  naturalTiming.onchange=()=>{
-   timing=naturalTiming.checked;
-   store.set('eddi-natural-timing',timing?'1':'0');
-   showProsodyToast(timing);
+
+ const prLevel=$('prosody-level'),prBoxes=['meaning','pace','context','asides'];
+ if(prLevel){
+  const sync=()=>{
+   const key=prosKey();prLevel.value=key?key.split('|')[0]:'off';
+   const f=key?key.split('|')[1]:'0000';
+   prBoxes.forEach((name,i)=>{const b=$('pr-'+name);if(b){b.checked=key?f[i]==='1':store.get('eddi-pr-'+name,PR_DEFAULT[name])==='1';b.disabled=!key}});
+  };
+  const changed=label=>{
+   timing=prosKey();sync();showProsodyToast(label);
    prefetchToken++;window.bookOffline?.refresh?.();
   };
+  sync();
+  prLevel.onchange=()=>{store.set('eddi-prosody-level',prLevel.value);store.set('eddi-natural-timing',prLevel.value==='off'?'0':'1');changed(prLevel.value==='off'?'Prosody off':'Prosody: '+prLevel.options[prLevel.selectedIndex].text)};
+  prBoxes.forEach(name=>{const b=$('pr-'+name);if(b)b.onchange=()=>{store.set('eddi-pr-'+name,b.checked?'1':'0');changed('Prosody test: '+b.parentElement.textContent.trim().split(' (')[0]+(b.checked?' on':' off'))}});
  }
  const ss=$('style-select'); /* (no menu any more: one voice, natural style) */
  if(ss){ss.value=styleNow();ss.onchange=()=>{store.set('cv-voice-style',ss.value);const t=$('test-style');if(t)t.value=ss.value;window.bookOffline&&window.bookOffline.refresh&&window.bookOffline.refresh()}}
@@ -1120,5 +1172,6 @@ window.chapterKokoro={toggle,stop,setStyle,skipSeconds,testVoice,stopTest,testAc
  refreshNarrator:()=>{const v=currentVoice(),target=isPiper(v)?v:'kokoro';if((worker&&workerVoice!==target)||(eng.used==='piper')!==isPiper(v)){if(worker&&workerVoice!==target)failWorker(CANCELLED,true);recent.length=0;lastSpeed=0;if(!worker)engineReset('')}
   const ms=$('mode-select');if(ms)ms.disabled=isPiper(v);showRecommendation();renderEngine();renderBuffer();reportStyle()},stats:()=>({speed:lastSpeed,engine:{...eng},buffer:{...bufInfo},mode}),measured:()=>Number(store.get('cv-measured-'+mode,'0'))};
 
+window.eddiPlanPreview=(paras,p=0)=>plan(paras,p,currentVoice(),styleNow(),false,timing).map(g=>({text:g.text,pad:g.pad,mul:g.mul}));
 window.eddiPlaybackDiagnostics=()=>({version:VERSION,threads:eng.threads||1,modePreference:preference,actualMode:eng.used||(isPiper(currentVoice())?'piper':mode),enginePhase:eng.phase,modelStartSeconds:eng.sec||null,firstSpeechSeconds:playbackDiagnostics.firstSpeechMs===null?null:playbackDiagnostics.firstSpeechMs/1000,generationSpeed:Math.round(lastSpeed*10)/10,bufferReadySeconds:Math.round(bufInfo.ready||0),bufferTargetSeconds:Math.round(bufInfo.target||0),bufferWaits:bufInfo.waits||0,bufferWaitSeconds:Math.round(bufInfo.waitSec||0),audioClipsStarted:playbackDiagnostics.clipsPlayed,handoffCount:playbackDiagnostics.hand,handoffAvgMs:playbackDiagnostics.hand?Math.round(playbackDiagnostics.handTotal/playbackDiagnostics.hand):null,handoffMaxMs:Math.round(playbackDiagnostics.handMax),handoffOver400ms:playbackDiagnostics.handLong,audioErrors:playbackDiagnostics.audioErrors});
 })();
