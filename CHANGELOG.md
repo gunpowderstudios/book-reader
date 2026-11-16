@@ -1,3 +1,7 @@
+## v1.12.317 — 16 November 2026
+
+- Removed the 16 ManyVoice voices from the voice menus (they sounded strange). Anyone who had one selected goes back to Alba.
+
 ## v1.12.316 — 16 November 2026
 
 - The paragraph being read now has a dark tint that follows the Reading style: green for Plain (as before), blue for Natural, plum for Storyteller, brick red for Full cast, brown for Theatrical.
