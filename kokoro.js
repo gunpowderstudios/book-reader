@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.303', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
+const VERSION='1.12.305', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
 const isPiper=voice=>typeof voice==='string'&&voice.startsWith('piper:');
 /* If a Piper voice cannot start on this browser, switch the narrator to Emma (Kokoro) so Play works next time instead of staying stuck. */
 const fallBackToKokoro=()=>{try{const sel=document.getElementById('voice');if(sel&&isPiper(sel.value)&&sel.querySelector('option[value="bf_emma"]')){sel.value='bf_emma';sel.dispatchEvent(new Event('change',{bubbles:true}))}}catch(_){}};
@@ -43,8 +43,7 @@ const store={
 };
 
 /* ───────── Settings ───────── */
-const legacyTiming=store.get('eddi-pause-full-stop','0')==='1'||store.get('eddi-pause-paragraph','0')==='1';
-let timing=store.get('eddi-natural-timing',legacyTiming?'1':'0')==='1';
+let timing=store.get('eddi-natural-timing','1')!=='0';
 
 const mobileDevice=()=>/iPad|iPhone|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const RANK=['gpu','fast','standard'];
@@ -695,14 +694,22 @@ function timedChunks(text,max,offset){
  if(text.slice(start).trim())push(text.slice(start),0);
  return parts;
 }
-function applyTiming(parts,setting,para,p,scene,chapterEnd){
+function applyTiming(parts,setting,para,p,scene,chapterEnd,heading=false){
  if(!setting)return parts;
- for(const part of parts)if(!part.last&&part.beat)part.pad=part.beat;
+ const shortDialogue=/^\s*["“‘]/u.test(para)&&para.trim().split(/\s+/u).length<=12;
+ for(const part of parts){
+  if(!part.last&&part.beat)part.pad=shortDialogue?Math.min(.35,part.beat):part.beat;
+ }
  const last=parts[parts.length-1];
  if(last){
   const n=pausePick(para,p);
-  const shortDialogue=/^\s*["“‘]/.test(para)&&para.length<100;
-  last.pad=scene||chapterEnd?2:shortDialogue?(n<25?1.2:.8):n<20?2:n<60?1.25:.9;
+  last.pad=scene||chapterEnd?2:shortDialogue?(n<30?.55:.35):n<20?2:n<60?1.25:.9;
+  /* Ease the final existing passage, never create a new clip just for this.
+     Keep long passages nearly at their usual pace and leave short dialogue alone. */
+  const words=last.say.trim().split(/\s+/u).length;
+  if(!shortDialogue&&!heading&&!last.d&&words>=5&&/[.!?…]["'”’»)\]}]*$/u.test(last.text)){
+   last.mul=Math.min(last.mul??1,words<=16?(scene||chapterEnd?.92:.94):.96);
+  }
  }
  return parts;
 }
@@ -816,7 +823,7 @@ function plan(paras,p,narr,style,first,setting=timing){
  for(let i=0;i<out.length-1;i++)out[i].pad=Math.max(out[i].pad,style==='actor'?actorRest(out[i].text):restAfter(out[i].text)); /* a passage ending at punctuation gets an appropriate rest */
  if(style!=='classic'&&out.length>1)for(const o of out)o.pad=+(o.pad*PAUSE_SCALE()*(style==='actor'?1:wobble(o.text))).toFixed(2);
  if(out.length){const l=out[out.length-1];l.last=true;l.pad=style==='actor'?(next==null?1.5:scene?1.4:heading?1.0:0.7):+((scene?1.4:heading?1.0:NAT_PARA_PAD)*PAUSE_SCALE()*wobble(l.text)).toFixed(2);if(!scene&&!heading&&style!=='pace'&&!l.d)l.mul=0.97} /* last sentence of a paragraph is spoken a touch slower, as a reader eases off */
- return applyTiming(out,setting,para,p,scene,next==null);
+ return applyTiming(out,setting,para,p,scene,next==null,heading);
 }
 function* segments(S,narr=currentVoice(),style=styleNow(),setting=timing){ /* lazily walks the book from the current position */
  let ci=S.index,p=S.p,first=true;
