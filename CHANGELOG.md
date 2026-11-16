@@ -1,3 +1,7 @@
+## v1.12.315 — 16 November 2026
+
+- New Reset E.D.D.i button at the bottom of Settings (tap twice). It puts every setting back to a new visitor's start and reloads. Books and your place in them are kept.
+
 ## v1.12.314 — 16 November 2026
 
 - Acting: tested on A Christmas Carol and fixed. It now understands "Scrooge's nephew", "the ghost", "returned the uncle" and more speech words, hands unattributed lines to the other speaker in a two-person chat, and needs stronger mood words (three or more) before changing the tone.
