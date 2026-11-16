@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.302', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
+const VERSION='1.12.303', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
 const isPiper=voice=>typeof voice==='string'&&voice.startsWith('piper:');
 /* If a Piper voice cannot start on this browser, switch the narrator to Emma (Kokoro) so Play works next time instead of staying stuck. */
 const fallBackToKokoro=()=>{try{const sel=document.getElementById('voice');if(sel&&isPiper(sel.value)&&sel.querySelector('option[value="bf_emma"]')){sel.value='bf_emma';sel.dispatchEvent(new Event('change',{bubbles:true}))}}catch(_){}};
@@ -43,7 +43,8 @@ const store={
 };
 
 /* ───────── Settings ───────── */
-let timing=(store.get('eddi-pause-full-stop','0')==='1'?1:0)|(store.get('eddi-pause-paragraph','0')==='1'?2:0);
+const legacyTiming=store.get('eddi-pause-full-stop','0')==='1'||store.get('eddi-pause-paragraph','0')==='1';
+let timing=store.get('eddi-natural-timing',legacyTiming?'1':'0')==='1';
 
 const mobileDevice=()=>/iPad|iPhone|iPod|Android/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const RANK=['gpu','fast','standard'];
@@ -667,21 +668,41 @@ function fullStop(text){
    &&!/\b(?:St|Mt|Hon|Rev|Gen|Lt|Col|Sgt|Capt|Maj|Sen|Gov|Jr|Sr|Ph\.D|e\.g|i\.e|a\.m|p\.m|etc|vs|No)\.$/i.test(t)
    &&!/(?:^|\s)(?:[A-Z]\.)+$/.test(t)&&!/\b(?:[A-Za-z]\.){2,}$/.test(t);
 }
-function timedChunks(text,max){
- const parts=[];let start=0;
+/* Stable variation by text and position, so buffering and saved audio agree on where to split. */
+function pausePick(text,position){
+ let h=(2166136261^position)>>>0;
+ for(let i=0;i<text.length;i++)h=Math.imul(h^text.charCodeAt(i),16777619);
+ return (h>>>0)%100;
+}
+function sentenceBeat(sentence,position){
+ const words=sentence.trim().split(/\s+/).length;
+ if(words<7)return 0;
+ const n=pausePick(sentence,position);
+ return n<(words>=15?26:17)?1:n<49?.5:0;
+}
+function timedChunks(text,max,offset){
+ const parts=[];let start=0,tail=0,beat=0;
+ const push=(piece,pad)=>{
+  const pieces=splitLong(piece.trim(),max);
+  for(let i=0;i<pieces.length;i++)parts.push({t:pieces[i],beat:i===pieces.length-1?pad:0});
+ };
  for(const m of text.matchAll(/\.+["'”’»)\]}]*(?=\s|$)/gu)){
-  const end=m.index+m[0].length;
-  if(fullStop(text.slice(start,end))){
-   parts.push(...splitLong(text.slice(start,end).trim(),max));start=end;
-  }
+  const end=m.index+m[0].length, sentence=text.slice(tail,end);
+  if(!fullStop(sentence))continue;
+  beat=sentenceBeat(sentence,offset+end);tail=end;
+  if(beat){push(text.slice(start,end),beat);start=end}
  }
- if(text.slice(start).trim())parts.push(...splitLong(text.slice(start).trim(),max));
+ if(text.slice(start).trim())push(text.slice(start),0);
  return parts;
 }
-function applyTiming(parts,setting){
- for(const part of parts){
-  if(setting&2&&part.last)part.pad=2;
-  else if(setting&1&&fullStop(part.text))part.pad=1;
+function applyTiming(parts,setting,para,p,scene,chapterEnd){
+ if(!setting)return parts;
+ for(const part of parts)if(!part.last&&part.beat)part.pad=part.beat;
+ const last=parts[parts.length-1];
+ if(last){
+  const n=pausePick(para,p);
+  const shortDialogue=/^\s*["“‘]/.test(para)&&para.length<100;
+  last.pad=scene||chapterEnd?2:shortDialogue?(n<25?1.2:.8):n<20?2:n<60?1.25:.9;
  }
  return parts;
 }
@@ -770,11 +791,16 @@ function actorRest(text){
 /* One paragraph -> the passages to speak, each with its voice, spoken text and the pause after it. */
 function plan(paras,p,narr,style,first,setting=timing){
  const para=paras[p];
- if(style==='classic')return applyTiming((setting&1?timedChunks:chunks)(norm(para),first?FIRST_CHUNK_MAX:CHUNK_MAX).map((t,k,a)=>({text:t,say:readableCaps(t),voice:narr,last:k===a.length-1,pad:k===a.length-1?PARA_PAD:0})),setting);
+ if(style==='classic'){
+  const max=first?FIRST_CHUNK_MAX:CHUNK_MAX;
+  const parts=setting?timedChunks(norm(para),max,p):chunks(para,max).map(t=>({t}));
+  return applyTiming(parts.map(({t,beat},i)=>({text:t,say:readableCaps(t),voice:narr,last:i===parts.length-1,pad:i===parts.length-1?PARA_PAD:0,beat})),setting,para,p,SCENE.test(paras[p+1]||''),p===paras.length-1);
+ }
  const slowish=mobileDevice()||mode==='standard',max=first?(slowish?FIRST_CHUNK_MAX:NAT_FIRST_MAX):(slowish?CHUNK_MAX:NAT_MAX),dlg=narr,out=[];
  const next=paras[p+1],scene=next!=null&&SCENE.test(next),heading=!/[.!?\u2026"\u201d]$/.test(norm(para))&&norm(para).length<80&&(p===0||SCENE.test(paras[p-1]||''));
  for(const r of dialogueRuns(para,style==='pace'||style==='actor'?5:14)){
-  for(const t of (setting&1?timedChunks(r.t,max):slowish?chunks(r.t,max):sentenceChunks(r.t,max))){
+  const pieces=setting?timedChunks(r.t,max,p):(slowish?chunks(r.t,max):sentenceChunks(r.t,max)).map(t=>({t}));
+  for(const {t,beat} of pieces){
    const say=spoken(t);if(!sayable(say))continue;
    /* Actor delivery: slower narrative speech, livelier dialogue and stronger
       punctuation cues. This is pacing, not full AI emotion interpretation. */
@@ -783,14 +809,14 @@ function plan(paras,p,narr,style,first,setting=timing){
    const mul=actor?(cue?cue.mul:urgent?1.16:question?0.91:r.d?1.11:0.94):(r.d&&style==='pace'?PACE_MUL:1);
    const pitch=r.d&&style==='pace'?PACE_PITCH:1;
    const questionRise=actor&&/\?[\s\u201d"']*$/.test(t);
-   out.push({text:t,say,voice:r.d?dlg:narr,d:r.d,mul,pitch,questionRise,last:false,pad:cue?cue.pad:0,actorCue:cue?.kind||null});
+   out.push({text:t,say,voice:r.d?dlg:narr,d:r.d,mul,pitch,questionRise,last:false,pad:cue?cue.pad:0,actorCue:cue?.kind||null,...(setting?{beat}:null)});
   }
  }
  for(let i=0;i<out.length;i++)if(i<out.length-1&&style!=='single'&&out[i].d!==out[i+1].d)out[i].pad=0.12;
  for(let i=0;i<out.length-1;i++)out[i].pad=Math.max(out[i].pad,style==='actor'?actorRest(out[i].text):restAfter(out[i].text)); /* a passage ending at punctuation gets an appropriate rest */
  if(style!=='classic'&&out.length>1)for(const o of out)o.pad=+(o.pad*PAUSE_SCALE()*(style==='actor'?1:wobble(o.text))).toFixed(2);
  if(out.length){const l=out[out.length-1];l.last=true;l.pad=style==='actor'?(next==null?1.5:scene?1.4:heading?1.0:0.7):+((scene?1.4:heading?1.0:NAT_PARA_PAD)*PAUSE_SCALE()*wobble(l.text)).toFixed(2);if(!scene&&!heading&&style!=='pace'&&!l.d)l.mul=0.97} /* last sentence of a paragraph is spoken a touch slower, as a reader eases off */
- return applyTiming(out,setting);
+ return applyTiming(out,setting,para,p,scene,next==null);
 }
 function* segments(S,narr=currentVoice(),style=styleNow(),setting=timing){ /* lazily walks the book from the current position */
  let ci=S.index,p=S.p,first=true;
@@ -1014,16 +1040,14 @@ function showRecommendation(){
   ms.replaceChildren(new Option('Automatic (recommended)','auto'),new Option('Fast — multi-core CPU','fast'),new Option('Low Memory — lighter CPU mode','standard'));
   ms.value=preference;ms.disabled=isPiper(currentVoice());ms.onchange=()=>{haltAll();setMode(ms.value);ms.value=preference;showRecommendation()};
  }
- const sentenceTiming=$('timing-full-stop'),paragraphTiming=$('timing-paragraph');
- if(sentenceTiming&&paragraphTiming){
-  sentenceTiming.checked=!!(timing&1);paragraphTiming.checked=!!(timing&2);
-  const saveTiming=()=>{
-   timing=(sentenceTiming.checked?1:0)|(paragraphTiming.checked?2:0);
-   store.set('eddi-pause-full-stop',sentenceTiming.checked?'1':'0');
-   store.set('eddi-pause-paragraph',paragraphTiming.checked?'1':'0');
+ const naturalTiming=$('natural-timing');
+ if(naturalTiming){
+  naturalTiming.checked=timing;
+  naturalTiming.onchange=()=>{
+   timing=naturalTiming.checked;
+   store.set('eddi-natural-timing',timing?'1':'0');
    prefetchToken++;window.bookOffline?.refresh?.();
   };
-  sentenceTiming.onchange=paragraphTiming.onchange=saveTiming;
  }
  const ss=$('style-select'); /* (no menu any more: one voice, natural style) */
  if(ss){ss.value=styleNow();ss.onchange=()=>{store.set('cv-voice-style',ss.value);const t=$('test-style');if(t)t.value=ss.value;window.bookOffline&&window.bookOffline.refresh&&window.bookOffline.refresh()}}
