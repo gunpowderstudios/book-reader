@@ -1,3 +1,7 @@
+## v1.12.312 — 16 November 2026
+
+- The short message shown when you change a reading style now appears in the middle of the screen, a little larger.
+
 ## v1.12.311 — 16 November 2026
 
 - One Reading style menu (Plain, Natural, Storyteller, Full cast, Theatrical) now sets Prosody, Tone and Acting together, with a line showing exactly what is on. The separate menus are still there under Advanced. Changing the style shows a short message at the top of the screen saying what it does.
