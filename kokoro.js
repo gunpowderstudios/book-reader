@@ -3,7 +3,7 @@
    One generation at a time; stale requests are dropped; every finished clip is cached.
    While you listen (or pause) it keeps generating ahead, up to a chosen number of minutes. */
 (()=>{'use strict';
-const VERSION='1.12.312', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
+const VERSION='1.12.313', KOKORO_WORKER_VERSION='1.12.284', PIPER_WORKER_VERSION='1.12.301';
 const isPiper=voice=>typeof voice==='string'&&voice.startsWith('piper:');
 /* If a Piper voice cannot start on this browser, switch the narrator to Emma (Kokoro) so Play works next time instead of staying stuck. */
 const fallBackToKokoro=()=>{try{const sel=document.getElementById('voice');if(sel&&isPiper(sel.value)&&sel.querySelector('option[value="bf_emma"]')){sel.value='bf_emma';sel.dispatchEvent(new Event('change',{bubbles:true}))}}catch(_){}};
@@ -1180,9 +1180,9 @@ let prosodyToastTimer;
 function showProsodyToast(label){
  const toast=$('prosody-toast');if(!toast)return;
  clearTimeout(prosodyToastTimer);
- toast.textContent=label;
+ toast.textContent=label;toast.onclick=()=>{clearTimeout(prosodyToastTimer);toast.classList.remove('is-visible')};
  toast.classList.add('is-visible');
- prosodyToastTimer=setTimeout(()=>toast.classList.remove("is-visible"),3200);
+ prosodyToastTimer=setTimeout(()=>toast.classList.remove("is-visible"),9000);
 }
 (function wirePanels(){
  const sel=$('test-voice');

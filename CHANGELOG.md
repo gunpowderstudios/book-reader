@@ -1,3 +1,7 @@
+## v1.12.313 — 16 November 2026
+
+- The style message now stays for 9 seconds, and you can click it to close it sooner.
+
 ## v1.12.312 — 16 November 2026
 
 - The short message shown when you change a reading style now appears in the middle of the screen, a little larger.
