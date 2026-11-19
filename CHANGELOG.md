@@ -1,3 +1,7 @@
+## v1.12.318 — 19 November 2026
+
+- Each book in the library now has a small Download link that saves the original book file to your device.
+
 ## v1.12.317 — 16 November 2026
 
 - Removed the 16 ManyVoice voices from the voice menus (they sounded strange). Anyone who had one selected goes back to Alba.

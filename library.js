@@ -125,7 +125,16 @@ function card(b){
   if(!armed){rm.textContent='Really remove?';rm.classList.add('danger');armed=setTimeout(()=>{armed=0;rm.textContent='Remove';rm.classList.remove('danger')},4000);return}
   clearTimeout(armed);rm.disabled=true;remove(b.id).catch(e=>{rm.disabled=false;rm.textContent='Remove';if(window.chapterApp)window.chapterApp.say('Could not remove the book: '+e.message)});
  };
- acts.append(go,rm);info.append(acts);
+ const dl=el('a','dl','Download');dl.href='#';dl.title='Save the original book file to your device';
+ dl.onclick=async ev=>{ev.preventDefault();if(dl.dataset.busy)return;dl.dataset.busy='1';const was=dl.textContent;dl.textContent='Preparing…';
+  try{const f=await getFile(b.id);if(!f)throw new Error('the file is not stored on this device');
+   const blob=f instanceof Blob?f:new Blob([f]);
+   let name=String(b.name||'').trim();if(!/\.[a-z0-9]{2,5}$/i.test(name))name=((b.title||'book').replace(/[\\/:*?"<>|]+/g,'').trim()||'book')+'.epub';
+   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+   dl.textContent='Downloaded';setTimeout(()=>{dl.textContent=was},2500)}
+  catch(e){dl.textContent=was;if(window.chapterApp)window.chapterApp.say('Could not download the book: '+e.message)}
+  finally{delete dl.dataset.busy}};
+ acts.append(go,rm,dl);info.append(acts);
  c.append(cover,info);
  return c;
 }
