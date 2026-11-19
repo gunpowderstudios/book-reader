@@ -1,3 +1,7 @@
+## v1.12.319 — 19 November 2026
+
+- The menu item and tab called Syncing Playback is now Syncing Devices.
+
 ## v1.12.318 — 19 November 2026
 
 - Each book in the library now has a small Download link that saves the original book file to your device.
